@@ -19,7 +19,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/swiftlang/swift-markdown.git",
-            from: "0.8.0"
+            .upToNextMinor(from: "0.8.0")
         ),
     ],
     targets: [
@@ -27,6 +27,9 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "FlatMark",
+            dependencies: [
+                .product(name: "Markdown", package: "swift-markdown"),
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("ApproachableConcurrency"),
             ],
