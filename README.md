@@ -21,7 +21,7 @@ struct ReadmePreview: View {
 }
 ```
 
-To allow task-list checkboxes to change, provide `markdownChangeAction`. The closure receives the complete updated source string; your app decides whether and where to persist it.
+To allow task-list checkboxes to change, provide `taskToggleAction`. The closure receives the complete updated source string; your app decides whether and where to persist it.
 
 ```swift
 struct InteractivePreview: View {

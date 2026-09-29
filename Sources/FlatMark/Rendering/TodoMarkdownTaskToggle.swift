@@ -1,8 +1,8 @@
-// MARK: - TodoMarkdownTaskToggleOperation
+// MARK: - TaskListMarkerToggle
 
 /// A narrow source-preserving operation for one current Markdown task marker.
-enum TodoMarkdownTaskToggleOperation {
-    static func toggledMarkdown(in markdown: String, id: TodoMarkdownSemanticID) -> String? {
+enum TaskListMarkerToggle {
+    static func toggledMarkdown(in markdown: String, id: FlatMarkRenderNodeID) -> String? {
         guard let range = utf8Range(for: id.sourceRange, in: markdown),
               let markerOffset = markerOffset(in: markdown, range: range),
               let isChecked = Array(markdown.utf8)[markerOffset + 1].asciiTaskState
@@ -21,7 +21,7 @@ enum TodoMarkdownTaskToggleOperation {
     }
 
     private static func utf8Range(
-        for sourceRange: TodoMarkdownSemanticID.SourceRange,
+        for sourceRange: FlatMarkRenderNodeID.SourceRange,
         in markdown: String
     ) -> Range<Int>? {
         guard let lowerBound = utf8Offset(for: sourceRange.lowerBound, in: markdown),
@@ -36,7 +36,7 @@ enum TodoMarkdownTaskToggleOperation {
 
     /// Semantic locations use swift-markdown's one-based lines and UTF-8 columns.
     private static func utf8Offset(
-        for location: TodoMarkdownSemanticID.SourceRange.Location,
+        for location: FlatMarkRenderNodeID.SourceRange.Location,
         in markdown: String
     ) -> Int? {
         guard location.line > 0, location.column > 0 else {

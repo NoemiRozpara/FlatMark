@@ -1,5 +1,5 @@
 /// The parsed-tree and source-text position of a rendered Markdown element.
-struct TodoMarkdownSemanticID: Hashable, Sendable {
+struct FlatMarkRenderNodeID: Hashable, Sendable {
     struct SourceRange: Hashable, Sendable {
         struct Location: Hashable, Sendable {
             let line: Int

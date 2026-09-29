@@ -2,7 +2,7 @@ import Foundation
 import Markdown
 
 /// Converts Markdown inline nodes into SwiftUI's native rich-text value.
-struct TodoMarkdownInlineProjector: MarkupVisitor {
+struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
     typealias Result = AttributedString
 
     mutating func project(_ markup: Markup) -> AttributedString {

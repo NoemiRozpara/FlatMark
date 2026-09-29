@@ -1,13 +1,13 @@
 import SwiftUI
 
-// MARK: - TodoMarkdownDocumentView
+// MARK: - FlatMarkDocumentView
 
-struct TodoMarkdownDocumentView: View {
-    let document: TodoMarkdownRenderDocument
-    var taskToggleAction: ((TodoMarkdownSemanticID) -> Void)? = nil
+struct FlatMarkDocumentView: View {
+    let document: FlatMarkRenderDocument
+    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
-        TodoMarkdownBlockListView(
+        FlatMarkBlockListView(
             blocks: document.blocks,
             taskToggleAction: taskToggleAction
         )
@@ -15,16 +15,16 @@ struct TodoMarkdownDocumentView: View {
     }
 }
 
-// MARK: - TodoMarkdownBlockListView
+// MARK: - FlatMarkBlockListView
 
-private struct TodoMarkdownBlockListView: View {
-    let blocks: [TodoMarkdownRenderBlock]
-    var taskToggleAction: ((TodoMarkdownSemanticID) -> Void)? = nil
+private struct FlatMarkBlockListView: View {
+    let blocks: [FlatMarkRenderBlock]
+    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             ForEach(blocks) { block in
-                TodoMarkdownBlockView(
+                FlatMarkBlockView(
                     block: block,
                     taskToggleAction: taskToggleAction
                 )
@@ -33,11 +33,11 @@ private struct TodoMarkdownBlockListView: View {
     }
 }
 
-// MARK: - TodoMarkdownBlockView
+// MARK: - FlatMarkBlockView
 
-struct TodoMarkdownBlockView: View {
-    let block: TodoMarkdownRenderBlock
-    var taskToggleAction: ((TodoMarkdownSemanticID) -> Void)? = nil
+struct FlatMarkBlockView: View {
+    let block: FlatMarkRenderBlock
+    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
         switch block.kind {
@@ -50,7 +50,7 @@ struct TodoMarkdownBlockView: View {
                 .bold()
                 .accessibilityAddTraits(.isHeader)
 
-        case let .code(content):
+        case let .codeBlock(content):
             Text(content)
                 .font(.body.monospaced())
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -63,14 +63,14 @@ struct TodoMarkdownBlockView: View {
                     .fill(.secondary)
                     .frame(width: 2)
 
-                TodoMarkdownBlockListView(
+                FlatMarkBlockListView(
                     blocks: blocks,
                     taskToggleAction: taskToggleAction
                 )
             }
 
         case let .list(entries):
-            TodoMarkdownListView(
+            FlatMarkListView(
                 entries: entries,
                 taskToggleAction: taskToggleAction
             )
@@ -79,9 +79,9 @@ struct TodoMarkdownBlockView: View {
             Divider()
 
         case let .table(table):
-            TodoMarkdownTableView(table: table)
+            FlatMarkTableView(table: table)
 
-        case let .unsupported(type, content):
+        case let .fallback(type, content):
             Text("\(type): \(content)")
                 .foregroundStyle(.secondary)
         }
@@ -101,12 +101,12 @@ struct TodoMarkdownBlockView: View {
     }
 }
 
-// MARK: - TodoMarkdownTableView
+// MARK: - FlatMarkTableView
 
-private struct TodoMarkdownTableView: View {
+private struct FlatMarkTableView: View {
     private let cellWidth: CGFloat = 160
 
-    let table: TodoMarkdownTable
+    let table: FlatMarkRenderTable
 
     var body: some View {
         if !table.header.isEmpty && !table.rows.isEmpty {
@@ -152,8 +152,8 @@ private struct TodoMarkdownTableView: View {
 }
 
 #Preview("Markdown Table") {
-    TodoMarkdownTableView(
-        table: TodoMarkdownTable(
+    FlatMarkTableView(
+        table: FlatMarkRenderTable(
             header: [
                 .init(id: "header.owner", content: "Owner", colspan: 1),
                 .init(id: "header.status", content: "Status", colspan: 1),

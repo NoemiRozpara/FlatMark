@@ -2,12 +2,12 @@ import Foundation
 import Testing
 @testable import FlatMark
 
-// MARK: - TodoMarkdownProjectorTests
+// MARK: - FlatMarkRenderProjectorTests
 
-struct TodoMarkdownProjectorTests {
+struct FlatMarkRenderProjectorTests {
     @Test
     func `projects basic blocks with stable structural paths`() {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         # Title
 
         A paragraph.
@@ -31,13 +31,13 @@ struct TodoMarkdownProjectorTests {
 
         #expect(quotedBlocks.map(\.id.path) == [[2, 0]])
         #expect(quotedBlocks.map(\.kind) == [.paragraph("Quoted text.")])
-        #expect(document.blocks[3].kind == .code("print(\"Hello\")\n"))
+        #expect(document.blocks[3].kind == .codeBlock("print(\"Hello\")\n"))
         #expect(document.blocks[4].kind == .thematicBreak)
     }
 
     @Test
     func `projects a source position for every nested render block`() {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         > Quoted text.
         >
         > - List item
@@ -50,7 +50,7 @@ struct TodoMarkdownProjectorTests {
 
     @Test
     func `flattens mixed list rows with structural paths indentation and markers`() {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         3. Ordered
            - [x] Done
            - [ ] Pending
@@ -71,7 +71,7 @@ struct TodoMarkdownProjectorTests {
 
     @Test
     func `retains rich non-list item children without nesting list rows`() {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         - > Quoted text.
 
           Follow-up paragraph.
@@ -92,13 +92,13 @@ struct TodoMarkdownProjectorTests {
         #expect(entries.compactMap(childBlock).map(\.block.kind) == [
             .blockQuote([allBlocks(in: document)[2]]),
             .paragraph("Follow-up paragraph."),
-            .code("let isReady = true\n"),
+            .codeBlock("let isReady = true\n"),
         ])
     }
 
     @Test
     func `preserves a continuation block after its nested list`() {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         - Parent
           - Child
 
@@ -113,7 +113,7 @@ struct TodoMarkdownProjectorTests {
 
     @Test
     func `projects tables with ordered attributed header and body cells`() throws {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         | **Name** | State |
         | --- | --- |
         | Alpha | Ready |
@@ -134,7 +134,7 @@ struct TodoMarkdownProjectorTests {
 
     @Test
     func `decodes native table spans without exposing continuation markers`() throws {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         | First | Second | Third |
         | --- | --- | --- |
         | Wide || End |
@@ -158,7 +158,7 @@ struct TodoMarkdownProjectorTests {
 
     @Test
     func `keeps authored blank cells distinct from span fillers and projects uneven input safely`() throws {
-        let blankAndSpanned = TodoMarkdownProjector.project(markdown: """
+        let blankAndSpanned = FlatMarkRenderProjector.project(markdown: """
         | A | B | C |
         | --- | --- | --- |
         | | Value | End |
@@ -167,7 +167,7 @@ struct TodoMarkdownProjectorTests {
         let projectedTable = try #require(table(in: blankAndSpanned))
         let blank = projectedTable.rows[0].cells[0]
         let spanFiller = projectedTable.rows[1].cells[1]
-        let uneven = try #require(table(in: TodoMarkdownProjector.project(markdown: """
+        let uneven = try #require(table(in: FlatMarkRenderProjector.project(markdown: """
         | A | B | C |
         | --- | --- | --- |
         | One |
@@ -179,7 +179,7 @@ struct TodoMarkdownProjectorTests {
         #expect(text(of: spanFiller.content).isEmpty)
         #expect(uneven.header.count == 3)
         #expect(uneven.rows.allSatisfy { $0.cells.count == 3 })
-        #expect(TodoMarkdownProjector.project(markdown: "").blocks.isEmpty)
+        #expect(FlatMarkRenderProjector.project(markdown: "").blocks.isEmpty)
     }
 
     @Test
@@ -187,8 +187,8 @@ struct TodoMarkdownProjectorTests {
         let image = try #require(paragraphContent(in: "![](https://example.com/diagram.png)"))
         #expect(text(of: image) == "Image: image (https://example.com/diagram.png)")
 
-        let html = TodoMarkdownProjector.project(markdown: "<!-- -->")
-        let unknown = TodoMarkdownProjector.project(markdown: "@Unknown {}")
+        let html = FlatMarkRenderProjector.project(markdown: "<!-- -->")
+        let unknown = FlatMarkRenderProjector.project(markdown: "@Unknown {}")
         let htmlFallback = fallbackText(in: html)
         let unknownFallback = fallbackText(in: unknown)
 
@@ -200,14 +200,14 @@ struct TodoMarkdownProjectorTests {
 
     @Test
     func `projects unsupported nodes as labeled readable content`() {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         @Unknown {
         Visible descendant
         }
         """)
 
-        guard case let .unsupported(type, content) = document.blocks.first?.kind else {
-            Issue.record("Expected an unsupported block")
+        guard case let .fallback(type, content) = document.blocks.first?.kind else {
+            Issue.record("Expected a fallback block")
             return
         }
 
@@ -217,10 +217,10 @@ struct TodoMarkdownProjectorTests {
 
     @Test
     func `retains raw HTML in the unsupported fallback`() {
-        let document = TodoMarkdownProjector.project(markdown: "<details>Visible literal</details>")
+        let document = FlatMarkRenderProjector.project(markdown: "<details>Visible literal</details>")
 
         #expect(document.blocks.first?.kind ==
-            .unsupported(type: "HTMLBlock", content: "<details>Visible literal</details>\n"))
+            .fallback(type: "HTMLBlock", content: "<details>Visible literal</details>\n"))
     }
 
     @Test
@@ -250,7 +250,7 @@ struct TodoMarkdownProjectorTests {
 
     @Test
     func `projects indented code headings and empty unsupported nodes readably`() {
-        let document = TodoMarkdownProjector.project(markdown: """
+        let document = FlatMarkRenderProjector.project(markdown: """
         #### Heading
 
             let value = 1
@@ -259,10 +259,10 @@ struct TodoMarkdownProjectorTests {
         """)
 
         #expect(document.blocks[0].kind == .heading(level: 4, content: "Heading"))
-        #expect(document.blocks[1].kind == .code("let value = 1\n"))
+        #expect(document.blocks[1].kind == .codeBlock("let value = 1\n"))
 
-        guard case let .unsupported(type, content) = document.blocks[2].kind else {
-            Issue.record("Expected an unsupported block")
+        guard case let .fallback(type, content) = document.blocks[2].kind else {
+            Issue.record("Expected a fallback block")
             return
         }
 
@@ -272,7 +272,7 @@ struct TodoMarkdownProjectorTests {
 }
 
 private func paragraphContent(in markdown: String) -> AttributedString? {
-    let document = TodoMarkdownProjector.project(markdown: markdown)
+    let document = FlatMarkRenderProjector.project(markdown: markdown)
 
     guard case let .paragraph(content) = document.blocks.first?.kind else {
         return nil
@@ -281,7 +281,7 @@ private func paragraphContent(in markdown: String) -> AttributedString? {
     return content
 }
 
-private func listEntries(in document: TodoMarkdownRenderDocument) -> [TodoMarkdownListEntry] {
+private func listEntries(in document: FlatMarkRenderDocument) -> [FlatMarkListRenderEntry] {
     guard case let .list(entries) = document.blocks.first?.kind else {
         return []
     }
@@ -289,7 +289,7 @@ private func listEntries(in document: TodoMarkdownRenderDocument) -> [TodoMarkdo
     return entries
 }
 
-private func entryKind(_ entry: TodoMarkdownListEntry) -> String {
+private func entryKind(_ entry: FlatMarkListRenderEntry) -> String {
     switch entry {
     case .row:
         "row"
@@ -298,7 +298,7 @@ private func entryKind(_ entry: TodoMarkdownListEntry) -> String {
     }
 }
 
-private func row(in entry: TodoMarkdownListEntry) -> TodoMarkdownListRow? {
+private func row(in entry: FlatMarkListRenderEntry) -> FlatMarkListRenderRow? {
     guard case let .row(row) = entry else {
         return nil
     }
@@ -306,7 +306,7 @@ private func row(in entry: TodoMarkdownListEntry) -> TodoMarkdownListRow? {
     return row
 }
 
-private func childBlock(in entry: TodoMarkdownListEntry) -> TodoMarkdownListChildBlock? {
+private func childBlock(in entry: FlatMarkListRenderEntry) -> FlatMarkListChildRenderBlock? {
     guard case let .childBlock(childBlock) = entry else {
         return nil
     }
@@ -314,17 +314,17 @@ private func childBlock(in entry: TodoMarkdownListEntry) -> TodoMarkdownListChil
     return childBlock
 }
 
-private func allBlocks(in document: TodoMarkdownRenderDocument) -> [TodoMarkdownRenderBlock] {
+private func allBlocks(in document: FlatMarkRenderDocument) -> [FlatMarkRenderBlock] {
     allBlocks(in: document.blocks)
 }
 
-private func allBlocks(in blocks: [TodoMarkdownRenderBlock]) -> [TodoMarkdownRenderBlock] {
-    blocks.flatMap { block -> [TodoMarkdownRenderBlock] in
+private func allBlocks(in blocks: [FlatMarkRenderBlock]) -> [FlatMarkRenderBlock] {
+    blocks.flatMap { block -> [FlatMarkRenderBlock] in
         switch block.kind {
         case let .blockQuote(children):
             return [block] + allBlocks(in: children)
         case let .list(entries):
-            let childBlocks: [TodoMarkdownRenderBlock] = entries.compactMap { entry in
+            let childBlocks: [FlatMarkRenderBlock] = entries.compactMap { entry in
                 guard case let .childBlock(childBlock) = entry else {
                     return nil
                 }
@@ -338,9 +338,9 @@ private func allBlocks(in blocks: [TodoMarkdownRenderBlock]) -> [TodoMarkdownRen
     }
 }
 
-private func fallbackText(in document: TodoMarkdownRenderDocument) -> [String] {
+private func fallbackText(in document: FlatMarkRenderDocument) -> [String] {
     allBlocks(in: document).compactMap { block -> String? in
-        guard case let .unsupported(_, content) = block.kind else {
+        guard case let .fallback(_, content) = block.kind else {
             return nil
         }
 
@@ -348,7 +348,7 @@ private func fallbackText(in document: TodoMarkdownRenderDocument) -> [String] {
     }
 }
 
-private func table(in document: TodoMarkdownRenderDocument) -> TodoMarkdownTable? {
+private func table(in document: FlatMarkRenderDocument) -> FlatMarkRenderTable? {
     guard case let .table(table) = document.blocks.first?.kind else {
         return nil
     }

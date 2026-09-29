@@ -1,7 +1,7 @@
 import Testing
 @testable import FlatMark
 
-struct TodoMarkdownTaskToggleTests {
+struct TaskListMarkerToggleTests {
     @Test
     func `toggling nested task preserves all authored markdown except one marker state`() throws {
         let markdown = """
@@ -18,7 +18,7 @@ struct TodoMarkdownTaskToggleTests {
         #expect(id.path == [1, 0, 1, 0])
 
         let updatedMarkdown = try #require(
-            TodoMarkdownTaskToggleOperation.toggledMarkdown(in: markdown, id: id)
+            TaskListMarkerToggle.toggledMarkdown(in: markdown, id: id)
         )
 
         #expect(updatedMarkdown == markdown.replacingFirst("  - [x] Nested task", with: "  - [ ] Nested task"))
@@ -34,19 +34,19 @@ struct TodoMarkdownTaskToggleTests {
         #expect(toggledMarkdown(in: checked) == "- [ ] Done")
         #expect(toggledMarkdown(in: uppercase) == "- [ ] Also done")
 
-        let invalidID = TodoMarkdownSemanticID(
+        let invalidID = FlatMarkRenderNodeID(
             path: [99],
             sourceRange: .init(
                 lowerBound: .init(line: 99, column: 1),
                 upperBound: .init(line: 99, column: 2)
             )
         )
-        #expect(TodoMarkdownTaskToggleOperation.toggledMarkdown(in: unchecked, id: invalidID) == nil)
+        #expect(TaskListMarkerToggle.toggledMarkdown(in: unchecked, id: invalidID) == nil)
     }
 }
 
-private func taskIDs(in markdown: String) -> [TodoMarkdownSemanticID] {
-    TodoMarkdownProjector.project(markdown: markdown).blocks.flatMap(taskIDs(in:))
+private func taskIDs(in markdown: String) -> [FlatMarkRenderNodeID] {
+    FlatMarkRenderProjector.project(markdown: markdown).blocks.flatMap(taskIDs(in:))
 }
 
 private func toggledMarkdown(in markdown: String) -> String? {
@@ -54,15 +54,15 @@ private func toggledMarkdown(in markdown: String) -> String? {
         return nil
     }
 
-    return TodoMarkdownTaskToggleOperation.toggledMarkdown(in: markdown, id: id)
+    return TaskListMarkerToggle.toggledMarkdown(in: markdown, id: id)
 }
 
-private func taskIDs(in block: TodoMarkdownRenderBlock) -> [TodoMarkdownSemanticID] {
+private func taskIDs(in block: FlatMarkRenderBlock) -> [FlatMarkRenderNodeID] {
     switch block.kind {
     case let .blockQuote(blocks):
         blocks.flatMap(taskIDs(in:))
     case let .list(entries):
-        entries.flatMap { entry -> [TodoMarkdownSemanticID] in
+        entries.flatMap { entry -> [FlatMarkRenderNodeID] in
             switch entry {
             case let .row(row):
                 if case .task = row.marker {

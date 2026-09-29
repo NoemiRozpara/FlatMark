@@ -1,35 +1,35 @@
 import Foundation
 import Markdown
 
-// MARK: - TodoMarkdownRenderDocument
+// MARK: - FlatMarkRenderDocument
 
 /// Value-only input for the native Markdown renderer.
-struct TodoMarkdownRenderDocument: Equatable, Sendable {
-    let blocks: [TodoMarkdownRenderBlock]
+struct FlatMarkRenderDocument: Equatable, Sendable {
+    let blocks: [FlatMarkRenderBlock]
 }
 
-// MARK: - TodoMarkdownRenderBlock
+// MARK: - FlatMarkRenderBlock
 
-struct TodoMarkdownRenderBlock: Identifiable, Equatable, Sendable {
+struct FlatMarkRenderBlock: Identifiable, Equatable, Sendable {
     enum Kind: Equatable, Sendable {
         case paragraph(AttributedString)
         case heading(level: Int, content: AttributedString)
-        case code(String)
-        case blockQuote([TodoMarkdownRenderBlock])
-        case list([TodoMarkdownListEntry])
+        case codeBlock(String)
+        case blockQuote([FlatMarkRenderBlock])
+        case list([FlatMarkListRenderEntry])
         case thematicBreak
-        case table(TodoMarkdownTable)
-        case unsupported(type: String, content: AttributedString)
+        case table(FlatMarkRenderTable)
+        case fallback(type: String, content: AttributedString)
     }
 
-    let id: TodoMarkdownSemanticID
+    let id: FlatMarkRenderNodeID
     let kind: Kind
 }
 
-// MARK: - TodoMarkdownTable
+// MARK: - FlatMarkRenderTable
 
 /// A rectangular, renderer-only table projection.
-struct TodoMarkdownTable: Equatable, Sendable {
+struct FlatMarkRenderTable: Equatable, Sendable {
     struct Row: Identifiable, Equatable, Sendable {
         let id: String
         let cells: [Cell]
@@ -45,32 +45,32 @@ struct TodoMarkdownTable: Equatable, Sendable {
     let rows: [Row]
 }
 
-// MARK: - TodoMarkdownListMarker
+// MARK: - FlatMarkListMarker
 
-enum TodoMarkdownListMarker: Equatable, Sendable {
+enum FlatMarkListMarker: Equatable, Sendable {
     case unordered
     case ordered(index: Int)
     case task(isChecked: Bool)
 }
 
-// MARK: - TodoMarkdownListRow
+// MARK: - FlatMarkListRenderRow
 
 /// A flattened list item identified by its parsed location in the Markdown source.
-struct TodoMarkdownListRow: Identifiable, Equatable, Sendable {
-    let id: TodoMarkdownSemanticID
+struct FlatMarkListRenderRow: Identifiable, Equatable, Sendable {
+    let id: FlatMarkRenderNodeID
     let indentation: Int
-    let marker: TodoMarkdownListMarker
+    let marker: FlatMarkListMarker
     let content: AttributedString
 }
 
-// MARK: - TodoMarkdownListEntry
+// MARK: - FlatMarkListRenderEntry
 
 /// An ordered list rendering event. Nested rows remain siblings in this flat sequence.
-enum TodoMarkdownListEntry: Identifiable, Equatable, Sendable {
-    case row(TodoMarkdownListRow)
-    case childBlock(TodoMarkdownListChildBlock)
+enum FlatMarkListRenderEntry: Identifiable, Equatable, Sendable {
+    case row(FlatMarkListRenderRow)
+    case childBlock(FlatMarkListChildRenderBlock)
 
-    var id: TodoMarkdownSemanticID {
+    var id: FlatMarkRenderNodeID {
         switch self {
         case let .row(row):
             row.id
@@ -80,30 +80,30 @@ enum TodoMarkdownListEntry: Identifiable, Equatable, Sendable {
     }
 }
 
-// MARK: - TodoMarkdownListChildBlock
+// MARK: - FlatMarkListChildRenderBlock
 
-struct TodoMarkdownListChildBlock: Equatable, Sendable {
+struct FlatMarkListChildRenderBlock: Equatable, Sendable {
     let indentation: Int
-    let block: TodoMarkdownRenderBlock
+    let block: FlatMarkRenderBlock
 }
 
-// MARK: - TodoMarkdownProjector
+// MARK: - FlatMarkRenderProjector
 
-enum TodoMarkdownProjector {
-    static func project(markdown: String) -> TodoMarkdownRenderDocument {
+enum FlatMarkRenderProjector {
+    static func project(markdown: String) -> FlatMarkRenderDocument {
         let document = Document(parsing: markdown, options: [.parseBlockDirectives])
-        return TodoMarkdownRenderDocument(
+        return FlatMarkRenderDocument(
             blocks: projectChildren(of: document, path: [], indentation: 0)
         )
     }
 }
 
-private extension TodoMarkdownProjector {
+private extension FlatMarkRenderProjector {
     static func projectChildren(
         of markup: some Markup,
         path: [Int],
         indentation: Int
-    ) -> [TodoMarkdownRenderBlock] {
+    ) -> [FlatMarkRenderBlock] {
         markup.children.enumerated().map { index, child in
             project(child, path: path + [index], indentation: indentation)
         }
@@ -113,31 +113,31 @@ private extension TodoMarkdownProjector {
         _ markup: any Markup,
         path: [Int],
         indentation: Int
-    ) -> TodoMarkdownRenderBlock {
+    ) -> FlatMarkRenderBlock {
         let id = id(for: markup, path: path)
         let structuralID = path.map(String.init).joined(separator: ".")
 
         switch markup {
         case let paragraph as Paragraph:
-            return TodoMarkdownRenderBlock(
+            return FlatMarkRenderBlock(
                 id: id,
                 kind: .paragraph(inlineContent(of: paragraph))
             )
 
         case let heading as Heading:
-            return TodoMarkdownRenderBlock(
+            return FlatMarkRenderBlock(
                 id: id,
                 kind: .heading(level: heading.level, content: inlineContent(of: heading))
             )
 
         case let codeBlock as CodeBlock:
-            return TodoMarkdownRenderBlock(
+            return FlatMarkRenderBlock(
                 id: id,
-                kind: .code(codeBlock.code)
+                kind: .codeBlock(codeBlock.code)
             )
 
         case let blockQuote as BlockQuote:
-            return TodoMarkdownRenderBlock(
+            return FlatMarkRenderBlock(
                 id: id,
                 kind: .blockQuote(projectChildren(of: blockQuote, path: path, indentation: indentation))
             )
@@ -159,27 +159,27 @@ private extension TodoMarkdownProjector {
             )
 
         case is ThematicBreak:
-            return TodoMarkdownRenderBlock(
+            return FlatMarkRenderBlock(
                 id: id,
                 kind: .thematicBreak
             )
 
         case let table as Table:
-            return TodoMarkdownRenderBlock(
+            return FlatMarkRenderBlock(
                 id: id,
                 kind: .table(tableProjection(from: table, id: structuralID))
             )
 
         case let htmlBlock as HTMLBlock:
-            return TodoMarkdownRenderBlock(
+            return FlatMarkRenderBlock(
                 id: id,
-                kind: .unsupported(type: nodeType(of: htmlBlock), content: htmlFallbackContent(for: htmlBlock))
+                kind: .fallback(type: nodeType(of: htmlBlock), content: htmlFallbackContent(for: htmlBlock))
             )
 
         default:
-            return TodoMarkdownRenderBlock(
+            return FlatMarkRenderBlock(
                 id: id,
-                kind: .unsupported(type: nodeType(of: markup), content: fallbackContent(for: markup))
+                kind: .fallback(type: nodeType(of: markup), content: fallbackContent(for: markup))
             )
         }
     }
@@ -189,7 +189,7 @@ private extension TodoMarkdownProjector {
         startIndex: Int?,
         path: [Int],
         indentation: Int
-    ) -> TodoMarkdownRenderBlock {
+    ) -> FlatMarkRenderBlock {
         let rows = listRows(
             from: list,
             startIndex: startIndex,
@@ -197,7 +197,7 @@ private extension TodoMarkdownProjector {
             indentation: indentation
         )
 
-        return TodoMarkdownRenderBlock(
+        return FlatMarkRenderBlock(
             id: id(for: list, path: path),
             kind: .list(rows)
         )
@@ -208,19 +208,19 @@ private extension TodoMarkdownProjector {
         startIndex: Int?,
         path: [Int],
         indentation: Int
-    ) -> [TodoMarkdownListEntry] {
-        list.children.enumerated().flatMap { index, child -> [TodoMarkdownListEntry] in
+    ) -> [FlatMarkListRenderEntry] {
+        list.children.enumerated().flatMap { index, child -> [FlatMarkListRenderEntry] in
             guard let item = child as? ListItem else {
                 return []
             }
 
             let itemPath = path + [index]
-            let marker = marker(for: item, orderedIndex: startIndex.map { $0 + index })
-            let row = TodoMarkdownListRow(
+            let marker = listMarker(for: item, orderedIndex: startIndex.map { $0 + index })
+            let row = FlatMarkListRenderRow(
                 id: id(for: item, path: itemPath),
                 indentation: indentation,
                 marker: marker,
-                content: primaryContent(of: item) ?? AttributedString()
+                content: firstParagraphContent(of: item) ?? AttributedString()
             )
             let children = item.children.enumerated().flatMap { childIndex, child in
                 listItemEntries(
@@ -240,7 +240,7 @@ private extension TodoMarkdownProjector {
         at index: Int,
         itemPath: [Int],
         indentation: Int
-    ) -> [TodoMarkdownListEntry] {
+    ) -> [FlatMarkListRenderEntry] {
         guard !(index == 0 && markup is Paragraph) else {
             return []
         }
@@ -265,8 +265,8 @@ private extension TodoMarkdownProjector {
 
         default:
             [
-                TodoMarkdownListEntry.childBlock(
-                    TodoMarkdownListChildBlock(
+                FlatMarkListRenderEntry.childBlock(
+                    FlatMarkListChildRenderBlock(
                         indentation: indentation,
                         block: project(markup, path: path, indentation: indentation)
                     )
@@ -275,18 +275,18 @@ private extension TodoMarkdownProjector {
         }
     }
 
-    static func marker(for item: ListItem, orderedIndex: Int?) -> TodoMarkdownListMarker {
+    static func listMarker(for item: ListItem, orderedIndex: Int?) -> FlatMarkListMarker {
         switch item.checkbox {
         case .checked:
             .task(isChecked: true)
         case .unchecked:
             .task(isChecked: false)
         case nil:
-            orderedIndex.map(TodoMarkdownListMarker.ordered) ?? .unordered
+            orderedIndex.map(FlatMarkListMarker.ordered) ?? .unordered
         }
     }
 
-    static func primaryContent(of item: ListItem) -> AttributedString? {
+    static func firstParagraphContent(of item: ListItem) -> AttributedString? {
         guard let paragraph = item.child(at: 0) as? Paragraph else {
             return nil
         }
@@ -294,7 +294,7 @@ private extension TodoMarkdownProjector {
         return inlineContent(of: paragraph)
     }
 
-    static func tableProjection(from table: Table, id: String) -> TodoMarkdownTable {
+    static func tableProjection(from table: Table, id: String) -> FlatMarkRenderTable {
         let sourceHeader = Array(table.head.cells)
         let sourceRows = table.body.rows.map { Array($0.cells) }
         let columnCount = ([sourceHeader.count] + sourceRows.map(\.count)).max() ?? 0
@@ -304,7 +304,7 @@ private extension TodoMarkdownProjector {
             columnCount: columnCount
         )
         let rows = sourceRows.enumerated().map { index, sourceCells in
-            TodoMarkdownTable.Row(
+            FlatMarkRenderTable.Row(
                 id: "\(id).row.\(index)",
                 cells: tableCells(
                     from: sourceCells,
@@ -314,25 +314,25 @@ private extension TodoMarkdownProjector {
             )
         }
 
-        return TodoMarkdownTable(header: header, rows: rows)
+        return FlatMarkRenderTable(header: header, rows: rows)
     }
 
     static func tableCells(
         from sourceCells: [Table.Cell],
         idPrefix: String,
         columnCount: Int
-    ) -> [TodoMarkdownTable.Cell] {
+    ) -> [FlatMarkRenderTable.Cell] {
         let cells = sourceCells.enumerated().map { index, cell in
             let colspan = Int(cell.colspan)
             let isSpanContinuation = colspan == 0 || Int(cell.rowspan) == 0
-            return TodoMarkdownTable.Cell(
+            return FlatMarkRenderTable.Cell(
                 id: "\(idPrefix).cell.\(index)",
                 content: isSpanContinuation ? AttributedString() : inlineContent(of: cell),
                 colspan: colspan
             )
         }
         let fillerCells = (cells.count ..< columnCount).map { index in
-            TodoMarkdownTable.Cell(
+            FlatMarkRenderTable.Cell(
                 id: "\(idPrefix).cell.\(index)",
                 content: AttributedString(),
                 colspan: 1
@@ -343,7 +343,7 @@ private extension TodoMarkdownProjector {
     }
 
     static func inlineContent(of markup: some Markup) -> AttributedString {
-        var projector = TodoMarkdownInlineProjector()
+        var projector = FlatMarkInlineAttributedStringProjector()
         return projector.project(markup)
     }
 
@@ -376,16 +376,16 @@ private extension TodoMarkdownProjector {
         String(describing: type(of: markup))
     }
 
-    static func id(for markup: some Markup, path: [Int]) -> TodoMarkdownSemanticID {
+    static func id(for markup: some Markup, path: [Int]) -> FlatMarkRenderNodeID {
         guard let sourceRange = markup.range else {
             preconditionFailure("Parsed Markdown elements must have source ranges.")
         }
 
-        return TodoMarkdownSemanticID(path: path, sourceRange: sourceRange)
+        return FlatMarkRenderNodeID(path: path, sourceRange: sourceRange)
     }
 }
 
-private extension TodoMarkdownSemanticID {
+private extension FlatMarkRenderNodeID {
     init(path: [Int], sourceRange: Markdown.SourceRange) {
         self.init(
             path: path,

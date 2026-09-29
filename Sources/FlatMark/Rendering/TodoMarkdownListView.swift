@@ -27,23 +27,23 @@ private extension View {
     }
 }
 
-// MARK: - TodoMarkdownListView
+// MARK: - FlatMarkListView
 
-struct TodoMarkdownListView: View {
-    let entries: [TodoMarkdownListEntry]
-    var taskToggleAction: ((TodoMarkdownSemanticID) -> Void)? = nil
+struct FlatMarkListView: View {
+    let entries: [FlatMarkListRenderEntry]
+    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .markdownListContent, spacing: 8) {
             ForEach(entries) { entry in
                 switch entry {
                 case let .row(row):
-                    TodoMarkdownListRowView(
+                    FlatMarkListRowView(
                         row: row,
                         taskToggleAction: taskToggleAction
                     )
                 case let .childBlock(childBlock):
-                    TodoMarkdownListChildBlockView(
+                    FlatMarkListChildBlockView(
                         childBlock: childBlock,
                         taskToggleAction: taskToggleAction
                     )
@@ -53,16 +53,16 @@ struct TodoMarkdownListView: View {
     }
 }
 
-// MARK: - TodoMarkdownListChildBlockView
+// MARK: - FlatMarkListChildBlockView
 
-private struct TodoMarkdownListChildBlockView: View {
+private struct FlatMarkListChildBlockView: View {
     @Environment(\.layoutDirection) private var layoutDirection
 
-    let childBlock: TodoMarkdownListChildBlock
-    var taskToggleAction: ((TodoMarkdownSemanticID) -> Void)? = nil
+    let childBlock: FlatMarkListChildRenderBlock
+    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
-        TodoMarkdownBlockView(
+        FlatMarkBlockView(
             block: childBlock.block,
             taskToggleAction: taskToggleAction
         )
@@ -77,14 +77,14 @@ private struct TodoMarkdownListChildBlockView: View {
     }
 }
 
-// MARK: - TodoMarkdownListRowView
+// MARK: - FlatMarkListRowView
 
-private struct TodoMarkdownListRowView: View {
+private struct FlatMarkListRowView: View {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.layoutDirection) private var layoutDirection
 
-    let row: TodoMarkdownListRow
-    var taskToggleAction: ((TodoMarkdownSemanticID) -> Void)? = nil
+    let row: FlatMarkListRenderRow
+    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     private var isTaskActionEnabled: Bool {
         isEnabled && taskToggleAction != nil
@@ -151,7 +151,7 @@ private struct TodoMarkdownListRowView: View {
 
     VStack(alignment: .leading, spacing: 32) {
         FlatMarkView(markdown: taskListMarkdown)
-        FlatMarkView(markdown: taskListMarkdown, markdownChangeAction: { _ in })
+        FlatMarkView(markdown: taskListMarkdown, taskToggleAction: { _ in })
     }
     .padding()
 }
