@@ -91,7 +91,7 @@ struct FlatMarkListChildRenderBlock: Equatable, Sendable {
 
 enum FlatMarkRenderProjector {
     static func project(markdown: String) -> FlatMarkRenderDocument {
-        let document = Document(parsing: markdown, options: [.parseBlockDirectives])
+        let document = Document(parsing: markdown)
         return FlatMarkRenderDocument(
             blocks: projectChildren(of: document, path: [], indentation: 0)
         )

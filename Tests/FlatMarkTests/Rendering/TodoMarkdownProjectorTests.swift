@@ -183,36 +183,26 @@ struct FlatMarkRenderProjectorTests {
     }
 
     @Test
-    func `projects fallback content visibly when source content is empty`() throws {
+    func `projects HTML fallback content visibly when source content is empty`() throws {
         let image = try #require(paragraphContent(in: "![](https://example.com/diagram.png)"))
         #expect(text(of: image) == "Image: image (https://example.com/diagram.png)")
 
         let html = FlatMarkRenderProjector.project(markdown: "<!-- -->")
-        let unknown = FlatMarkRenderProjector.project(markdown: "@Unknown {}")
         let htmlFallback = fallbackText(in: html)
-        let unknownFallback = fallbackText(in: unknown)
 
         #expect(!htmlFallback.isEmpty)
         #expect(htmlFallback.allSatisfy { !$0.isEmpty })
-        #expect(!unknownFallback.isEmpty)
-        #expect(unknownFallback.allSatisfy { !$0.isEmpty })
     }
 
     @Test
-    func `projects unsupported nodes as labeled readable content`() {
-        let document = FlatMarkRenderProjector.project(markdown: """
+    func `treats directive-like text as an ordinary GFM paragraph`() throws {
+        let content = try #require(paragraphContent(in: """
         @Unknown {
         Visible descendant
         }
-        """)
+        """))
 
-        guard case let .fallback(type, content) = document.blocks.first?.kind else {
-            Issue.record("Expected a fallback block")
-            return
-        }
-
-        #expect(type == "BlockDirective")
-        #expect(content == "Visible descendant")
+        #expect(String(content.characters) == "@Unknown {\nVisible descendant\n}")
     }
 
     @Test
@@ -249,7 +239,7 @@ struct FlatMarkRenderProjectorTests {
     }
 
     @Test
-    func `projects indented code headings and empty unsupported nodes readably`() {
+    func `projects indented code headings and directive-like text as GFM`() {
         let document = FlatMarkRenderProjector.project(markdown: """
         #### Heading
 
@@ -261,13 +251,7 @@ struct FlatMarkRenderProjectorTests {
         #expect(document.blocks[0].kind == .heading(level: 4, content: "Heading"))
         #expect(document.blocks[1].kind == .codeBlock("let value = 1\n"))
 
-        guard case let .fallback(type, content) = document.blocks[2].kind else {
-            Issue.record("Expected a fallback block")
-            return
-        }
-
-        #expect(type == "BlockDirective")
-        #expect(String(content.characters) == "[BlockDirective]")
+        #expect(document.blocks[2].kind == .paragraph("@Unknown {}"))
     }
 }
 
