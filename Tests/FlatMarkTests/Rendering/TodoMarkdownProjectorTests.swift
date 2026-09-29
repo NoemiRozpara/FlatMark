@@ -133,6 +133,18 @@ struct FlatMarkRenderProjectorTests {
     }
 
     @Test
+    func `projects a header-only GFM table`() throws {
+        let document = FlatMarkRenderProjector.project(markdown: """
+        | Name | State |
+        | --- | --- |
+        """)
+        let table = try #require(table(in: document))
+
+        #expect(table.header.map { text(of: $0.content) } == ["Name", "State"])
+        #expect(table.rows.isEmpty)
+    }
+
+    @Test
     func `decodes native table spans without exposing continuation markers`() throws {
         let document = FlatMarkRenderProjector.project(markdown: """
         | First | Second | Third |

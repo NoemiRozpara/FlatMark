@@ -103,13 +103,17 @@ struct FlatMarkBlockView: View {
 
 // MARK: - FlatMarkTableView
 
-private struct FlatMarkTableView: View {
+struct FlatMarkTableView: View {
     private let cellWidth: CGFloat = 160
 
     let table: FlatMarkRenderTable
 
+    var rendersTable: Bool {
+        !table.header.isEmpty
+    }
+
     var body: some View {
-        if !table.header.isEmpty && !table.rows.isEmpty {
+        if rendersTable {
             ScrollView(.horizontal) {
                 Grid(
                     alignment: .topLeading,
