@@ -80,26 +80,44 @@ private struct FlatMarkListChildBlockView: View {
 // MARK: - FlatMarkListRowView
 
 private struct FlatMarkListRowView: View {
-    @Environment(\.isEnabled) private var isEnabled
     @Environment(\.layoutDirection) private var layoutDirection
 
     let row: FlatMarkListRenderRow
     var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
-    private var isTaskActionEnabled: Bool {
-        isEnabled && taskToggleAction != nil
-    }
-
     var body: some View {
         if case let .task(isChecked) = row.marker {
-            Button(action: { taskToggleAction?(row.id) }) {
-                rowContent()
-            }
-            .buttonStyle(.plain)
-            .disabled(!isTaskActionEnabled)
-            .accessibilityValue(isChecked ? "Checked" : "Unchecked")
+            taskRow(isChecked: isChecked)
         } else {
             rowContent()
+        }
+    }
+
+    @ViewBuilder
+    private func taskRow(isChecked: Bool) -> some View {
+        if let taskToggleAction {
+            Toggle(
+                isOn: Binding(
+                    get: { isChecked },
+                    set: { _ in taskToggleAction(row.id) }
+                )
+            ) {
+                Text(row.content)
+            }
+            #if os(macOS)
+            .toggleStyle(.checkbox)
+            #endif
+            .accessibilityLabel(taskAccessibilityLabel)
+            .markdownListIndentation(
+                row.indentation,
+                spacing: 8,
+                layoutDirection: layoutDirection
+            )
+        } else {
+            rowContent()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(taskAccessibilityLabel)
+                .accessibilityValue(isChecked ? "Checked" : "Unchecked")
         }
     }
 
@@ -118,6 +136,10 @@ private struct FlatMarkListRowView: View {
         )
     }
 
+    private var taskAccessibilityLabel: String {
+        "Level \(row.indentation + 1) task: \(String(row.content.characters))"
+    }
+
     @ViewBuilder
     private func marker() -> some View {
         switch row.marker {
@@ -132,11 +154,7 @@ private struct FlatMarkListRowView: View {
         case let .task(isChecked):
             Image(systemName: isChecked ? "checkmark.square.fill" : "square")
                 .font(.body)
-                .foregroundStyle(
-                    isTaskActionEnabled
-                        ? (isChecked ? .green : .secondary)
-                        : .gray.opacity(0.4)
-                )
+                .foregroundStyle(isChecked ? .green : .secondary)
                 .accessibilityHidden(true)
         }
     }

@@ -35,6 +35,29 @@ struct InteractivePreview: View {
 }
 ```
 
+## Task-list accessibility
+
+Without `taskToggleAction`, task-list rows are static content: their checked or unchecked
+symbol and VoiceOver value communicate state, but they are not exposed as disabled controls.
+When an action is supplied, each task is a native toggle, styled as a checkbox on macOS. Its
+accessible label includes the task's nesting level, and the control exposes its state and action.
+An interactive document that inherits `isEnabled == false` keeps those controls disabled.
+
+### Manual VoiceOver checklist
+
+Verify this on macOS and iPadOS with a document containing checked, unchecked, and nested tasks:
+
+- With no `taskToggleAction`, VoiceOver announces each task's label, checked/unchecked state,
+  and level without calling it a button, toggle, or disabled control.
+- With `taskToggleAction`, VoiceOver announces the task label, its state, and a toggle action;
+  activate it and confirm the action receives updated Markdown.
+- Disable the surrounding document and confirm interactive tasks are announced as disabled while
+  still identifying their label and state; read-only tasks remain static content.
+- On macOS, move keyboard focus to an interactive task and press Space; on iPadOS, use a hardware
+  keyboard to focus the task and activate it. Confirm only the intended task changes.
+- Confirm nested tasks retain a distinct spoken level and visual indentation, and that state
+  remains visually distinguishable by the symbol or control position rather than color alone.
+
 ## GFM support matrix
 
 FlatMark uses [swift-markdown](https://github.com/swiftlang/swift-markdown) to parse the [GitHub Flavored Markdown (GFM) specification](https://github.github.com/gfm/), then projects the parsed document into native SwiftUI views. This matrix covers every CommonMark block and inline construct plus GFM's table, task-list, strikethrough, extended-autolink, and disallowed-raw-HTML extensions.
