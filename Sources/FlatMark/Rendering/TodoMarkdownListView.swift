@@ -31,6 +31,8 @@ private extension View {
 
 struct FlatMarkListView: View {
     let entries: [FlatMarkListRenderEntry]
+    let imageLoader: FlatMarkImageLoader?
+    let imageURLPolicy: FlatMarkImageURLPolicy
     var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
@@ -40,11 +42,15 @@ struct FlatMarkListView: View {
                 case let .row(row):
                     FlatMarkListRowView(
                         row: row,
+                        imageLoader: imageLoader,
+                        imageURLPolicy: imageURLPolicy,
                         taskToggleAction: taskToggleAction
                     )
                 case let .childBlock(childBlock):
                     FlatMarkListChildBlockView(
                         childBlock: childBlock,
+                        imageLoader: imageLoader,
+                        imageURLPolicy: imageURLPolicy,
                         taskToggleAction: taskToggleAction
                     )
                 }
@@ -59,11 +65,15 @@ private struct FlatMarkListChildBlockView: View {
     @Environment(\.layoutDirection) private var layoutDirection
 
     let childBlock: FlatMarkListChildRenderBlock
+    let imageLoader: FlatMarkImageLoader?
+    let imageURLPolicy: FlatMarkImageURLPolicy
     var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
         FlatMarkBlockView(
             block: childBlock.block,
+            imageLoader: imageLoader,
+            imageURLPolicy: imageURLPolicy,
             taskToggleAction: taskToggleAction
         )
         .alignmentGuide(.markdownListContent) { dimensions in
@@ -83,6 +93,8 @@ private struct FlatMarkListRowView: View {
     @Environment(\.layoutDirection) private var layoutDirection
 
     let row: FlatMarkListRenderRow
+    let imageLoader: FlatMarkImageLoader?
+    let imageURLPolicy: FlatMarkImageURLPolicy
     var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
@@ -102,7 +114,7 @@ private struct FlatMarkListRowView: View {
                     set: { _ in taskToggleAction(row.id) }
                 )
             ) {
-                Text(row.content)
+                inlineContent
             }
             #if os(macOS)
             .toggleStyle(.checkbox)
@@ -124,7 +136,7 @@ private struct FlatMarkListRowView: View {
     private func rowContent() -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             marker()
-            Text(row.content)
+            inlineContent
                 .alignmentGuide(.markdownListContent) { dimensions in
                     dimensions[.leading]
                 }
@@ -137,7 +149,15 @@ private struct FlatMarkListRowView: View {
     }
 
     private var taskAccessibilityLabel: String {
-        "Level \(row.indentation + 1) task: \(String(row.content.characters))"
+        "Level \(row.indentation + 1) task: \(row.content.plainText)"
+    }
+
+    private var inlineContent: some View {
+        FlatMarkInlineView(
+            content: row.content,
+            imageLoader: imageLoader,
+            imageURLPolicy: imageURLPolicy
+        )
     }
 
     @ViewBuilder

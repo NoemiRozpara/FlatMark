@@ -8,12 +8,127 @@ struct FlatMarkRenderDocument: Equatable, Sendable {
     let blocks: [FlatMarkRenderBlock]
 }
 
+// MARK: - FlatMarkRenderInlineContent
+
+struct FlatMarkRenderImage: Equatable, Sendable {
+    let url: URL?
+    let altText: String
+    let link: URL?
+
+    init(url: URL?, altText: String, link: URL? = nil) {
+        self.url = url
+        self.altText = altText
+        self.link = link
+    }
+
+    var accessibleLabel: String {
+        altText.isEmpty ? "Image" : altText
+    }
+}
+
+struct FlatMarkRenderInlineContent: Equatable, Sendable, ExpressibleByStringLiteral {
+    enum Component: Equatable, Sendable {
+        case text(AttributedString)
+        case image(FlatMarkRenderImage)
+    }
+
+    private(set) var components: [Component] = []
+
+    init() {}
+
+    init(components: [Component]) {
+        self.components = components
+    }
+
+    init(text: AttributedString) {
+        components = text.characters.isEmpty ? [] : [.text(text)]
+    }
+
+    init(stringLiteral value: String) {
+        self.init(text: AttributedString(value))
+    }
+
+    var plainText: String {
+        components.map { component in
+            switch component {
+            case let .text(text):
+                String(text.characters)
+            case let .image(image):
+                image.accessibleLabel
+            }
+        }.joined()
+    }
+
+    var standaloneLinkedImageDestination: URL? {
+        guard components.count == 1,
+              case let .image(image) = components[0]
+        else {
+            return nil
+        }
+
+        return image.link
+    }
+
+    mutating func append(contentsOf other: Self) {
+        for component in other.components {
+            if case let .text(text) = component,
+               case let .text(previous)? = components.last
+            {
+                components[components.count - 1] = .text(previous + text)
+            } else {
+                components.append(component)
+            }
+        }
+    }
+
+    mutating func applyLink(_ url: URL) {
+        components = components.map { component in
+            switch component {
+            case let .text(text):
+                var linked = text
+                linked.link = url
+                return .text(linked)
+            case let .image(image):
+                return .image(FlatMarkRenderImage(
+                    url: image.url,
+                    altText: image.altText,
+                    link: url
+                ))
+            }
+        }
+    }
+
+    mutating func applyPresentationIntent(_ intent: InlinePresentationIntent) {
+        transformText { text in
+            var styled = text
+            for run in styled.runs {
+                let existingIntent = styled[run.range].inlinePresentationIntent ?? []
+                styled[run.range].inlinePresentationIntent = existingIntent.union(intent)
+            }
+            return styled
+        }
+    }
+
+    private mutating func transformText(
+        _ transform: (AttributedString) -> AttributedString
+    ) {
+        components = components.map { component in
+            switch component {
+            case let .text(text):
+                .text(transform(text))
+            case .image:
+                component
+            }
+        }
+    }
+}
+
 // MARK: - FlatMarkRenderBlock
 
 struct FlatMarkRenderBlock: Identifiable, Equatable, Sendable {
     enum Kind: Equatable, Sendable {
-        case paragraph(AttributedString)
-        case heading(level: Int, content: AttributedString)
+        case paragraph(FlatMarkRenderInlineContent)
+        case heading(level: Int, content: FlatMarkRenderInlineContent)
         case codeBlock(String)
         case blockQuote([FlatMarkRenderBlock])
         case list([FlatMarkListRenderEntry])
@@ -37,7 +152,7 @@ struct FlatMarkRenderTable: Equatable, Sendable {
 
     struct Cell: Identifiable, Equatable, Sendable {
         let id: String
-        let content: AttributedString
+        let content: FlatMarkRenderInlineContent
         let colspan: Int
     }
 
@@ -60,7 +175,7 @@ struct FlatMarkListRenderRow: Identifiable, Equatable, Sendable {
     let id: FlatMarkRenderNodeID
     let indentation: Int
     let marker: FlatMarkListMarker
-    let content: AttributedString
+    let content: FlatMarkRenderInlineContent
 }
 
 // MARK: - FlatMarkListRenderEntry
@@ -90,10 +205,10 @@ struct FlatMarkListChildRenderBlock: Equatable, Sendable {
 // MARK: - FlatMarkRenderProjector
 
 enum FlatMarkRenderProjector {
-    static func project(markdown: String) -> FlatMarkRenderDocument {
+    static func project(markdown: String, baseURL: URL? = nil) -> FlatMarkRenderDocument {
         let document = Document(parsing: markdown)
         return FlatMarkRenderDocument(
-            blocks: projectChildren(of: document, path: [], indentation: 0)
+            blocks: projectChildren(of: document, path: [], indentation: 0, baseURL: baseURL)
         )
     }
 }
@@ -102,17 +217,19 @@ private extension FlatMarkRenderProjector {
     static func projectChildren(
         of markup: some Markup,
         path: [Int],
-        indentation: Int
+        indentation: Int,
+        baseURL: URL?
     ) -> [FlatMarkRenderBlock] {
         markup.children.enumerated().map { index, child in
-            project(child, path: path + [index], indentation: indentation)
+            project(child, path: path + [index], indentation: indentation, baseURL: baseURL)
         }
     }
 
     static func project(
         _ markup: any Markup,
         path: [Int],
-        indentation: Int
+        indentation: Int,
+        baseURL: URL?
     ) -> FlatMarkRenderBlock {
         let id = id(for: markup, path: path)
         let structuralID = path.map(String.init).joined(separator: ".")
@@ -121,13 +238,13 @@ private extension FlatMarkRenderProjector {
         case let paragraph as Paragraph:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .paragraph(inlineContent(of: paragraph))
+                kind: .paragraph(inlineContent(of: paragraph, baseURL: baseURL))
             )
 
         case let heading as Heading:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .heading(level: heading.level, content: inlineContent(of: heading))
+                kind: .heading(level: heading.level, content: inlineContent(of: heading, baseURL: baseURL))
             )
 
         case let codeBlock as CodeBlock:
@@ -139,7 +256,12 @@ private extension FlatMarkRenderProjector {
         case let blockQuote as BlockQuote:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .blockQuote(projectChildren(of: blockQuote, path: path, indentation: indentation))
+                kind: .blockQuote(projectChildren(
+                    of: blockQuote,
+                    path: path,
+                    indentation: indentation,
+                    baseURL: baseURL
+                ))
             )
 
         case let orderedList as OrderedList:
@@ -147,7 +269,8 @@ private extension FlatMarkRenderProjector {
                 orderedList,
                 startIndex: Int(orderedList.startIndex),
                 path: path,
-                indentation: indentation
+                indentation: indentation,
+                baseURL: baseURL
             )
 
         case let unorderedList as UnorderedList:
@@ -155,7 +278,8 @@ private extension FlatMarkRenderProjector {
                 unorderedList,
                 startIndex: nil,
                 path: path,
-                indentation: indentation
+                indentation: indentation,
+                baseURL: baseURL
             )
 
         case is ThematicBreak:
@@ -167,7 +291,7 @@ private extension FlatMarkRenderProjector {
         case let table as Table:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .table(tableProjection(from: table, id: structuralID))
+                kind: .table(tableProjection(from: table, id: structuralID, baseURL: baseURL))
             )
 
         case let htmlBlock as HTMLBlock:
@@ -188,13 +312,15 @@ private extension FlatMarkRenderProjector {
         _ list: some Markup,
         startIndex: Int?,
         path: [Int],
-        indentation: Int
+        indentation: Int,
+        baseURL: URL?
     ) -> FlatMarkRenderBlock {
         let rows = listRows(
             from: list,
             startIndex: startIndex,
             path: path,
-            indentation: indentation
+            indentation: indentation,
+            baseURL: baseURL
         )
 
         return FlatMarkRenderBlock(
@@ -207,7 +333,8 @@ private extension FlatMarkRenderProjector {
         from list: some Markup,
         startIndex: Int?,
         path: [Int],
-        indentation: Int
+        indentation: Int,
+        baseURL: URL?
     ) -> [FlatMarkListRenderEntry] {
         list.children.enumerated().flatMap { index, child -> [FlatMarkListRenderEntry] in
             guard let item = child as? ListItem else {
@@ -220,14 +347,15 @@ private extension FlatMarkRenderProjector {
                 id: id(for: item, path: itemPath),
                 indentation: indentation,
                 marker: marker,
-                content: firstParagraphContent(of: item) ?? AttributedString()
+                content: firstParagraphContent(of: item, baseURL: baseURL) ?? FlatMarkRenderInlineContent()
             )
             let children = item.children.enumerated().flatMap { childIndex, child in
                 listItemEntries(
                     from: child,
                     at: childIndex,
                     itemPath: itemPath,
-                    indentation: indentation + 1
+                    indentation: indentation + 1,
+                    baseURL: baseURL
                 )
             }
 
@@ -239,7 +367,8 @@ private extension FlatMarkRenderProjector {
         from markup: any Markup,
         at index: Int,
         itemPath: [Int],
-        indentation: Int
+        indentation: Int,
+        baseURL: URL?
     ) -> [FlatMarkListRenderEntry] {
         guard !(index == 0 && markup is Paragraph) else {
             return []
@@ -252,7 +381,8 @@ private extension FlatMarkRenderProjector {
                 from: orderedList,
                 startIndex: Int(orderedList.startIndex),
                 path: path,
-                indentation: indentation
+                indentation: indentation,
+                baseURL: baseURL
             )
 
         case let unorderedList as UnorderedList:
@@ -260,7 +390,8 @@ private extension FlatMarkRenderProjector {
                 from: unorderedList,
                 startIndex: nil,
                 path: path,
-                indentation: indentation
+                indentation: indentation,
+                baseURL: baseURL
             )
 
         default:
@@ -268,7 +399,7 @@ private extension FlatMarkRenderProjector {
                 FlatMarkListRenderEntry.childBlock(
                     FlatMarkListChildRenderBlock(
                         indentation: indentation,
-                        block: project(markup, path: path, indentation: indentation)
+                        block: project(markup, path: path, indentation: indentation, baseURL: baseURL)
                     )
                 ),
             ]
@@ -286,22 +417,30 @@ private extension FlatMarkRenderProjector {
         }
     }
 
-    static func firstParagraphContent(of item: ListItem) -> AttributedString? {
+    static func firstParagraphContent(
+        of item: ListItem,
+        baseURL: URL?
+    ) -> FlatMarkRenderInlineContent? {
         guard let paragraph = item.child(at: 0) as? Paragraph else {
             return nil
         }
 
-        return inlineContent(of: paragraph)
+        return inlineContent(of: paragraph, baseURL: baseURL)
     }
 
-    static func tableProjection(from table: Table, id: String) -> FlatMarkRenderTable {
+    static func tableProjection(
+        from table: Table,
+        id: String,
+        baseURL: URL?
+    ) -> FlatMarkRenderTable {
         let sourceHeader = Array(table.head.cells)
         let sourceRows = table.body.rows.map { Array($0.cells) }
         let columnCount = ([sourceHeader.count] + sourceRows.map(\.count)).max() ?? 0
         let header = tableCells(
             from: sourceHeader,
             idPrefix: "\(id).header",
-            columnCount: columnCount
+            columnCount: columnCount,
+            baseURL: baseURL
         )
         let rows = sourceRows.enumerated().map { index, sourceCells in
             FlatMarkRenderTable.Row(
@@ -309,7 +448,8 @@ private extension FlatMarkRenderProjector {
                 cells: tableCells(
                     from: sourceCells,
                     idPrefix: "\(id).row.\(index)",
-                    columnCount: columnCount
+                    columnCount: columnCount,
+                    baseURL: baseURL
                 )
             )
         }
@@ -320,21 +460,24 @@ private extension FlatMarkRenderProjector {
     static func tableCells(
         from sourceCells: [Table.Cell],
         idPrefix: String,
-        columnCount: Int
+        columnCount: Int,
+        baseURL: URL?
     ) -> [FlatMarkRenderTable.Cell] {
         let cells = sourceCells.enumerated().map { index, cell in
             let colspan = Int(cell.colspan)
             let isSpanContinuation = colspan == 0 || Int(cell.rowspan) == 0
             return FlatMarkRenderTable.Cell(
                 id: "\(idPrefix).cell.\(index)",
-                content: isSpanContinuation ? AttributedString() : inlineContent(of: cell),
+                content: isSpanContinuation
+                    ? FlatMarkRenderInlineContent()
+                    : inlineContent(of: cell, baseURL: baseURL),
                 colspan: colspan
             )
         }
         let fillerCells = (cells.count ..< columnCount).map { index in
             FlatMarkRenderTable.Cell(
                 id: "\(idPrefix).cell.\(index)",
-                content: AttributedString(),
+                content: FlatMarkRenderInlineContent(),
                 colspan: 1
             )
         }
@@ -342,8 +485,11 @@ private extension FlatMarkRenderProjector {
         return cells + fillerCells
     }
 
-    static func inlineContent(of markup: some Markup) -> AttributedString {
-        var projector = FlatMarkInlineAttributedStringProjector()
+    static func inlineContent(
+        of markup: some Markup,
+        baseURL: URL?
+    ) -> FlatMarkRenderInlineContent {
+        var projector = FlatMarkInlineAttributedStringProjector(baseURL: baseURL)
         return projector.project(markup)
     }
 

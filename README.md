@@ -35,6 +35,47 @@ struct InteractivePreview: View {
 }
 ```
 
+## Images and relative URLs
+
+FlatMark does not fetch images by default. Without an image loader, each Markdown image is a
+native placeholder showing its alt text, or `Image` when the alt text is empty. This keeps the
+default renderer deterministic and network-free.
+
+Hosts can opt in by providing an asynchronous `FlatMarkImageLoader`. The host owns fetching,
+decoding, authentication, caching, and any other image-pipeline policy; FlatMark only manages the
+SwiftUI loading, success, failure, and cancellation states.
+
+```swift
+let imageLoaderID = UUID()
+let imageLoader = FlatMarkImageLoader(configurationID: imageLoaderID) { url in
+    try await imageService.image(for: url)
+}
+
+FlatMarkView(
+    markdown: markdown,
+    baseURL: URL(string: "https://example.com/docs/readme.md"),
+    imageLoader: imageLoader
+)
+```
+
+Keep the configuration ID stable when reconstructing an equivalent loader, including when a
+SwiftUI parent redraws. Replace it only when the loader configuration changes and current image
+requests should restart.
+
+`baseURL` resolves relative link and image destinations with Foundation's standard URL rules.
+Before an image URL reaches the loader, `FlatMarkImageURLPolicy.webOnly` accepts only `http` and
+`https` schemes. Supply a policy with a different explicit `allowedSchemes` set when the host
+supports another scheme. Rejected or unresolvable image sources use the native unavailable state
+and never invoke the loader.
+
+## Text selection around linked images
+
+When a paragraph contains a linked image, FlatMark renders the text before and after it as
+separate selectable text regions so the image remains an independently actionable link.
+Selection is continuous within either text region, but cannot cross the linked image. Because
+SwiftUI lays out each region as one view, an image following multiline text can move to the next
+row even when the final internal text line has unused space; native inline text may fit it there.
+
 ## Task-list accessibility
 
 Without `taskToggleAction`, task-list rows are static content: their checked or unchecked
@@ -107,11 +148,11 @@ Status meanings:
 | Nested emphasis and strong emphasis | Fully rendered | Both presentation intents are retained on the same run. [Inline projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L227-L243). |
 | GFM strikethrough | Fully rendered | Native strikethrough attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L227-L243). |
 | Code spans | Fully rendered | Native code attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L227-L243). |
-| Inline links | Rendered with documented policy | Link labels are native attributed text. A destination becomes a tappable link only when Foundation accepts it as an absolute URL; titles are parsed but omitted. [Link projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L227-L243). |
-| Full, collapsed, and shortcut reference links | Rendered with documented policy | Definitions resolve these forms; they use the same absolute-URL policy as inline links. [Link projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L227-L243). |
+| Inline links | Rendered with documented policy | Link labels are native attributed text. Absolute destinations become tappable links; relative destinations do so when `baseURL` can resolve them. Titles are parsed but omitted. [Link projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L227-L243). |
+| Full, collapsed, and shortcut reference links | Rendered with documented policy | Definitions resolve these forms; they use the same absolute-or-`baseURL` policy as inline links. [Link projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L227-L243). |
 | CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links and use the same absolute-URL policy. [Link projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L227-L243). |
 | GFM extended autolinks (`www.` and bare email forms) | Unsupported | The parser is not configured with GFM's extended-autolink extension, so these forms remain text rather than link nodes. |
-| Images | Rendered with documented policy | Rendered as `Image: <alt text> (<source>)`; FlatMark does not fetch or display image resources, and image titles are omitted. [Image projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L245-L249). |
+| Images | Rendered with documented policy | The network-free default is a native alt-text placeholder. Hosts can supply an async loader; relative sources use `baseURL`, and the image scheme policy is applied before loading. Loading failures use a native unavailable placeholder, cancellation is not presented as failure, and titles are omitted. [Image loading tests](Tests/FlatMarkTests/Rendering/FlatMarkImageLoadingTests.swift). |
 | Inline raw HTML | Rendered with documented policy | Rendered as literal `HTML: <source>` text; HTML is never executed or fetched. [Fallback-content projection test](Tests/FlatMarkTests/Rendering/TodoMarkdownProjectorTests.swift#L186-L199). |
 
 ### Parsing and GitHub-web behaviors

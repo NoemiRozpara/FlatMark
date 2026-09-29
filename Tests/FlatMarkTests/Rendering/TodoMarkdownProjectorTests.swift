@@ -66,7 +66,7 @@ struct FlatMarkRenderProjectorTests {
             .task(isChecked: true),
             .task(isChecked: false),
         ])
-        #expect(entries.compactMap(row).map { String($0.content.characters) } == ["Ordered", "Done", "Pending"])
+        #expect(entries.compactMap(row).map(\.content.plainText) == ["Ordered", "Done", "Pending"])
     }
 
     @Test
@@ -197,7 +197,7 @@ struct FlatMarkRenderProjectorTests {
     @Test
     func `projects HTML fallback content visibly when source content is empty`() throws {
         let image = try #require(paragraphContent(in: "![](https://example.com/diagram.png)"))
-        #expect(text(of: image) == "Image: image (https://example.com/diagram.png)")
+        #expect(text(of: image) == "Image")
 
         let html = FlatMarkRenderProjector.project(markdown: "<!-- -->")
         let htmlFallback = fallbackText(in: html)
@@ -214,7 +214,7 @@ struct FlatMarkRenderProjectorTests {
         }
         """))
 
-        #expect(String(content.characters) == "@Unknown {\nVisible descendant\n}")
+        #expect(content.plainText == "@Unknown {\nVisible descendant\n}")
     }
 
     @Test
@@ -230,7 +230,7 @@ struct FlatMarkRenderProjectorTests {
         let markdown = "**Bold and _italic_** with ~~strike~~ and `code` [link](https://example.com).\nSoft break\nhard break\u{20}\u{20}\nnext line"
         let content = try #require(paragraphContent(in: markdown))
 
-        #expect(String(content.characters) ==
+        #expect(content.plainText ==
             "Bold and italic with strike and code link.\nSoft break\nhard break\nnext line")
         #expect(run(containing: "Bold and ", in: content)?.inlinePresentationIntent?
             .contains(.stronglyEmphasized) == true)
@@ -244,10 +244,54 @@ struct FlatMarkRenderProjectorTests {
     }
 
     @Test
-    func `projects images as readable text without loading them`() throws {
+    func `projects images as explicit renderer values`() throws {
         let content = try #require(paragraphContent(in: "![Architecture diagram](https://example.com/diagram.png)"))
+        let component = try #require(content.components.first)
 
-        #expect(String(content.characters) == "Image: Architecture diagram (https://example.com/diagram.png)")
+        #expect(component == .image(FlatMarkRenderImage(
+            url: URL(string: "https://example.com/diagram.png"),
+            altText: "Architecture diagram"
+        )))
+    }
+
+    @Test
+    func `retains a resolved link on a linked image`() throws {
+        let content = try #require(paragraphContent(
+            in: "[![Diagram](diagram.png)](details.html)",
+            baseURL: URL(string: "https://example.com/docs/")
+        ))
+        let component = try #require(content.components.first)
+
+        #expect(component == .image(FlatMarkRenderImage(
+            url: URL(string: "https://example.com/docs/diagram.png"),
+            altText: "Diagram",
+            link: URL(string: "https://example.com/docs/details.html")
+        )))
+    }
+
+    @Test
+    func `does not promote linked image destinations to the surrounding paragraph`() throws {
+        let content = try #require(paragraphContent(
+            in: "Before [![A](a.png)](one) after [![B](b.png)](two)",
+            baseURL: URL(string: "https://example.com/")
+        ))
+
+        #expect(content.standaloneLinkedImageDestination == nil)
+        #expect(content.components.compactMap(image).compactMap(\.link) == [
+            URL(string: "https://example.com/one"),
+            URL(string: "https://example.com/two"),
+        ])
+    }
+
+    @Test
+    func `exposes a standalone linked image destination`() throws {
+        let content = try #require(paragraphContent(
+            in: "[![A](a.png)](one)",
+            baseURL: URL(string: "https://example.com/")
+        ))
+
+        #expect(content.standaloneLinkedImageDestination ==
+            URL(string: "https://example.com/one"))
     }
 
     @Test
@@ -267,8 +311,11 @@ struct FlatMarkRenderProjectorTests {
     }
 }
 
-private func paragraphContent(in markdown: String) -> AttributedString? {
-    let document = FlatMarkRenderProjector.project(markdown: markdown)
+private func paragraphContent(
+    in markdown: String,
+    baseURL: URL? = nil
+) -> FlatMarkRenderInlineContent? {
+    let document = FlatMarkRenderProjector.project(markdown: markdown, baseURL: baseURL)
 
     guard case let .paragraph(content) = document.blocks.first?.kind else {
         return nil
@@ -354,6 +401,39 @@ private func table(in document: FlatMarkRenderDocument) -> FlatMarkRenderTable? 
 
 private func text(of content: AttributedString) -> String {
     String(content.characters)
+}
+
+private func text(of content: FlatMarkRenderInlineContent) -> String {
+    content.plainText
+}
+
+private func image(
+    from component: FlatMarkRenderInlineContent.Component
+) -> FlatMarkRenderImage? {
+    guard case let .image(image) = component else {
+        return nil
+    }
+
+    return image
+}
+
+private func run(
+    containing text: String,
+    in content: FlatMarkRenderInlineContent
+) -> AttributedString.Runs.Element? {
+    content.components.lazy.compactMap(attributedText).compactMap { attributedText in
+        run(containing: text, in: attributedText)
+    }.first
+}
+
+private func attributedText(
+    from component: FlatMarkRenderInlineContent.Component
+) -> AttributedString? {
+    guard case let .text(text) = component else {
+        return nil
+    }
+
+    return text
 }
 
 private func run(
