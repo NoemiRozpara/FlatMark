@@ -16,7 +16,7 @@ struct ReadmePreview: View {
     let markdown: String
 
     var body: some View {
-        MarkdownView(markdown: markdown)
+        FlatMarkView(markdown: markdown)
     }
 }
 ```
@@ -28,7 +28,7 @@ struct InteractivePreview: View {
     @State private var markdown = "- [ ] Review the pull request"
 
     var body: some View {
-        MarkdownView(markdown: markdown) { updatedMarkdown in
+        FlatMarkView(markdown: markdown) { updatedMarkdown in
             markdown = updatedMarkdown
         }
     }

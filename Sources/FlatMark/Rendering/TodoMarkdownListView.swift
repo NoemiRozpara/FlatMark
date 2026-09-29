@@ -150,8 +150,8 @@ private struct TodoMarkdownListRowView: View {
     """
 
     VStack(alignment: .leading, spacing: 32) {
-        MarkdownView(markdown: taskListMarkdown)
-        MarkdownView(markdown: taskListMarkdown, markdownChangeAction: { _ in })
+        FlatMarkView(markdown: taskListMarkdown)
+        FlatMarkView(markdown: taskListMarkdown, markdownChangeAction: { _ in })
     }
     .padding()
 }

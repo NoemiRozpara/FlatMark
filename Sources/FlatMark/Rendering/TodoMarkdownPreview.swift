@@ -1,10 +1,20 @@
 import SwiftUI
 
-public struct MarkdownView: View {
+/// A native SwiftUI preview of GitHub Flavored Markdown.
+///
+/// FlatMark renders supported Markdown constructs as native views. When you provide
+/// ``init(markdown:markdownChangeAction:)``, task-list checkboxes can update their
+/// corresponding source marker; FlatMark does not otherwise edit or serialize Markdown.
+public struct FlatMarkView: View {
     private let markdown: String
-    /// Receives the complete updated Markdown after a task checkbox is toggled.
     private var markdownChangeAction: ((String) -> Void)?
 
+    /// Creates a Markdown preview.
+    ///
+    /// - Parameters:
+    ///   - markdown: The Markdown source to render.
+    ///   - markdownChangeAction: An optional closure called with the complete updated
+    ///     Markdown source when a task checkbox is toggled.
     public init(
         markdown: String,
         markdownChangeAction: ((String) -> Void)? = nil
