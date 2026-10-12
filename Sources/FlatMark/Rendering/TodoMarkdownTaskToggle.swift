@@ -2,6 +2,13 @@
 
 /// A narrow source-preserving operation for one current Markdown task marker.
 enum TaskListMarkerToggle {
+    /// Returns the Markdown with the task identified by `id` toggled, or nil when the
+    /// operation cannot be performed safely.
+    ///
+    /// The `id`'s source coordinates are interpreted against `markdown`, the unchanged
+    /// original snapshot from which the task ID was projected. Only the selected marker's
+    /// state byte is replaced; every other byte, including line terminators and Unicode,
+    /// is left untouched. Stale IDs from previously projected documents are not supported.
     static func toggledMarkdown(in markdown: String, id: FlatMarkRenderNodeID) -> String? {
         guard let range = utf8Range(for: id.sourceRange, in: markdown),
               let markerOffset = markerOffset(in: markdown, range: range),
@@ -34,8 +41,20 @@ enum TaskListMarkerToggle {
         return lowerBound ..< upperBound
     }
 
-    /// Semantic locations use swift-markdown's one-based lines and UTF-8 columns.
-    private static func utf8Offset(
+    /// Maps one semantic source location onto a UTF-8 byte offset within the
+    /// unchanged original Markdown snapshot from which the task ID was projected.
+    ///
+    /// Combines two authorities:
+    /// - GFM "Characters and lines": line ends are LF, standalone CR, or CRLF,
+    ///   with CRLF counted as one line ending.
+    /// - swift-markdown `SourceLocation`: one-based lines, one-based columns
+    ///   measured in UTF-8 bytes, and half-open source ranges.
+    ///
+    /// Returns nil for coordinates that do not exist in the snapshot: nonpositive
+    /// lines or columns, nonexistent lines, and columns past a line's content
+    /// length. A coordinate at the line's content end is accepted as a valid
+    /// exclusive range endpoint.
+    static func utf8Offset(
         for location: FlatMarkRenderNodeID.SourceRange.Location,
         in markdown: String
     ) -> Int? {
@@ -46,33 +65,38 @@ enum TaskListMarkerToggle {
         let bytes = Array(markdown.utf8)
         var line = 1
         var lineStart = 0
-        var lineEnd = bytes.count
+        var index = 0
 
-        for index in bytes.indices {
-            guard line < location.line else {
-                break
+        while index < bytes.count, line < location.line {
+            if bytes[index] == 13 { // CR; with a following LF this is one CRLF line ending.
+                if index + 1 < bytes.count, bytes[index + 1] == 10 {
+                    index += 1
+                }
+            } else if bytes[index] != 10 { // Not LF; only the two terminator bytes advance lines.
+                index += 1
+                continue
             }
-
-            if bytes[index] == 10 {
-                line += 1
-                lineStart = index + 1
-            }
+            line += 1
+            lineStart = index + 1
+            index += 1
         }
 
         guard line == location.line else {
             return nil
         }
 
-        if let newline = bytes[lineStart...].firstIndex(of: 10) {
-            lineEnd = newline
-        }
-
-        let offset = lineStart + location.column - 1
-        guard offset <= lineEnd else {
+        // A line beginning exactly at the snapshot's end is only the phantom line past a final terminator.
+        guard lineStart < bytes.count || location.line == 1 else {
             return nil
         }
 
-        return offset
+        // The line's content ends just before its first terminator byte, or at the snapshot's end.
+        let lineEnd = bytes[lineStart...].firstIndex(where: { $0 == 13 || $0 == 10 }) ?? bytes.count
+        guard location.column - 1 <= lineEnd - lineStart else {
+            return nil
+        }
+
+        return lineStart + location.column - 1
     }
 
     private static func markerOffset(in markdown: String, range: Range<Int>) -> Int? {

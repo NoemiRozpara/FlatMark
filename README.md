@@ -35,6 +35,12 @@ struct InteractivePreview: View {
 }
 ```
 
+The toggle is source-preserving: only the selected marker's state character changes (`[ ]` ↔
+`[x]`, always the lowercase `x`). LF, CRLF, standalone CR, and mixed line endings are retained as
+written, and every other byte — Unicode included — stays identical. A task ID addresses a position
+in the unchanged Markdown snapshot that was projected, so the toggle applies to that same source.
+IDs from a previously rendered document are not supported.
+
 ## Images and relative URLs
 
 FlatMark does not fetch images by default. Without an image loader, each Markdown image is a
@@ -171,7 +177,7 @@ No construct in this matrix is silently omitted: any omission is identified abov
 FlatMark is not:
 
 - a Markdown editor and does not provide editing controls;
-- a general Markdown serializer. Its only source mutation is changing the `[ ]` / `[x]` marker for an interacted-with task;
+- a general Markdown serializer. Its only source mutation is the selected task marker's state byte (`[ ]` / `[x]`) for an interacted-with task, preserving every other byte;
 - an HTML renderer or browser;
 - a fully conforming GitHub clone, including GitHub-specific post-processing such as GitHub’s web UI, repository-context link handling, issue/reference expansion, or other server-side enhancements.
 
