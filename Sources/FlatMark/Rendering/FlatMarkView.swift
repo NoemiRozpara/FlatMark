@@ -9,9 +9,7 @@ import SwiftUI
 public struct FlatMarkView: View {
     private let markdown: String
     private let baseURL: URL?
-    private let imageLoader: FlatMarkImageLoader?
-    private let imageURLPolicy: FlatMarkImageURLPolicy
-    private var taskToggleAction: ((String) -> Void)?
+    private let context: FlatMarkRenderContext
 
     /// Creates a Markdown preview.
     ///
@@ -32,21 +30,14 @@ public struct FlatMarkView: View {
     ) {
         self.markdown = markdown
         self.baseURL = baseURL
-        self.imageLoader = imageLoader
-        self.imageURLPolicy = imageURLPolicy
-        self.taskToggleAction = taskToggleAction
-    }
-
-    public var body: some View {
-        FlatMarkDocumentView(
-            document: FlatMarkRenderProjector.project(markdown: markdown, baseURL: baseURL),
+        self.context = FlatMarkRenderContext(
             imageLoader: imageLoader,
             imageURLPolicy: imageURLPolicy,
             taskToggleAction: taskToggleAction.map { action in
-                { id in
+                { sourceRange in
                     guard let updatedMarkdown = FlatMarkTaskMarkerToggle.toggledMarkdown(
                         in: markdown,
-                        id: id
+                        sourceRange: sourceRange
                     ) else {
                         return
                     }
@@ -54,6 +45,13 @@ public struct FlatMarkView: View {
                     action(updatedMarkdown)
                 }
             }
+        )
+    }
+
+    public var body: some View {
+        FlatMarkDocumentView(
+            document: FlatMarkRenderProjector.project(markdown: markdown, baseURL: baseURL),
+            context: context
         )
         .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .topLeading)

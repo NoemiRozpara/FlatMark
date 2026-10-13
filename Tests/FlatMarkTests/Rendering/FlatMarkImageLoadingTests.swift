@@ -82,11 +82,13 @@ struct FlatMarkImageLoadingTests {
         let content = imageContent(url: URL(string: "file:///private/image.png"))
         let hostingView = NSHostingView(rootView: FlatMarkInlineView(
             content: content,
-            imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
-                await spy.record(url)
-                return Image(systemName: "photo.fill")
-            },
-            imageURLPolicy: .webOnly
+            context: FlatMarkRenderContext(
+                imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
+                    await spy.record(url)
+                    return Image(systemName: "photo.fill")
+                },
+                imageURLPolicy: .webOnly
+            )
         ))
         hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
 
@@ -155,11 +157,13 @@ struct FlatMarkImageLoadingTests {
         let raster = NSImage(size: NSSize(width: 1_000, height: 500))
         let hostingView = NSHostingView(rootView: FlatMarkInlineView(
             content: content,
-            imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
-                await spy.record(url)
-                return Image(nsImage: raster)
-            },
-            imageURLPolicy: .webOnly
+            context: FlatMarkRenderContext(
+                imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
+                    await spy.record(url)
+                    return Image(nsImage: raster)
+                },
+                imageURLPolicy: .webOnly
+            )
         )
         .frame(width: 200, alignment: .leading))
 
@@ -279,12 +283,14 @@ struct FlatMarkImageLoadingTests {
         let content = imageContent(url: URL(string: "https://example.com/image.png"))
         let hostingView = NSHostingView(rootView: FlatMarkInlineView(
             content: content,
-            imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
-                await spy.record(url)
-                await gate.wait()
-                throw ImageLoaderTestError.failed
-            },
-            imageURLPolicy: .webOnly
+            context: FlatMarkRenderContext(
+                imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
+                    await spy.record(url)
+                    await gate.wait()
+                    throw ImageLoaderTestError.failed
+                },
+                imageURLPolicy: .webOnly
+            )
         ))
         hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
 
@@ -298,10 +304,12 @@ struct FlatMarkImageLoadingTests {
 
             hostingView.rootView = FlatMarkInlineView(
                 content: imageContent(url: URL(string: "file:///private/image.png")),
-                imageLoader: FlatMarkImageLoader(configurationID: UUID()) { _ in
-                    Image(systemName: "photo.fill")
-                },
-                imageURLPolicy: .webOnly
+                context: FlatMarkRenderContext(
+                    imageLoader: FlatMarkImageLoader(configurationID: UUID()) { _ in
+                        Image(systemName: "photo.fill")
+                    },
+                    imageURLPolicy: .webOnly
+                )
             )
             await settleRendering()
             let expectedFailure = try #require(renderedPNG(of: hostingView))
@@ -317,18 +325,20 @@ struct FlatMarkImageLoadingTests {
         let content = imageContent(url: URL(string: "https://example.com/image.png"))
         let hostingView = NSHostingView(rootView: FlatMarkInlineView(
             content: content,
-            imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
-                await spy.record(url)
+            context: FlatMarkRenderContext(
+                imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
+                    await spy.record(url)
 
-                do {
-                    try await Task.sleep(for: .seconds(60))
-                    return Image(systemName: "photo.fill")
-                } catch is CancellationError {
-                    await spy.recordCancellation()
-                    throw CancellationError()
-                }
-            },
-            imageURLPolicy: .webOnly
+                    do {
+                        try await Task.sleep(for: .seconds(60))
+                        return Image(systemName: "photo.fill")
+                    } catch is CancellationError {
+                        await spy.recordCancellation()
+                        throw CancellationError()
+                    }
+                },
+                imageURLPolicy: .webOnly
+            )
         ))
         hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
 
@@ -337,8 +347,7 @@ struct FlatMarkImageLoadingTests {
 
             hostingView.rootView = FlatMarkInlineView(
                 content: content,
-                imageLoader: nil,
-                imageURLPolicy: .webOnly
+                context: .readOnly
             )
 
             await waitForCancellation(in: spy)
@@ -395,8 +404,7 @@ private func fittedHeight(
 ) -> CGFloat {
     fittedHeight(of: FlatMarkInlineView(
         content: content,
-        imageLoader: nil,
-        imageURLPolicy: .webOnly
+        context: .readOnly
     ), width: width, dynamicTypeSize: dynamicTypeSize)
 }
 
@@ -420,8 +428,7 @@ private func renderedPNG(
 ) async -> Data? {
     let hostingView = NSHostingView(rootView: FlatMarkInlineView(
         content: content,
-        imageLoader: nil,
-        imageURLPolicy: .webOnly
+        context: .readOnly
     )
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading))
     hostingView.frame = CGRect(x: 0, y: 0, width: width, height: 44)
@@ -470,8 +477,7 @@ private struct ImageLoaderTestView: View {
 
         FlatMarkInlineView(
             content: content,
-            imageLoader: imageLoader,
-            imageURLPolicy: .webOnly
+            context: FlatMarkRenderContext(imageLoader: imageLoader, imageURLPolicy: .webOnly)
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }

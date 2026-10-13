@@ -37,9 +37,11 @@ struct InteractivePreview: View {
 
 The toggle is source-preserving: only the selected marker's state character changes (`[ ]` ↔
 `[x]`, always the lowercase `x`). LF, CRLF, standalone CR, and mixed line endings are retained as
-written, and every other byte — Unicode included — stays identical. A task ID addresses a position
-in the unchanged Markdown snapshot that was projected, so the toggle applies to that same source.
-IDs from a previously rendered document are not supported.
+written, and every other byte — Unicode included — stays identical. Each task marker carries the
+editing address of its state byte in the unchanged Markdown snapshot that was projected, so the
+toggle applies to that same source. Addresses from a previously rendered document are not
+supported, and a task the parser could not give an address to renders as static content that keeps
+its checked state and never invokes the closure.
 
 ## Images and relative URLs
 
@@ -85,10 +87,12 @@ row even when the final internal text line has unused space; native inline text 
 ## Task-list accessibility
 
 Without `taskToggleAction`, task-list rows are static content: their checked or unchecked
-symbol and VoiceOver value communicate state, but they are not exposed as disabled controls.
-When an action is supplied, each task is a native toggle, styled as a checkbox on macOS. Its
-accessible label includes the task's nesting level, and the control exposes its state and action.
-An interactive document that inherits `isEnabled == false` keeps those controls disabled.
+symbol and VoiceOver value communicate state, but they are not exposed as disabled controls. A
+task the parser gave no editing address to is static content the same way, even when an action is
+supplied. When an action is supplied, each addressable task is a native toggle, styled as a
+checkbox on macOS. Its accessible label includes the task's nesting level, and the control exposes
+its state and action. An interactive document that inherits `isEnabled == false` keeps those
+controls disabled.
 
 ### Manual VoiceOver checklist
 
@@ -121,45 +125,45 @@ Status meanings:
 
 | Construct | Status | Notes and semantic projection test |
 | --- | --- | --- |
-| Paragraphs | Fully rendered | Native `Text`. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L35). |
-| ATX headings (`#`) | Fully rendered | Native heading text with level-specific font and header accessibility trait. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L35). |
-| Setext headings (`===` / `---`) | Fully rendered | Parsed as the same heading node as ATX headings and given the same native treatment. [Heading projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L252-L271). |
-| Thematic breaks | Fully rendered | Native `Divider`. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L35). |
-| Indented code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; the source indentation is not reproduced. [Indented-code projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L252-L271). |
-| Fenced code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; fence characters and the optional info string are omitted. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L35). |
-| HTML blocks | Rendered with documented policy | Displayed as literal, secondary-styled fallback text; HTML is never executed or fetched. [Raw-HTML fallback test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L219-L224). |
+| Paragraphs | Fully rendered | Native `Text`. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L36). |
+| ATX headings (`#`) | Fully rendered | Native heading text with level-specific font and header accessibility trait. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L36). |
+| Setext headings (`===` / `---`) | Fully rendered | Parsed as the same heading node as ATX headings and given the same native treatment. [Heading projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L379-L392). |
+| Thematic breaks | Fully rendered | Native `Divider`. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L36). |
+| Indented code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; the source indentation is not reproduced. [Indented-code projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L379-L392). |
+| Fenced code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; fence characters and the optional info string are omitted. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L36). |
+| HTML blocks | Rendered with documented policy | Displayed as literal, secondary-styled fallback text; HTML is never executed or fetched. [Raw-HTML fallback test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L302-L307). |
 | Link reference definitions | Parsed but omitted | Definitions have no standalone output, but provide destinations for reference links. |
 | Blank lines | Parsed but omitted | They delimit block structure and have no native view of their own. |
-| Block quotes | Fully rendered | Nested native block list with a leading rule. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L35). |
-| List items | Fully rendered | Each item becomes a native row or an ordered child block within its list. [List projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L52-L70). |
-| Bullet lists | Fully rendered | Native rows preserve list nesting through indentation. [List projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L52-L70). |
-| Ordered lists, including start number | Fully rendered | Native rows retain their authored starting number. [List projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L52-L70). |
-| List items with continuation blocks | Fully rendered | Paragraphs, quotes, code blocks, and nested lists following an item remain ordered child content. [Nested-container projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L73-L112). |
-| Nested containers (quotes, lists, and blocks within list items) | Fully rendered | Containers are recursively projected; list rows use a flat rendering sequence with indentation. [Nested-container projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L73-L112). |
-| GFM tables | Rendered with documented policy | Header and body cells render in a horizontally scrollable native grid. [Table projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L115-L133). |
+| Block quotes | Fully rendered | Nested native block list with a leading rule. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L36). |
+| List items | Fully rendered | Each item becomes a native row or an ordered child block within its list. [List projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L133-L151). |
+| Bullet lists | Fully rendered | Native rows preserve list nesting through indentation. [List projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L133-L151). |
+| Ordered lists, including start number | Fully rendered | Native rows retain their authored starting number. [List projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L133-L151). |
+| List items with continuation blocks | Fully rendered | Paragraphs, quotes, code blocks, and nested lists following an item remain ordered child content. [Nested-container projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L154-L193). |
+| Nested containers (quotes, lists, and blocks within list items) | Fully rendered | Containers are recursively projected; list rows use a flat rendering sequence with indentation. [Nested-container projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L154-L193). |
+| GFM tables | Rendered with documented policy | Header and body cells render in a horizontally scrollable native grid. [Table projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L196-L214). |
 | GFM table column alignment | Parsed but omitted | Alignment delimiters are parsed as table metadata but do not affect native cell alignment. |
-| GFM task-list items | Fully rendered | Checked and unchecked markers render as task rows; supplying `taskToggleAction` makes the marker interactive. [Task-list projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L52-L70). |
+| GFM task-list items | Fully rendered | Checked and unchecked markers render as task rows; supplying `taskToggleAction` makes an addressable marker interactive, and an unaddressable task stays static content that keeps its state. [Task-list projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L133-L151). |
 
 ### Inline constructs
 
 | Construct | Status | Notes and semantic projection test |
 | --- | --- | --- |
-| Text, including punctuation | Fully rendered | Native attributed text. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Backslash escapes | Fully rendered | The parser resolves escapes before the text projection. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Character references (named, decimal, hexadecimal) | Fully rendered | The parser resolves references before the text projection. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Soft line breaks | Fully rendered | Projected as a newline in native text. [Break projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Hard line breaks (two spaces or backslash) | Fully rendered | Projected as a newline in native text. [Break projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Emphasis | Fully rendered | Native emphasized attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Strong emphasis | Fully rendered | Native strongly emphasized attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Nested emphasis and strong emphasis | Fully rendered | Both presentation intents are retained on the same run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| GFM strikethrough | Fully rendered | Native strikethrough attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Code spans | Fully rendered | Native code attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Inline links | Rendered with documented policy | Link labels are native attributed text. Absolute destinations become tappable links; relative destinations do so when `baseURL` can resolve them. Titles are parsed but omitted. [Link projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| Full, collapsed, and shortcut reference links | Rendered with documented policy | Definitions resolve these forms; they use the same absolute-or-`baseURL` policy as inline links. [Link projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
-| CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links and use the same absolute-URL policy. [Link projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L227-L243). |
+| Text, including punctuation | Fully rendered | Native attributed text. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Backslash escapes | Fully rendered | The parser resolves escapes before the text projection. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Character references (named, decimal, hexadecimal) | Fully rendered | The parser resolves references before the text projection. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Soft line breaks | Fully rendered | Projected as a newline in native text. [Break projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Hard line breaks (two spaces or backslash) | Fully rendered | Projected as a newline in native text. [Break projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Emphasis | Fully rendered | Native emphasized attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Strong emphasis | Fully rendered | Native strongly emphasized attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Nested emphasis and strong emphasis | Fully rendered | Both presentation intents are retained on the same run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| GFM strikethrough | Fully rendered | Native strikethrough attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Code spans | Fully rendered | Native code attributed run. [Inline projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Inline links | Rendered with documented policy | Link labels are native attributed text. Absolute destinations become tappable links; relative destinations do so when `baseURL` can resolve them. Titles are parsed but omitted. [Link projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| Full, collapsed, and shortcut reference links | Rendered with documented policy | Definitions resolve these forms; they use the same absolute-or-`baseURL` policy as inline links. [Link projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
+| CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links and use the same absolute-URL policy. [Link projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
 | GFM extended autolinks (`www.` and bare email forms) | Unsupported | The parser is not configured with GFM's extended-autolink extension, so these forms remain text rather than link nodes. |
 | Images | Rendered with documented policy | The network-free default is a native alt-text placeholder. Hosts can supply an async loader; relative sources use `baseURL`, and the image scheme policy is applied before loading. Loading failures use a native unavailable placeholder, cancellation is not presented as failure, and titles are omitted. [Image loading tests](Tests/FlatMarkTests/Rendering/FlatMarkImageLoadingTests.swift). |
-| Inline raw HTML | Rendered with documented policy | Rendered as literal `HTML: <source>` text; HTML is never executed or fetched. [Fallback-content projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L186-L199). |
+| Inline raw HTML | Rendered with documented policy | Rendered as literal `HTML: <source>` text; HTML is never executed or fetched. [Fallback-content projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L253-L288). |
 
 ### Parsing and GitHub-web behaviors
 
@@ -168,7 +172,7 @@ Status meanings:
 | LF, CRLF, and CR source line endings | Not applicable | They are normalized by Markdown parsing; line ending style is not a rendered construct or preserved source format. |
 | GFM disallowed-raw-HTML tag filtering | Not applicable | FlatMark does not create an HTML DOM. Raw HTML is shown literally under the HTML policies above, so it has nothing to sanitize or execute. |
 | GitHub sanitization and post-processing | Not applicable | FlatMark does not reproduce GitHub's repository-context links, issue/reference expansion, web UI, server-side transformations, or sanitization pipeline. |
-| Parsed node types without a native structural view | Rendered with documented policy | FlatMark displays a labeled, readable fallback where possible rather than silently dropping the node. [Unsupported-node fallback test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L202-L216). |
+| Parsed node types without a native structural view | Rendered with documented policy | FlatMark displays a labeled, readable fallback where possible rather than silently dropping the node. [Unsupported-node fallback test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L279-L299). |
 
 No construct in this matrix is silently omitted: any omission is identified above as metadata, source normalization, or an explicit rendering policy.
 

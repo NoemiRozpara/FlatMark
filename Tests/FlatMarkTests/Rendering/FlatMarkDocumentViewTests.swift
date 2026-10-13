@@ -11,19 +11,41 @@ struct FlatMarkTableViewTests {
         let view = FlatMarkTableView(
             table: FlatMarkRenderTable(
                 header: [
-                    .init(id: "header.name", content: "Name", colspan: 1),
+                    .init(id: .init(path: [0, 0, 0]), content: "Name", colspan: 1),
                 ],
                 rows: []
-            )
+            ),
+            context: .readOnly
         )
 
         #expect(view.rendersTable)
     }
 
     @Test
+    func `renders a projected table with typed row and cell identities`() throws {
+        let document = FlatMarkRenderProjector.project(markdown: """
+        | Name | State | Notes |
+        | --- | --- | --- |
+        | Wide || End |
+        | Plain |
+        """)
+        let block = try #require(document.blocks.first)
+        guard case let .table(table) = block.kind else {
+            Issue.record("Expected a table")
+            return
+        }
+        let view = FlatMarkTableView(table: table, context: .readOnly)
+
+        #expect(view.rendersTable)
+        #expect(table.rows.count == 2)
+        #expect(table.rows.allSatisfy { $0.cells.count == 3 })
+    }
+
+    @Test
     func `does not render an empty table`() {
         let view = FlatMarkTableView(
-            table: FlatMarkRenderTable(header: [], rows: [])
+            table: FlatMarkRenderTable(header: [], rows: []),
+            context: .readOnly
         )
 
         #expect(!view.rendersTable)
@@ -136,8 +158,7 @@ struct FlatMarkInlineViewTests {
     ) -> FlatMarkInlineView {
         FlatMarkInlineView(
             content: FlatMarkRenderInlineContent(components: components),
-            imageLoader: nil,
-            imageURLPolicy: .webOnly
+            context: .readOnly
         )
     }
 }

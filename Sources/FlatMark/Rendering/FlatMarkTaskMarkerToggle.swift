@@ -2,15 +2,15 @@
 
 /// A narrow source-preserving operation for one current Markdown task marker.
 enum FlatMarkTaskMarkerToggle {
-    /// Returns the Markdown with the task identified by `id` toggled, or nil when the
+    /// Returns the Markdown with the task addressed by `sourceRange` toggled, or nil when the
     /// operation cannot be performed safely.
     ///
-    /// The `id`'s source coordinates are interpreted against `markdown`, the unchanged
-    /// original snapshot from which the task ID was projected. Only the selected marker's
-    /// state byte is replaced; every other byte, including line terminators and Unicode,
-    /// is left untouched. Stale IDs from previously projected documents are not supported.
-    static func toggledMarkdown(in markdown: String, id: FlatMarkRenderNodeID) -> String? {
-        guard let range = utf8Range(for: id.sourceRange, in: markdown),
+    /// The coordinates are interpreted against `markdown`, the unchanged original snapshot from
+    /// which they were projected. Only the selected marker's state byte is replaced; every other
+    /// byte, including line terminators and Unicode, is left untouched. Stale addresses from
+    /// previously projected documents are not supported.
+    static func toggledMarkdown(in markdown: String, sourceRange: FlatMarkSourceRange) -> String? {
+        guard let range = utf8Range(for: sourceRange, in: markdown),
               let markerOffset = markerOffset(in: markdown, range: range),
               let isChecked = Array(markdown.utf8)[markerOffset + 1].asciiTaskState
         else {
@@ -28,7 +28,7 @@ enum FlatMarkTaskMarkerToggle {
     }
 
     private static func utf8Range(
-        for sourceRange: FlatMarkRenderNodeID.SourceRange,
+        for sourceRange: FlatMarkSourceRange,
         in markdown: String
     ) -> Range<Int>? {
         guard let lowerBound = utf8Offset(for: sourceRange.lowerBound, in: markdown),
@@ -42,7 +42,7 @@ enum FlatMarkTaskMarkerToggle {
     }
 
     /// Maps one semantic source location onto a UTF-8 byte offset within the
-    /// unchanged original Markdown snapshot from which the task ID was projected.
+    /// unchanged original Markdown snapshot from which it was projected.
     ///
     /// Combines two authorities:
     /// - GFM "Characters and lines": line ends are LF, standalone CR, or CRLF,
@@ -55,7 +55,7 @@ enum FlatMarkTaskMarkerToggle {
     /// length. A coordinate at the line's content end is accepted as a valid
     /// exclusive range endpoint.
     static func utf8Offset(
-        for location: FlatMarkRenderNodeID.SourceRange.Location,
+        for location: FlatMarkSourceRange.Location,
         in markdown: String
     ) -> Int? {
         guard location.line > 0, location.column > 0 else {

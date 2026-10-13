@@ -31,28 +31,16 @@ private extension View {
 
 struct FlatMarkListView: View {
     let entries: [FlatMarkListRenderEntry]
-    let imageLoader: FlatMarkImageLoader?
-    let imageURLPolicy: FlatMarkImageURLPolicy
-    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
+    let context: FlatMarkRenderContext
 
     var body: some View {
         VStack(alignment: .flatMarkListContent, spacing: 8) {
             ForEach(entries) { entry in
                 switch entry {
                 case let .row(row):
-                    FlatMarkListRowView(
-                        row: row,
-                        imageLoader: imageLoader,
-                        imageURLPolicy: imageURLPolicy,
-                        taskToggleAction: taskToggleAction
-                    )
+                    FlatMarkListRowView(row: row, context: context)
                 case let .childBlock(childBlock):
-                    FlatMarkListChildBlockView(
-                        childBlock: childBlock,
-                        imageLoader: imageLoader,
-                        imageURLPolicy: imageURLPolicy,
-                        taskToggleAction: taskToggleAction
-                    )
+                    FlatMarkListChildBlockView(childBlock: childBlock, context: context)
                 }
             }
         }
@@ -65,17 +53,10 @@ private struct FlatMarkListChildBlockView: View {
     @Environment(\.layoutDirection) private var layoutDirection
 
     let childBlock: FlatMarkListChildRenderBlock
-    let imageLoader: FlatMarkImageLoader?
-    let imageURLPolicy: FlatMarkImageURLPolicy
-    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
+    let context: FlatMarkRenderContext
 
     var body: some View {
-        FlatMarkBlockView(
-            block: childBlock.block,
-            imageLoader: imageLoader,
-            imageURLPolicy: imageURLPolicy,
-            taskToggleAction: taskToggleAction
-        )
+        FlatMarkBlockView(block: childBlock.block, context: context)
         .alignmentGuide(.flatMarkListContent) { dimensions in
             dimensions[.leading]
         }
@@ -89,16 +70,40 @@ private struct FlatMarkListChildBlockView: View {
 
 // MARK: - FlatMarkListRowView
 
-private struct FlatMarkListRowView: View {
+struct FlatMarkListRowView: View {
     @Environment(\.layoutDirection) private var layoutDirection
 
     let row: FlatMarkListRenderRow
-    let imageLoader: FlatMarkImageLoader?
-    let imageURLPolicy: FlatMarkImageURLPolicy
-    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
+    let context: FlatMarkRenderContext
+
+    /// The change this row's checkbox performs, or `nil` when the row is static content.
+    ///
+    /// A task is interactive only when it has both a typed editing address and a host callback.
+    /// Without either one the row keeps showing its checked state and offers no mutation, so the
+    /// callback cannot be invoked for a marker that cannot be addressed safely.
+    ///
+    /// Handing an unaddressable task a callback is a renderer bug rather than a host choice:
+    /// Markdown projected from a string always gives a task marker its address, so a `nil`
+    /// address here means a render value was built without one. The debug build says so.
+    var taskToggleAction: (() -> Void)? {
+        guard case let .task(_, sourceRange) = row.marker else {
+            return nil
+        }
+
+        guard let hostTaskToggleAction = context.taskToggleAction else {
+            return nil
+        }
+
+        guard let sourceRange else {
+            assertionFailure("A task row that offers a host toggle action must carry an editing address.")
+            return nil
+        }
+
+        return { hostTaskToggleAction(sourceRange) }
+    }
 
     var body: some View {
-        if case let .task(isChecked) = row.marker {
+        if case let .task(isChecked, _) = row.marker {
             taskRow(isChecked: isChecked)
         } else {
             rowContent()
@@ -111,7 +116,7 @@ private struct FlatMarkListRowView: View {
             Toggle(
                 isOn: Binding(
                     get: { isChecked },
-                    set: { _ in taskToggleAction(row.id) }
+                    set: { _ in taskToggleAction() }
                 )
             ) {
                 inlineContent
@@ -153,11 +158,7 @@ private struct FlatMarkListRowView: View {
     }
 
     private var inlineContent: some View {
-        FlatMarkInlineView(
-            content: row.content,
-            imageLoader: imageLoader,
-            imageURLPolicy: imageURLPolicy
-        )
+        FlatMarkInlineView(content: row.content, context: context)
     }
 
     @ViewBuilder
@@ -171,7 +172,7 @@ private struct FlatMarkListRowView: View {
             Text("\(index).")
                 .foregroundStyle(.secondary)
 
-        case let .task(isChecked):
+        case let .task(isChecked, _):
             Image(systemName: isChecked ? "checkmark.square.fill" : "square")
                 .font(.body)
                 .foregroundStyle(isChecked ? .green : .secondary)

@@ -14,11 +14,11 @@ struct FlatMarkTaskMarkerToggleTests {
 
         Keep  **this formatting** exactly.
         """
-        let id = try #require(taskIDs(in: markdown).dropFirst().first)
-        #expect(id.path == [1, 0, 1, 0])
+        let address = try #require(taskAddresses(in: markdown).dropFirst().first)
+        #expect(address.path == [1, 0, 1, 0])
 
         let updatedMarkdown = try #require(
-            FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, id: id)
+            FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, sourceRange: address.sourceRange)
         )
 
         #expect(updatedMarkdown == markdown.replacingFirst("  - [x] Nested task", with: "  - [ ] Nested task"))
@@ -34,14 +34,13 @@ struct FlatMarkTaskMarkerToggleTests {
         #expect(toggledMarkdown(in: checked) == "- [ ] Done")
         #expect(toggledMarkdown(in: uppercase) == "- [ ] Also done")
 
-        let invalidID = FlatMarkRenderNodeID(
-            path: [99],
-            sourceRange: .init(
-                lowerBound: .init(line: 99, column: 1),
-                upperBound: .init(line: 99, column: 2)
-            )
+        let invalidAddress = FlatMarkSourceRange(
+            lowerBound: .init(line: 99, column: 1),
+            upperBound: .init(line: 99, column: 2)
         )
-        #expect(FlatMarkTaskMarkerToggle.toggledMarkdown(in: unchecked, id: invalidID) == nil)
+        #expect(
+            FlatMarkTaskMarkerToggle.toggledMarkdown(in: unchecked, sourceRange: invalidAddress) == nil
+        )
     }
 }
 
@@ -53,12 +52,12 @@ struct FlatMarkTaskMarkerToggleNewlineMatrixTests {
     func equivalentNewlineVariantsToggleSameLogicalTasks(variant: NewlineVariants.Variant) throws {
         let input = TaskToggleFixture.joined(with: variant.joiner)
         let inputBytes = Array(input.utf8)
-        let ids = taskIDs(in: input)
-        #expect(ids.count == TaskToggleFixture.tasks.count)
+        let addresses = taskAddresses(in: input)
+        #expect(addresses.count == TaskToggleFixture.tasks.count)
 
-        for (id, task) in zip(ids, TaskToggleFixture.tasks) {
+        for (address, task) in zip(addresses, TaskToggleFixture.tasks) {
             let toggled = try #require(
-                FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: id),
+                FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, sourceRange: address.sourceRange),
                 "toggling \(task.markerPattern) in \(variant.name)"
             )
             let toggledBytes = Array(toggled.utf8)
@@ -79,7 +78,9 @@ struct FlatMarkTaskMarkerToggleNewlineMatrixTests {
             #expect(toggledBytes == expected)
 
             // A second toggle returns the snapshot byte for byte, covering both replacement directions.
-            let reverted = try #require(FlatMarkTaskMarkerToggle.toggledMarkdown(in: toggled, id: id))
+            let reverted = try #require(
+                FlatMarkTaskMarkerToggle.toggledMarkdown(in: toggled, sourceRange: address.sourceRange)
+            )
             #expect(Array(reverted.utf8) == inputBytes)
         }
     }
@@ -97,8 +98,10 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
             + "- [ ] Tail after ☕ done"
         let inputBytes = Array(input.utf8)
 
-        for (id, task) in zip(taskIDs(in: input), TaskToggleFixture.tasks) {
-            let toggled = try #require(FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: id))
+        for (address, task) in zip(taskAddresses(in: input), TaskToggleFixture.tasks) {
+            let toggled = try #require(
+                FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, sourceRange: address.sourceRange)
+            )
             let toggledBytes = Array(toggled.utf8)
             let stateOffset = try #require(stateByteOffset(of: task, in: inputBytes))
 
@@ -118,10 +121,10 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
         let inputBytes = Array(input.utf8)
 
         // The final task sits on the last line before the trailing terminator.
-        let lastID = try #require(taskIDs(in: input).last)
+        let lastAddress = try #require(taskAddresses(in: input).last)
         let lastTask = try #require(TaskToggleFixture.tasks.last)
         let toggled = try #require(
-            FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: lastID),
+            FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, sourceRange: lastAddress.sourceRange),
             "final task with trailing \(variant.name)"
         )
         let toggledBytes = Array(toggled.utf8)
@@ -135,10 +138,12 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
     func `uppercase checked marker toggles in a mixed-ending document without touching neighbors`() throws {
         let input = "- [ ] One café\r\n- [X] Uppercase na\u{0308}ve 😀\r- [ ] Three 你好"
         let inputBytes = Array(input.utf8)
-        let ids = taskIDs(in: input)
-        #expect(ids.count == 3)
+        let addresses = taskAddresses(in: input)
+        #expect(addresses.count == 3)
 
-        let toggled = try #require(FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: ids[1]))
+        let toggled = try #require(
+            FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, sourceRange: addresses[1].sourceRange)
+        )
         let toggledBytes = Array(toggled.utf8)
         let stateOffset = try #require(stateByteOffset(of: "Uppercase", in: inputBytes))
 
@@ -154,8 +159,10 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
             + "- [ ] Sibling 😀 tail"
         let inputBytes = Array(input.utf8)
 
-        // ids[0] is the Target task; inline "[x]" and both neighbors must stay untouched.
-        let toggled = try #require(FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: taskIDs(in: input)[0]))
+        // addresses[0] is the Target task; inline "[x]" and both neighbors must stay untouched.
+        let toggled = try #require(
+            FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, sourceRange: taskAddresses(in: input)[0].sourceRange)
+        )
         let toggledBytes = Array(toggled.utf8)
         let stateOffset = try #require(firstByteIndex(of: "- [ ] Target", in: inputBytes)) + 3
 
@@ -180,14 +187,14 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
         ]
 
         for bad in cases {
-            let id = FlatMarkRenderNodeID(
-                path: [0],
-                sourceRange: .init(
-                    lowerBound: .init(line: bad.line, column: bad.column),
-                    upperBound: .init(line: bad.line, column: bad.column + 1)
-                )
+            let address = FlatMarkSourceRange(
+                lowerBound: .init(line: bad.line, column: bad.column),
+                upperBound: .init(line: bad.line, column: bad.column + 1)
             )
-            #expect(FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, id: id) == nil, "case \(bad)")
+            #expect(
+                FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, sourceRange: address) == nil,
+                "case \(bad)"
+            )
         }
     }
 
@@ -231,8 +238,8 @@ struct FlatMarkTaskMarkerToggleCoordinateContractTests {
         let markdown = "- [ ] Omega na\u{0308}ve 你好"
         let bytes = Array(markdown.utf8)
 
-        let id = try #require(taskIDs(in: markdown).first)
-        let endpoint = id.sourceRange.upperBound
+        let address = try #require(taskAddresses(in: markdown).first)
+        let endpoint = address.sourceRange.upperBound
         // Column semantics are UTF-8 bytes, so the parsed column must exceed the line's character count.
         #expect(endpoint.column > markdown.count)
 
@@ -249,8 +256,8 @@ struct FlatMarkTaskMarkerToggleCoordinateContractTests {
         let markdown = "- [ ] Omega na\u{0308}ve 你好\n- [ ] Tail after ☕ done"
         let bytes = Array(markdown.utf8)
 
-        let id = try #require(taskIDs(in: markdown).first)
-        let endpoint = id.sourceRange.upperBound
+        let address = try #require(taskAddresses(in: markdown).first)
+        let endpoint = address.sourceRange.upperBound
         // Independent determination: first newline, which is the content end of line 1.
         let firstNewline = try #require(bytes.firstIndex(of: 10))
         let cjkEnd = try #require(firstByteIndex(of: "你好", in: bytes)) + Array("你好".utf8).count
@@ -347,33 +354,39 @@ private func firstByteIndex(of pattern: String, in bytes: [UInt8]) -> Int? {
     return nil
 }
 
-private func taskIDs(in markdown: String) -> [FlatMarkRenderNodeID] {
-    FlatMarkRenderProjector.project(markdown: markdown).blocks.flatMap(taskIDs(in:))
+/// One projected task's structural path and the editing address a toggle is handed.
+private struct TaskAddress: Equatable, Sendable {
+    let path: [Int]
+    let sourceRange: FlatMarkSourceRange
+}
+
+private func taskAddresses(in markdown: String) -> [TaskAddress] {
+    FlatMarkRenderProjector.project(markdown: markdown).blocks.flatMap(taskAddresses(in:))
 }
 
 private func toggledMarkdown(in markdown: String) -> String? {
-    guard let id = taskIDs(in: markdown).first else {
+    guard let address = taskAddresses(in: markdown).first else {
         return nil
     }
 
-    return FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, id: id)
+    return FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, sourceRange: address.sourceRange)
 }
 
-private func taskIDs(in block: FlatMarkRenderBlock) -> [FlatMarkRenderNodeID] {
+private func taskAddresses(in block: FlatMarkRenderBlock) -> [TaskAddress] {
     switch block.kind {
     case let .blockQuote(blocks):
-        blocks.flatMap(taskIDs(in:))
+        blocks.flatMap(taskAddresses(in:))
     case let .list(entries):
-        entries.flatMap { entry -> [FlatMarkRenderNodeID] in
+        entries.flatMap { entry -> [TaskAddress] in
             switch entry {
             case let .row(row):
-                if case .task = row.marker {
-                    [row.id]
-                } else {
-                    []
+                guard case let .task(_, sourceRange) = row.marker, let sourceRange else {
+                    return []
                 }
+
+                return [TaskAddress(path: row.id.path, sourceRange: sourceRange)]
             case let .childBlock(childBlock):
-                taskIDs(in: childBlock.block)
+                return taskAddresses(in: childBlock.block)
             }
         }
     default:

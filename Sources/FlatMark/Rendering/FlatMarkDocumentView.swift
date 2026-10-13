@@ -4,16 +4,12 @@ import SwiftUI
 
 struct FlatMarkDocumentView: View {
     let document: FlatMarkRenderDocument
-    let imageLoader: FlatMarkImageLoader?
-    let imageURLPolicy: FlatMarkImageURLPolicy
-    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
+    let context: FlatMarkRenderContext
 
     var body: some View {
         FlatMarkBlockListView(
             blocks: document.blocks,
-            imageLoader: imageLoader,
-            imageURLPolicy: imageURLPolicy,
-            taskToggleAction: taskToggleAction
+            context: context
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -23,18 +19,14 @@ struct FlatMarkDocumentView: View {
 
 private struct FlatMarkBlockListView: View {
     let blocks: [FlatMarkRenderBlock]
-    let imageLoader: FlatMarkImageLoader?
-    let imageURLPolicy: FlatMarkImageURLPolicy
-    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
+    let context: FlatMarkRenderContext
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             ForEach(blocks) { block in
                 FlatMarkBlockView(
                     block: block,
-                    imageLoader: imageLoader,
-                    imageURLPolicy: imageURLPolicy,
-                    taskToggleAction: taskToggleAction
+                    context: context
                 )
             }
         }
@@ -45,24 +37,20 @@ private struct FlatMarkBlockListView: View {
 
 struct FlatMarkBlockView: View {
     let block: FlatMarkRenderBlock
-    let imageLoader: FlatMarkImageLoader?
-    let imageURLPolicy: FlatMarkImageURLPolicy
-    var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
+    let context: FlatMarkRenderContext
 
     var body: some View {
         switch block.kind {
         case let .paragraph(content):
             FlatMarkInlineView(
                 content: content,
-                imageLoader: imageLoader,
-                imageURLPolicy: imageURLPolicy
+                context: context
             )
 
         case let .heading(level, content):
             FlatMarkInlineView(
                 content: content,
-                imageLoader: imageLoader,
-                imageURLPolicy: imageURLPolicy
+                context: context
             )
                 .font(font(for: level))
                 .bold()
@@ -81,31 +69,17 @@ struct FlatMarkBlockView: View {
                     .fill(.secondary)
                     .frame(width: 2)
 
-                FlatMarkBlockListView(
-                    blocks: blocks,
-                    imageLoader: imageLoader,
-                    imageURLPolicy: imageURLPolicy,
-                    taskToggleAction: taskToggleAction
-                )
+                FlatMarkBlockListView(blocks: blocks, context: context)
             }
 
         case let .list(entries):
-            FlatMarkListView(
-                entries: entries,
-                imageLoader: imageLoader,
-                imageURLPolicy: imageURLPolicy,
-                taskToggleAction: taskToggleAction
-            )
+            FlatMarkListView(entries: entries, context: context)
 
         case .thematicBreak:
             Divider()
 
         case let .table(table):
-            FlatMarkTableView(
-                table: table,
-                imageLoader: imageLoader,
-                imageURLPolicy: imageURLPolicy
-            )
+            FlatMarkTableView(table: table, context: context)
 
         case let .fallback(type, content):
             Text("\(type): \(content)")
@@ -133,8 +107,7 @@ struct FlatMarkTableView: View {
     private let cellWidth: CGFloat = 160
 
     let table: FlatMarkRenderTable
-    var imageLoader: FlatMarkImageLoader? = nil
-    var imageURLPolicy: FlatMarkImageURLPolicy = .webOnly
+    let context: FlatMarkRenderContext
 
     var rendersTable: Bool {
         !table.header.isEmpty
@@ -183,11 +156,7 @@ struct FlatMarkTableView: View {
     }
 
     private func inlineView(for content: FlatMarkRenderInlineContent) -> some View {
-        FlatMarkInlineView(
-            content: content,
-            imageLoader: imageLoader,
-            imageURLPolicy: imageURLPolicy
-        )
+        FlatMarkInlineView(content: content, context: context)
     }
 }
 
@@ -236,8 +205,7 @@ struct FlatMarkInlineView: View {
     }
 
     let content: FlatMarkRenderInlineContent
-    let imageLoader: FlatMarkImageLoader?
-    let imageURLPolicy: FlatMarkImageURLPolicy
+    let context: FlatMarkRenderContext
 
     @Environment(\.layoutDirection) private var layoutDirection
     @State private var imagePhases: [Int: ImagePhase] = [:]
@@ -407,7 +375,7 @@ struct FlatMarkInlineView: View {
                 componentIndex: index,
                 request: FlatMarkImageRequest.resolve(
                     url: image.url,
-                    policy: imageURLPolicy
+                    policy: context.imageURLPolicy
                 )
             )
         }
@@ -416,7 +384,7 @@ struct FlatMarkInlineView: View {
     private var imageTaskID: ImageTaskID {
         ImageTaskID(
             requests: imageRequests,
-            loaderConfigurationID: imageLoader?.configurationID
+            loaderConfigurationID: context.imageLoader?.configurationID
         )
     }
 
@@ -457,6 +425,7 @@ struct FlatMarkInlineView: View {
     }
 
     private func loadImages() async {
+        let imageLoader = context.imageLoader
         imagePhases = Dictionary(uniqueKeysWithValues: imageRequests.map { imageRequest in
             let phase: ImagePhase = if imageLoader == nil {
                 .placeholder
@@ -576,32 +545,33 @@ private let previewImageLoaderConfigurationID = UUID()
     FlatMarkTableView(
         table: FlatMarkRenderTable(
             header: [
-                .init(id: "header.owner", content: "Owner", colspan: 1),
-                .init(id: "header.status", content: "Status", colspan: 1),
-                .init(id: "header.notes", content: "Notes", colspan: 1),
+                .init(id: .init(path: [0, 0, 0]), content: "Owner", colspan: 1),
+                .init(id: .init(path: [0, 0, 1]), content: "Status", colspan: 1),
+                .init(id: .init(path: [0, 0, 2]), content: "Notes", colspan: 1),
             ],
             rows: [
                 .init(
-                    id: "ready",
+                    id: .init(path: [0, 1, 0]),
                     cells: [
-                        .init(id: "ready.owner", content: "Noemi", colspan: 2),
+                        .init(id: .init(path: [0, 1, 0, 0]), content: "Noemi", colspan: 2),
                         .init(
-                            id: "ready.notes",
+                            id: .init(path: [0, 1, 0, 2]),
                             content: "Confirm the release notes before publishing. Some very long text. Confirm the release notes before publishing. Some very long text. Confirm the release notes before publishing. Some very long text.",
                             colspan: 1
                         ),
                     ]
                 ),
                 .init(
-                    id: "in-progress",
+                    id: .init(path: [0, 1, 1]),
                     cells: [
-                        .init(id: "in-progress.owner", content: "Alex", colspan: 1),
-                        .init(id: "in-progress.status", content: "In progress", colspan: 1),
-                        .init(id: "in-progress.notes", content: "Waiting for review.", colspan: 1),
+                        .init(id: .init(path: [0, 1, 1, 0]), content: "Alex", colspan: 1),
+                        .init(id: .init(path: [0, 1, 1, 1]), content: "In progress", colspan: 1),
+                        .init(id: .init(path: [0, 1, 1, 2]), content: "Waiting for review.", colspan: 1),
                     ]
                 ),
             ]
-        )
+        ),
+        context: .readOnly
     )
     .padding()
 }

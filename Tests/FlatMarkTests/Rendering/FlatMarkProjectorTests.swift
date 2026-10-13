@@ -36,7 +36,7 @@ struct FlatMarkRenderProjectorTests {
     }
 
     @Test
-    func `projects a source position for every nested render block`() {
+    func `projects path-typed identity for every nested render block`() {
         let document = FlatMarkRenderProjector.project(markdown: """
         > Quoted text.
         >
@@ -45,7 +45,109 @@ struct FlatMarkRenderProjectorTests {
         >   Follow-up paragraph.
         """)
 
-        #expect(allBlocks(in: document).map(\.id.sourceRange).count == allBlocks(in: document).count)
+        let blocks = allBlocks(in: document)
+        #expect(!blocks.isEmpty)
+
+        // Identity is built from the tree alone: a fresh value made from the path alone equals
+        // the projected one, so a missing parser range cannot change or abort identity.
+        #expect(blocks.allSatisfy { FlatMarkRenderNodeID(path: $0.id.path) == $0.id })
+        #expect(Set(blocks.map(\.id)).count == blocks.count)
+        #expect(blocks.map(\.id.path) == [[0], [0, 0], [0, 1], [0, 1, 0, 1]])
+    }
+
+    @Test
+    func `gives each rendered element of a mixed document its own identity`() throws {
+        let document = FlatMarkRenderProjector.project(markdown: """
+        # Title
+
+        A paragraph.
+
+        > Quoted text.
+        >
+        > - Quoted item
+
+        - [ ] Task
+          - Nested item
+
+          > Quote inside the task.
+
+          Continuation paragraph.
+
+        | Name | State | Notes |
+        | --- | --- | --- |
+        | Wide || End |
+        | Plain |
+        """)
+
+        // Check shape before uniqueness so omitted nested or table content cannot pass.
+        #expect(document.blocks.map(blockKindName) == ["heading(1)", "paragraph", "blockQuote", "list", "table"])
+
+        let entries = try #require({
+            if case let .list(entries) = document.blocks[3].kind { return entries }
+            return nil
+        }())
+        #expect(entries.compactMap(row).contains { $0.indentation > 0 })
+        #expect(entries.compactMap(childBlock).contains {
+            if case .blockQuote = $0.block.kind { return true }
+            return false
+        })
+        let projectedTable = try #require(table(in: .init(blocks: [document.blocks[4]])))
+        #expect(projectedTable.header.count == 3)
+        #expect(projectedTable.rows[0].cells[1].colspan == 0)
+        #expect(projectedTable.rows[0].cells[1].content.plainText.isEmpty)
+        #expect(projectedTable.rows[1].cells.count == 3)
+        #expect(projectedTable.rows[1].cells[2].content.plainText.isEmpty)
+        #expect(projectedTable.rows[1].cells[2].colspan == 1)
+
+        // A child-block entry and the block it renders share one identity, so each rendered
+        // element of the document appears exactly once.
+        let paths = renderIDs(in: document).map(\.path)
+        for path in [[2, 1, 0], [3, 0], [3, 0, 1, 0], [3, 0, 2], [3, 0, 2, 0], [3, 0, 3], [4], [4, 0, 2], [4, 1, 0, 1], [4, 1, 1, 2]] {
+            #expect(paths.contains(path), "missing rendered element at \(path)")
+        }
+
+        #expect(Set(paths).count == paths.count)
+    }
+
+    @Test
+    func `a structure-preserving source edit keeps render IDs and refreshes task editing addresses`() throws {
+        let tasks = """
+        - [ ] Alpha
+          - [ ] Beta
+            continues below.
+        - [ ] Gamma
+        """
+        let snapshotA = "Intro\n\nPreamble text that is short.\n\n" + tasks
+        // The same tree, with a longer preamble that moves every later byte position.
+        let snapshotB = "Intro\n\n"
+            + "A preamble that spans several source lines so every\n"
+            + "byte position below it moves, while the parsed tree\n"
+            + "keeps the shape of the snapshot above.\n\n" + tasks
+
+        let documentA = FlatMarkRenderProjector.project(markdown: snapshotA)
+        let documentB = FlatMarkRenderProjector.project(markdown: snapshotB)
+
+        #expect(renderIDs(in: documentA).count > 1)
+        #expect(renderIDs(in: documentB) == renderIDs(in: documentA))
+
+        let addressesA = taskAddresses(in: documentA.blocks)
+        let addressesB = taskAddresses(in: documentB.blocks)
+        #expect(addressesA.count == 3)
+        #expect(zip(addressesA, addressesB).allSatisfy { $0.path == $1.path })
+        #expect(zip(addressesA, addressesB).allSatisfy { $0.sourceRange != $1.sourceRange })
+
+        // The shifted snapshot's own address rewrites exactly Alpha's state byte.
+        let alpha = try #require(addressesB.first)
+        let toggled = try #require(
+            FlatMarkTaskMarkerToggle.toggledMarkdown(in: snapshotB, sourceRange: alpha.sourceRange)
+        )
+        let originalBytes = Array(snapshotB.utf8)
+        let toggledBytes = Array(toggled.utf8)
+        let stateOffset = try #require(firstByteIndex(of: "- [ ] Alpha", in: originalBytes)) + 3
+
+        #expect(toggledBytes.count == originalBytes.count)
+        #expect(originalBytes.indices.filter { originalBytes[$0] != toggledBytes[$0] } == [stateOffset])
+        #expect(toggledBytes[stateOffset] == UInt8(ascii: "x"))
     }
 
     @Test
@@ -61,10 +163,10 @@ struct FlatMarkRenderProjectorTests {
         #expect(document.blocks.map(\.id.path) == [[0]])
         #expect(entries.map(\.id.path) == [[0, 0], [0, 0, 1, 0], [0, 0, 1, 1]])
         #expect(entries.compactMap(row).map(\.indentation) == [0, 1, 1])
-        #expect(entries.compactMap(row).map(\.marker) == [
-            .ordered(index: 3),
-            .task(isChecked: true),
-            .task(isChecked: false),
+        #expect(entries.compactMap(row).map(markerShape) == [
+            "ordered(3)",
+            "task(isChecked: true, addressed: true)",
+            "task(isChecked: false, addressed: true)",
         ])
         #expect(entries.compactMap(row).map(\.content.plainText) == ["Ordered", "Done", "Pending"])
     }
@@ -121,7 +223,9 @@ struct FlatMarkRenderProjectorTests {
         """)
         let table = try #require(table(in: document))
 
-        #expect(table.rows.map(\.id) == ["0.row.0", "0.row.1"])
+        #expect(table.rows.map(\.id.path) == [[0, 1, 0], [0, 1, 1]])
+        #expect(table.header.map(\.id.path) == [[0, 0, 0], [0, 0, 1]])
+        #expect(table.rows[0].cells.map(\.id.path) == [[0, 1, 0, 0], [0, 1, 0, 1]])
         #expect(table.header.map { text(of: $0.content) } == ["Name", "State"])
         #expect(table.rows.map { $0.cells.map { text(of: $0.content) } } == [
             ["Alpha", "Ready"],
@@ -311,6 +415,106 @@ struct FlatMarkRenderProjectorTests {
     }
 }
 
+private func blockKindName(_ block: FlatMarkRenderBlock) -> String {
+    switch block.kind {
+    case .paragraph:
+        "paragraph"
+    case let .heading(level, _):
+        "heading(\(level))"
+    case .codeBlock:
+        "codeBlock"
+    case .blockQuote:
+        "blockQuote"
+    case .list:
+        "list"
+    case .thematicBreak:
+        "thematicBreak"
+    case .table:
+        "table"
+    case let .fallback(type, _):
+        "fallback(\(type))"
+    }
+}
+
+
+private func renderIDs(in document: FlatMarkRenderDocument) -> [FlatMarkRenderNodeID] {
+    renderIDs(in: document.blocks)
+}
+
+/// Every represented identity in render order, including continuation and padding cells.
+private func renderIDs(in blocks: [FlatMarkRenderBlock]) -> [FlatMarkRenderNodeID] {
+    blocks.flatMap { block -> [FlatMarkRenderNodeID] in
+        var ids = [block.id]
+
+        switch block.kind {
+        case let .blockQuote(children):
+            ids += renderIDs(in: children)
+        case let .list(entries):
+            for entry in entries {
+                switch entry {
+                case let .row(row):
+                    ids.append(row.id)
+                case let .childBlock(childBlock):
+                    ids += renderIDs(in: [childBlock.block])
+                }
+            }
+        case let .table(table):
+            ids += table.header.map(\.id)
+            for row in table.rows {
+                ids.append(row.id)
+                ids += row.cells.map(\.id)
+            }
+        default:
+            break
+        }
+
+        return ids
+    }
+}
+
+/// One projected task row's structural path and the editing address its marker carries.
+private typealias TaskAddress = (path: [Int], sourceRange: FlatMarkSourceRange)
+
+private func taskAddresses(in blocks: [FlatMarkRenderBlock]) -> [TaskAddress] {
+    blocks.flatMap { block -> [TaskAddress] in
+        switch block.kind {
+        case let .blockQuote(children):
+            return taskAddresses(in: children)
+
+        case let .list(entries):
+            return entries.flatMap { entry -> [TaskAddress] in
+                switch entry {
+                case let .row(row):
+                    guard case let .task(_, sourceRange) = row.marker, let sourceRange else {
+                        return []
+                    }
+
+                    return [(path: row.id.path, sourceRange: sourceRange)]
+
+                case let .childBlock(childBlock):
+                    return taskAddresses(in: [childBlock.block])
+                }
+            }
+
+        default:
+            return []
+        }
+    }
+}
+
+private func firstByteIndex(of pattern: String, in bytes: [UInt8]) -> Int? {
+    let needle = Array(pattern.utf8)
+    var start = 0
+    while start + needle.count <= bytes.count {
+        if Array(bytes[start ..< start + needle.count]) == needle {
+            return start
+        }
+        start += 1
+    }
+
+    return nil
+}
+
 private func paragraphContent(
     in markdown: String,
     baseURL: URL? = nil
@@ -355,6 +559,17 @@ private func childBlock(in entry: FlatMarkListRenderEntry) -> FlatMarkListChildR
     }
 
     return childBlock
+}
+
+private func markerShape(_ row: FlatMarkListRenderRow) -> String {
+    switch row.marker {
+    case .unordered:
+        "unordered"
+    case let .ordered(index):
+        "ordered(\(index))"
+    case let .task(isChecked, sourceRange):
+        "task(isChecked: \(isChecked), addressed: \(sourceRange != nil))"
+    }
 }
 
 private func allBlocks(in document: FlatMarkRenderDocument) -> [FlatMarkRenderBlock] {

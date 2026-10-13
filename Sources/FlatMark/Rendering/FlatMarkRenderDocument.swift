@@ -146,12 +146,12 @@ struct FlatMarkRenderBlock: Identifiable, Equatable, Sendable {
 /// A rectangular, renderer-only table projection.
 struct FlatMarkRenderTable: Equatable, Sendable {
     struct Row: Identifiable, Equatable, Sendable {
-        let id: String
+        let id: FlatMarkRenderNodeID
         let cells: [Cell]
     }
 
     struct Cell: Identifiable, Equatable, Sendable {
-        let id: String
+        let id: FlatMarkRenderNodeID
         let content: FlatMarkRenderInlineContent
         let colspan: Int
     }
@@ -165,12 +165,15 @@ struct FlatMarkRenderTable: Equatable, Sendable {
 enum FlatMarkListMarker: Equatable, Sendable {
     case unordered
     case ordered(index: Int)
-    case task(isChecked: Bool)
+
+    /// A GFM task marker and the editing address of its state byte, or `nil` when the parser
+    /// gave this item no source coordinates and the row can only be static content.
+    case task(isChecked: Bool, sourceRange: FlatMarkSourceRange?)
 }
 
 // MARK: - FlatMarkListRenderRow
 
-/// A flattened list item identified by its parsed location in the Markdown source.
+/// A flattened list item identified by its position in the parsed tree.
 struct FlatMarkListRenderRow: Identifiable, Equatable, Sendable {
     let id: FlatMarkRenderNodeID
     let indentation: Int
@@ -231,8 +234,7 @@ private extension FlatMarkRenderProjector {
         indentation: Int,
         baseURL: URL?
     ) -> FlatMarkRenderBlock {
-        let id = id(for: markup, path: path)
-        let structuralID = path.map(String.init).joined(separator: ".")
+        let id = id(path: path)
 
         switch markup {
         case let paragraph as Paragraph:
@@ -291,7 +293,7 @@ private extension FlatMarkRenderProjector {
         case let table as Table:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .table(tableProjection(from: table, id: structuralID, baseURL: baseURL))
+                kind: .table(tableProjection(from: table, path: path, baseURL: baseURL))
             )
 
         case let htmlBlock as HTMLBlock:
@@ -324,7 +326,7 @@ private extension FlatMarkRenderProjector {
         )
 
         return FlatMarkRenderBlock(
-            id: id(for: list, path: path),
+            id: id(path: path),
             kind: .list(rows)
         )
     }
@@ -344,7 +346,7 @@ private extension FlatMarkRenderProjector {
             let itemPath = path + [index]
             let marker = listMarker(for: item, orderedIndex: startIndex.map { $0 + index })
             let row = FlatMarkListRenderRow(
-                id: id(for: item, path: itemPath),
+                id: id(path: itemPath),
                 indentation: indentation,
                 marker: marker,
                 content: firstParagraphContent(of: item, baseURL: baseURL) ?? FlatMarkRenderInlineContent()
@@ -409,9 +411,9 @@ private extension FlatMarkRenderProjector {
     static func listMarker(for item: ListItem, orderedIndex: Int?) -> FlatMarkListMarker {
         switch item.checkbox {
         case .checked:
-            .task(isChecked: true)
+            .task(isChecked: true, sourceRange: item.range.map { FlatMarkSourceRange($0) })
         case .unchecked:
-            .task(isChecked: false)
+            .task(isChecked: false, sourceRange: item.range.map { FlatMarkSourceRange($0) })
         case nil:
             orderedIndex.map(FlatMarkListMarker.ordered) ?? .unordered
         }
@@ -430,24 +432,26 @@ private extension FlatMarkRenderProjector {
 
     static func tableProjection(
         from table: Table,
-        id: String,
+        path: [Int],
         baseURL: URL?
     ) -> FlatMarkRenderTable {
+        // swift-markdown stores Head at child 0 and Body at child 1; continuation
+        // cells are real children and retain their indices within those branches.
         let sourceHeader = Array(table.head.cells)
         let sourceRows = table.body.rows.map { Array($0.cells) }
         let columnCount = ([sourceHeader.count] + sourceRows.map(\.count)).max() ?? 0
         let header = tableCells(
             from: sourceHeader,
-            idPrefix: "\(id).header",
+            path: path + [0],
             columnCount: columnCount,
             baseURL: baseURL
         )
         let rows = sourceRows.enumerated().map { index, sourceCells in
             FlatMarkRenderTable.Row(
-                id: "\(id).row.\(index)",
+                id: id(path: path + [1, index]),
                 cells: tableCells(
                     from: sourceCells,
-                    idPrefix: "\(id).row.\(index)",
+                    path: path + [1, index],
                     columnCount: columnCount,
                     baseURL: baseURL
                 )
@@ -459,7 +463,7 @@ private extension FlatMarkRenderProjector {
 
     static func tableCells(
         from sourceCells: [Table.Cell],
-        idPrefix: String,
+        path: [Int],
         columnCount: Int,
         baseURL: URL?
     ) -> [FlatMarkRenderTable.Cell] {
@@ -467,16 +471,17 @@ private extension FlatMarkRenderProjector {
             let colspan = Int(cell.colspan)
             let isSpanContinuation = colspan == 0 || Int(cell.rowspan) == 0
             return FlatMarkRenderTable.Cell(
-                id: "\(idPrefix).cell.\(index)",
+                id: id(path: path + [index]),
                 content: isSpanContinuation
                     ? FlatMarkRenderInlineContent()
                     : inlineContent(of: cell, baseURL: baseURL),
                 colspan: colspan
             )
         }
+        // Synthetic padding follows every real child under the same parent.
         let fillerCells = (cells.count ..< columnCount).map { index in
             FlatMarkRenderTable.Cell(
-                id: "\(idPrefix).cell.\(index)",
+                id: id(path: path + [index]),
                 content: FlatMarkRenderInlineContent(),
                 colspan: 1
             )
@@ -522,23 +527,17 @@ private extension FlatMarkRenderProjector {
         String(describing: type(of: markup))
     }
 
-    static func id(for markup: some Markup, path: [Int]) -> FlatMarkRenderNodeID {
-        guard let sourceRange = markup.range else {
-            preconditionFailure("Parsed Markdown elements must have source ranges.")
-        }
-
-        return FlatMarkRenderNodeID(path: path, sourceRange: sourceRange)
+    /// Identity comes from the tree alone, so a missing parser range cannot abort projection.
+    static func id(path: [Int]) -> FlatMarkRenderNodeID {
+        FlatMarkRenderNodeID(path: path)
     }
 }
 
-private extension FlatMarkRenderNodeID {
-    init(path: [Int], sourceRange: Markdown.SourceRange) {
+private extension FlatMarkSourceRange {
+    init(_ sourceRange: Markdown.SourceRange) {
         self.init(
-            path: path,
-            sourceRange: SourceRange(
-                lowerBound: .init(line: sourceRange.lowerBound.line, column: sourceRange.lowerBound.column),
-                upperBound: .init(line: sourceRange.upperBound.line, column: sourceRange.upperBound.column)
-            )
+            lowerBound: .init(line: sourceRange.lowerBound.line, column: sourceRange.lowerBound.column),
+            upperBound: .init(line: sourceRange.upperBound.line, column: sourceRange.upperBound.column)
         )
     }
 }
