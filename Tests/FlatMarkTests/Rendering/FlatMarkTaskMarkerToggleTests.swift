@@ -1,7 +1,7 @@
 import Testing
 @testable import FlatMark
 
-struct TaskListMarkerToggleTests {
+struct FlatMarkTaskMarkerToggleTests {
     @Test
     func `toggling nested task preserves all authored markdown except one marker state`() throws {
         let markdown = """
@@ -18,7 +18,7 @@ struct TaskListMarkerToggleTests {
         #expect(id.path == [1, 0, 1, 0])
 
         let updatedMarkdown = try #require(
-            TaskListMarkerToggle.toggledMarkdown(in: markdown, id: id)
+            FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, id: id)
         )
 
         #expect(updatedMarkdown == markdown.replacingFirst("  - [x] Nested task", with: "  - [ ] Nested task"))
@@ -41,13 +41,13 @@ struct TaskListMarkerToggleTests {
                 upperBound: .init(line: 99, column: 2)
             )
         )
-        #expect(TaskListMarkerToggle.toggledMarkdown(in: unchecked, id: invalidID) == nil)
+        #expect(FlatMarkTaskMarkerToggle.toggledMarkdown(in: unchecked, id: invalidID) == nil)
     }
 }
 
 // MARK: - 1 & 2. Equivalent-document newline matrix with exact mutation assertions
 
-struct TaskListMarkerToggleNewlineMatrixTests {
+struct FlatMarkTaskMarkerToggleNewlineMatrixTests {
     @Test("equivalent LF, CRLF, and CR documents toggle the same logical tasks byte for byte",
           arguments: NewlineVariants.all)
     func equivalentNewlineVariantsToggleSameLogicalTasks(variant: NewlineVariants.Variant) throws {
@@ -58,7 +58,7 @@ struct TaskListMarkerToggleNewlineMatrixTests {
 
         for (id, task) in zip(ids, TaskToggleFixture.tasks) {
             let toggled = try #require(
-                TaskListMarkerToggle.toggledMarkdown(in: input, id: id),
+                FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: id),
                 "toggling \(task.markerPattern) in \(variant.name)"
             )
             let toggledBytes = Array(toggled.utf8)
@@ -79,7 +79,7 @@ struct TaskListMarkerToggleNewlineMatrixTests {
             #expect(toggledBytes == expected)
 
             // A second toggle returns the snapshot byte for byte, covering both replacement directions.
-            let reverted = try #require(TaskListMarkerToggle.toggledMarkdown(in: toggled, id: id))
+            let reverted = try #require(FlatMarkTaskMarkerToggle.toggledMarkdown(in: toggled, id: id))
             #expect(Array(reverted.utf8) == inputBytes)
         }
     }
@@ -87,7 +87,7 @@ struct TaskListMarkerToggleNewlineMatrixTests {
 
 // MARK: - 3. Boundary cases
 
-struct TaskListMarkerToggleBoundaryTests {
+struct FlatMarkTaskMarkerToggleBoundaryTests {
     @Test
     func `mixed line endings and missing final newline address the correct lines`() throws {
         let input = "# Setup 🧪 café\r\n"
@@ -98,7 +98,7 @@ struct TaskListMarkerToggleBoundaryTests {
         let inputBytes = Array(input.utf8)
 
         for (id, task) in zip(taskIDs(in: input), TaskToggleFixture.tasks) {
-            let toggled = try #require(TaskListMarkerToggle.toggledMarkdown(in: input, id: id))
+            let toggled = try #require(FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: id))
             let toggledBytes = Array(toggled.utf8)
             let stateOffset = try #require(stateByteOffset(of: task, in: inputBytes))
 
@@ -121,7 +121,7 @@ struct TaskListMarkerToggleBoundaryTests {
         let lastID = try #require(taskIDs(in: input).last)
         let lastTask = try #require(TaskToggleFixture.tasks.last)
         let toggled = try #require(
-            TaskListMarkerToggle.toggledMarkdown(in: input, id: lastID),
+            FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: lastID),
             "final task with trailing \(variant.name)"
         )
         let toggledBytes = Array(toggled.utf8)
@@ -138,7 +138,7 @@ struct TaskListMarkerToggleBoundaryTests {
         let ids = taskIDs(in: input)
         #expect(ids.count == 3)
 
-        let toggled = try #require(TaskListMarkerToggle.toggledMarkdown(in: input, id: ids[1]))
+        let toggled = try #require(FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: ids[1]))
         let toggledBytes = Array(toggled.utf8)
         let stateOffset = try #require(stateByteOffset(of: "Uppercase", in: inputBytes))
 
@@ -155,7 +155,7 @@ struct TaskListMarkerToggleBoundaryTests {
         let inputBytes = Array(input.utf8)
 
         // ids[0] is the Target task; inline "[x]" and both neighbors must stay untouched.
-        let toggled = try #require(TaskListMarkerToggle.toggledMarkdown(in: input, id: taskIDs(in: input)[0]))
+        let toggled = try #require(FlatMarkTaskMarkerToggle.toggledMarkdown(in: input, id: taskIDs(in: input)[0]))
         let toggledBytes = Array(toggled.utf8)
         let stateOffset = try #require(firstByteIndex(of: "- [ ] Target", in: inputBytes)) + 3
 
@@ -187,7 +187,7 @@ struct TaskListMarkerToggleBoundaryTests {
                     upperBound: .init(line: bad.line, column: bad.column + 1)
                 )
             )
-            #expect(TaskListMarkerToggle.toggledMarkdown(in: markdown, id: id) == nil, "case \(bad)")
+            #expect(FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, id: id) == nil, "case \(bad)")
         }
     }
 
@@ -197,34 +197,34 @@ struct TaskListMarkerToggleBoundaryTests {
         let crBytes = Array(cr.utf8)
         // Independent expectations for the same logical lines as LF-only would mislocate:
         // line 2 starts right after the first standalone CR, and the blank line 3 exists.
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 2, column: 1), in: cr)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 2, column: 1), in: cr)
                     == firstByteIndex(of: "- [ ] Alpha", in: crBytes))
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 3, column: 1), in: cr) == 35)
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 4, column: 1), in: cr)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 3, column: 1), in: cr) == 35)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 4, column: 1), in: cr)
                     == firstByteIndex(of: "- [x] Tail", in: crBytes))
         // Line 1 has 16 content bytes: columns 1...17 land in [0, 16], where 17 is the content end
         // (the terminator position), and anything further is beyond the line.
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 1, column: 16), in: cr) == 15)
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 1, column: 17), in: cr) == 16)
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 1, column: 18), in: cr) == nil)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 1, column: 16), in: cr) == 15)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 1, column: 17), in: cr) == 16)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 1, column: 18), in: cr) == nil)
         // A line past the snapshot end is nonexistent.
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 5, column: 1), in: cr) == nil)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 5, column: 1), in: cr) == nil)
 
         let crlf = "Intro 🧪 café\r\n- [ ] Alpha café\r\n- [ ] Omega café\r\n- [x] Tail 😀"
         let crlfBytes = Array(crlf.utf8)
         // CRLF advances lines by one, not two.
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 2, column: 1), in: crlf)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 2, column: 1), in: crlf)
                     == firstByteIndex(of: "- [ ] Alpha", in: crlfBytes))
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 3, column: 1), in: crlf)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 3, column: 1), in: crlf)
                     == firstByteIndex(of: "- [ ] Omega", in: crlfBytes))
-        #expect(TaskListMarkerToggle.utf8Offset(for: .init(line: 4, column: 1), in: crlf)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 4, column: 1), in: crlf)
                     == firstByteIndex(of: "- [x] Tail", in: crlfBytes))
     }
 }
 
 // MARK: - 4. Unicode coordinate-contract coverage
 
-struct TaskListMarkerToggleCoordinateContractTests {
+struct FlatMarkTaskMarkerToggleCoordinateContractTests {
     @Test("a real parsed range endpoint after multibyte text maps to its original byte offset")
     func parsedEndpointAfterMultibyteTextMapsToByteOffset() throws {
         // One task line whose content ends with two-byte CJK after a combining sequence.
@@ -241,7 +241,7 @@ struct TaskListMarkerToggleCoordinateContractTests {
         let cjkEnd = cjkStart + Array("你好".utf8).count
         #expect(cjkEnd == bytes.count)
 
-        #expect(TaskListMarkerToggle.utf8Offset(for: endpoint, in: markdown) == cjkEnd)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: endpoint, in: markdown) == cjkEnd)
     }
 
     @Test("a parsed endpoint on an earlier line after multibyte text maps past that line's content")
@@ -255,7 +255,7 @@ struct TaskListMarkerToggleCoordinateContractTests {
         let firstNewline = try #require(bytes.firstIndex(of: 10))
         let cjkEnd = try #require(firstByteIndex(of: "你好", in: bytes)) + Array("你好".utf8).count
         #expect(cjkEnd == firstNewline)
-        #expect(TaskListMarkerToggle.utf8Offset(for: endpoint, in: markdown) == firstNewline)
+        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: endpoint, in: markdown) == firstNewline)
     }
 }
 
@@ -356,7 +356,7 @@ private func toggledMarkdown(in markdown: String) -> String? {
         return nil
     }
 
-    return TaskListMarkerToggle.toggledMarkdown(in: markdown, id: id)
+    return FlatMarkTaskMarkerToggle.toggledMarkdown(in: markdown, id: id)
 }
 
 private func taskIDs(in block: FlatMarkRenderBlock) -> [FlatMarkRenderNodeID] {

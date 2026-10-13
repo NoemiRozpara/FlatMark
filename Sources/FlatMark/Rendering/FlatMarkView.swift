@@ -44,7 +44,7 @@ public struct FlatMarkView: View {
             imageURLPolicy: imageURLPolicy,
             taskToggleAction: taskToggleAction.map { action in
                 { id in
-                    guard let updatedMarkdown = TaskListMarkerToggle.toggledMarkdown(
+                    guard let updatedMarkdown = FlatMarkTaskMarkerToggle.toggledMarkdown(
                         in: markdown,
                         id: id
                     ) else {

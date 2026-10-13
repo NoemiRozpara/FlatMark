@@ -1,15 +1,15 @@
 import SwiftUI
 
-// MARK: - MarkdownListContentAlignment
+// MARK: - FlatMarkListContentAlignment
 
-private enum MarkdownListContentAlignment: AlignmentID {
+private enum FlatMarkListContentAlignment: AlignmentID {
     static func defaultValue(in dimensions: ViewDimensions) -> CGFloat {
         dimensions[.leading]
     }
 }
 
 private extension HorizontalAlignment {
-    static let markdownListContent = HorizontalAlignment(MarkdownListContentAlignment.self)
+    static let flatMarkListContent = HorizontalAlignment(FlatMarkListContentAlignment.self)
 }
 
 private extension View {
@@ -21,8 +21,8 @@ private extension View {
         let offset = CGFloat(indentation) * spacing
         let directionalOffset = layoutDirection == .leftToRight ? -offset : offset
 
-        return alignmentGuide(.markdownListContent) { dimensions in
-            dimensions[.markdownListContent] + directionalOffset
+        return alignmentGuide(.flatMarkListContent) { dimensions in
+            dimensions[.flatMarkListContent] + directionalOffset
         }
     }
 }
@@ -36,7 +36,7 @@ struct FlatMarkListView: View {
     var taskToggleAction: ((FlatMarkRenderNodeID) -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .markdownListContent, spacing: 8) {
+        VStack(alignment: .flatMarkListContent, spacing: 8) {
             ForEach(entries) { entry in
                 switch entry {
                 case let .row(row):
@@ -76,7 +76,7 @@ private struct FlatMarkListChildBlockView: View {
             imageURLPolicy: imageURLPolicy,
             taskToggleAction: taskToggleAction
         )
-        .alignmentGuide(.markdownListContent) { dimensions in
+        .alignmentGuide(.flatMarkListContent) { dimensions in
             dimensions[.leading]
         }
         .markdownListIndentation(
@@ -137,7 +137,7 @@ private struct FlatMarkListRowView: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             marker()
             inlineContent
-                .alignmentGuide(.markdownListContent) { dimensions in
+                .alignmentGuide(.flatMarkListContent) { dimensions in
                     dimensions[.leading]
                 }
         }

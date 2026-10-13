@@ -1,7 +1,7 @@
-// MARK: - TaskListMarkerToggle
+// MARK: - FlatMarkTaskMarkerToggle
 
 /// A narrow source-preserving operation for one current Markdown task marker.
-enum TaskListMarkerToggle {
+enum FlatMarkTaskMarkerToggle {
     /// Returns the Markdown with the task identified by `id` toggled, or nil when the
     /// operation cannot be performed safely.
     ///
