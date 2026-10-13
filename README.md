@@ -38,10 +38,17 @@ struct InteractivePreview: View {
 The toggle is source-preserving: only the selected marker's state character changes (`[ ]` ↔
 `[x]`, always the lowercase `x`). LF, CRLF, standalone CR, and mixed line endings are retained as
 written, and every other byte — Unicode included — stays identical. Each task marker carries the
-editing address of its state byte in the unchanged Markdown snapshot that was projected, so the
-toggle applies to that same source. Addresses from a previously rendered document are not
-supported, and a task the parser could not give an address to renders as static content that keeps
-its checked state and never invokes the closure.
+editing address of its state byte in the unchanged Markdown snapshot that was projected.
+`FlatMarkView` projects the same immutable source value captured by its toggle action, keeping
+addresses and mutations paired with that snapshot rather than applying old coordinates to newer
+Markdown. The internal toggle operation does not validate snapshot freshness; applying an address
+to a different snapshot is unsupported and can toggle an unrelated marker rather than fail.
+A task the parser could not give an address to renders as static content that keeps its checked
+state and never invokes the closure.
+
+The callback receives the complete updated source, not an address to apply to the host's current
+source. Hosts that defer accepting or persisting callback results are responsible for ensuring an
+older result does not overwrite newer Markdown.
 
 ## Images and relative URLs
 

@@ -3,12 +3,15 @@
 /// A narrow source-preserving operation for one current Markdown task marker.
 enum FlatMarkTaskMarkerToggle {
     /// Returns the Markdown with the task addressed by `sourceRange` toggled, or nil when the
-    /// operation cannot be performed safely.
+    /// coordinates cannot be mapped or no supported marker is found in the range.
     ///
-    /// The coordinates are interpreted against `markdown`, the unchanged original snapshot from
-    /// which they were projected. Only the selected marker's state byte is replaced; every other
-    /// byte, including line terminators and Unicode, is left untouched. Stale addresses from
-    /// previously projected documents are not supported.
+    /// Requires `sourceRange` to have been projected from the unchanged `markdown` snapshot.
+    /// Snapshot freshness is not validated: applying a stale range to different Markdown can
+    /// toggle an unrelated marker rather than return nil. FlatMarkView keeps the range and source
+    /// paired by projecting the same immutable Markdown value captured by its toggle action.
+    ///
+    /// Only the selected marker's state byte is replaced; every other byte, including line
+    /// terminators and Unicode, is left untouched.
     static func toggledMarkdown(in markdown: String, sourceRange: FlatMarkSourceRange) -> String? {
         guard let range = utf8Range(for: sourceRange, in: markdown),
               let markerOffset = markerOffset(in: markdown, range: range),
