@@ -50,6 +50,68 @@ The callback receives the complete updated source, not an address to apply to th
 source. Hosts that defer accepting or persisting callback results are responsible for ensuring an
 older result does not overwrite newer Markdown.
 
+## Links and document bases
+
+FlatMark passes swift-markdown's parsed destinations to Foundation's standard URL resolver.
+A nonempty destination becomes actionable only when Foundation constructs an absolute result
+(with a scheme). HTTP(S), `mailto`, file URLs, and custom schemes are eligible; navigation has
+no scheme allowlist, handler-availability probe, or same-origin restriction.
+
+Supply `baseURL` to resolve path-relative, parent-path, root-relative, query-only, fragment-only,
+and network-path destinations. Foundation preserves file/directory base semantics: `intro`
+against `https://example.com/docs/page` resolves to `https://example.com/docs/intro`, whereas
+against `https://example.com/docs/page/` it resolves to `https://example.com/docs/page/intro`.
+Network-path references can change hosts. Percent-encoded destinations are not manually decoded
+or re-encoded. Bases need not use HTTP(S), but a still-relative result is never actionable.
+An independently absolute destination remains usable even with a relative base.
+
+Empty destinations, Foundation construction failures, and unresolved relative results retain
+their labels and inline formatting without link accessibility semantics. Linked images retain
+their image or existing placeholder without a surrounding navigation action. This contract is
+shared by inline and reference links, parser-supported autolinks, tables, and nested blocks.
+
+Activation uses native SwiftUI URL opening by default, including for non-HTTP schemes. Rendering
+never opens a URL. Opening is an attempt, not a guarantee of an installed handler, trusted content,
+or success; FlatMark adds no failure UI or alternate opening route. Resolved fragment references
+open normally rather than scrolling within the document. Available handlers and opening success
+vary by platform.
+
+### Host link activation
+
+Provide the optional synchronous `linkActivationAction` to route or reject a resolved absolute
+URL at activation time. It is shared by native attributed text, independently actionable images,
+tables, nested blocks, and accessibility activation. Projection and rendering never call it;
+inert destinations never call it either.
+
+```swift
+FlatMarkView(
+    markdown: markdown,
+    baseURL: URL(string: "https://example.com/docs/readme.md"),
+    linkActivationAction: { url in
+        if url.scheme == "myapp" {
+            router.navigate(to: url) // Host-owned synchronous navigation.
+            return .handled
+        }
+        if url.scheme == "blocked" {
+            return .rejected
+        }
+        return .useDefaultOpening
+    }
+)
+```
+
+- `.handled`: the host handled navigation; no default opening follows.
+- `.rejected`: no opening occurs, with no fallback or error UI.
+- `.useDefaultOpening`: delegate exactly once to the inherited SwiftUI `openURL` action,
+  including any opener supplied by the host with `.environment(\.openURL, ...)`.
+
+Omitting the callback preserves default navigation. The callback is not an asynchronous approval,
+pre-render eligibility check, or handler probe. Rejected links may retain native actionable
+appearance and accessibility semantics before activation. FlatMark intentionally performs no
+navigation scheme filtering; hosts can reject custom schemes in this callback. This decision does
+not grant permission to fetch an image: image sources still require the independent image policy
+and loader below.
+
 ## Images and relative URLs
 
 FlatMark does not fetch images by default. Without an image loader, each Markdown image is a
@@ -81,7 +143,9 @@ requests should restart.
 Before an image URL reaches the loader, `FlatMarkImageURLPolicy.webOnly` accepts only `http` and
 `https` schemes. Supply a policy with a different explicit `allowedSchemes` set when the host
 supports another scheme. Rejected or unresolvable image sources use the native unavailable state
-and never invoke the loader.
+and never invoke the loader. Image-fetching permission is separate from navigation: a linked image
+can navigate to any resolved absolute scheme, even when its image source is rejected by the image
+policy. Allowing navigation does not authorize image fetching.
 
 ## Text selection around linked images
 
@@ -182,6 +246,23 @@ Status meanings:
 | Parsed node types without a native structural view | Rendered with documented policy | FlatMark displays a labeled, readable fallback where possible rather than silently dropping the node. [Unsupported-node fallback test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L279-L299). |
 
 No construct in this matrix is silently omitted: any omission is identified above as metadata, source normalization, or an explicit rendering policy.
+
+## Native navigation tests
+
+On macOS, the package's Swift Testing navigation tests build and launch
+[`FlatMarkNavigationTestHost`](Tests/FlatMarkNavigationTestHost/NavigationTestHost.swift)
+as an executable dependency. Each case gets its own AppKit application event loop and
+hosts the public `FlatMarkView`. Local mouse events activate rendered text and image
+links; tests inspect recorded callback arguments and inherited-opener calls rather
+than invoking FlatMark's internal dispatcher.
+
+The host uses hidden windows, does not post global input, and needs no Accessibility
+permission. Its controlled opener rejects every platform opening attempt, so tests
+never launch browsers or arbitrary scheme handlers. A completed activation report is
+required in addition to a successful process exit, and each host has a bounded timeout.
+These checks cover macOS activation, not iOS interaction or successful external opening.
+Run them with the normal package checks in the repository's
+[build and test policy](../docs/BUILD_AND_TEST.md#packages).
 
 ## Deliberate non-goals
 

@@ -49,11 +49,9 @@ enum FlatMarkURLResolver {
             return nil
         }
 
-        if let baseURL {
-            return URL(string: source, relativeTo: baseURL)?.absoluteURL
-        }
-
-        guard let url = URL(string: source), url.scheme != nil else {
+        guard let url = URL(string: source, relativeTo: baseURL)?.absoluteURL,
+              url.scheme != nil
+        else {
             return nil
         }
 

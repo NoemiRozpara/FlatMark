@@ -347,6 +347,127 @@ struct FlatMarkRenderProjectorTests {
         #expect(run(containing: "link", in: content)?.link == URL(string: "https://example.com"))
     }
 
+    @Test(arguments: [
+        ("https://example.com/a", nil, "https://example.com/a"),
+        ("http://example.com/a", nil, "http://example.com/a"),
+        ("mailto:reader@example.com", nil, "mailto:reader@example.com"),
+        ("reader:details", nil, "reader:details"),
+        ("intro", "https://example.com/docs/page", "https://example.com/docs/intro"),
+        ("intro", "https://example.com/docs/page/", "https://example.com/docs/page/intro"),
+        ("../intro", "https://example.com/docs/page", "https://example.com/intro"),
+        ("/intro", "https://example.com/docs/page", "https://example.com/intro"),
+        ("?mode=read", "https://example.com/docs/page", "https://example.com/docs/page?mode=read"),
+        ("#section", "https://example.com/docs/page", "https://example.com/docs/page#section"),
+        ("//other.example/intro", "https://example.com/docs/page", "https://other.example/intro"),
+        ("foo%20bar", "https://example.com/docs/page", "https://example.com/docs/foo%20bar"),
+        ("intro", "file:///docs/page", "file:///docs/intro"),
+        ("intro", nil, nil),
+        ("#section", nil, nil),
+        ("//example.com/intro", nil, nil),
+        ("intro", "docs/page", nil),
+        ("#section", "docs/page", nil),
+        ("https://example.com/a", "docs/page", "https://example.com/a"),
+        ("mailto:reader@example.com", "docs/page", "mailto:reader@example.com"),
+        ("reader:details", "docs/page", "reader:details"),
+        ("", "https://example.com/docs/page", nil),
+        ("", nil, nil),
+        ("http://[", nil, nil),
+        ("https://example.com:bad/", "https://example.com/docs/page", nil),
+    ] as [(String, String?, String?)])
+    func `projects only absolute Foundation destinations`(
+        destination: String, base: String?, expected: String?
+    ) throws {
+        let content = try #require(paragraphContent(
+            in: "[**Label**](<\(destination)>)",
+            baseURL: base.flatMap { URL(string: $0) }
+        ))
+        let label = try #require(run(containing: "Label", in: content))
+        #expect(content.plainText == "Label")
+        #expect(label.inlinePresentationIntent?.contains(.stronglyEmphasized) == true)
+        #expect(label.link?.absoluteString == expected)
+    }
+
+    @Test(arguments: ["foo bar", "foo%zz", "https://example.com/a b"])
+    func `uses Foundation normalization without additional validation`(destination: String) throws {
+        let base = try #require(URL(string: "https://example.com/docs/page"))
+        let expected = try #require(URL(string: destination, relativeTo: base)?.absoluteURL)
+        let content = try #require(paragraphContent(in: "[Label](<\(destination)>)", baseURL: base))
+        #expect(run(containing: "Label", in: content)?.link == expected)
+    }
+
+    @Test(arguments: [nil, "docs/page", "https://example.com/docs/page"] as [String?])
+    func `reference links tables and nested blocks share destination eligibility`(base: String?) throws {
+        let document = FlatMarkRenderProjector.project(markdown: """
+        | [**Header**][target] |
+        | --- |
+        | [Cell][target] |
+
+        > [Quote][target]
+        >
+        > - [Item][target]
+
+        [target]: intro
+        """, baseURL: base.flatMap { URL(string: $0) })
+        let projectedTable = try #require(table(in: document))
+        let quote = try #require(allBlocks(in: document).compactMap { block -> FlatMarkRenderInlineContent? in
+            if case let .paragraph(content) = block.kind { return content }
+            return nil
+        }.first)
+        let list = try #require(allBlocks(in: document).compactMap { block -> [FlatMarkListRenderEntry]? in
+            if case let .list(entries) = block.kind { return entries }
+            return nil
+        }.first)
+        let item = try #require(list.compactMap(row).first)
+        let expected = base == "https://example.com/docs/page" ? URL(string: "https://example.com/docs/intro") : nil
+        for (content, label) in [(projectedTable.header[0].content, "Header"),
+                                 (projectedTable.rows[0].cells[0].content, "Cell"),
+                                 (quote, "Quote"), (item.content, "Item")] {
+            #expect(content.plainText == label)
+            #expect(run(containing: label, in: content)?.link == expected)
+        }
+        #expect(run(containing: "Header", in: projectedTable.header[0].content)?
+            .inlinePresentationIntent?.contains(.stronglyEmphasized) == true)
+    }
+
+    @Test(arguments: [
+        ("<https://example.com>", "https://example.com", "https://example.com"),
+        ("<reader@example.com>", "reader@example.com", "mailto:reader@example.com"),
+        ("<reader:details>", "reader:details", "reader:details"),
+        ("[Label][ref]\n\n[ref]: mailto:reader@example.com", "Label", "mailto:reader@example.com"),
+        ("[Label][]\n\n[Label]: reader:details", "Label", "reader:details"),
+        ("[Label]\n\n[Label]: https://example.com", "Label", "https://example.com"),
+    ])
+    func `parser supported autolinks and reference forms retain destinations`(
+        markdown: String, label: String, destination: String
+    ) throws {
+        let content = try #require(paragraphContent(in: markdown))
+        #expect(content.plainText == label)
+        #expect(run(containing: label, in: content)?.link == URL(string: destination))
+    }
+
+    @Test(arguments: ["", "intro", "http://["])
+    func `inert linked images retain their source and alt text`(destination: String) throws {
+        let content = try #require(paragraphContent(
+            in: "[![Diagram](https://example.com/diagram.png)](<\(destination)>)",
+            baseURL: URL(string: "docs/page")
+        ))
+        #expect(content.components == [.image(FlatMarkRenderImage(
+            url: URL(string: "https://example.com/diagram.png"), altText: "Diagram"
+        ))])
+        #expect(content.standaloneLinkedImageDestination == nil)
+    }
+
+    @Test
+    func `navigation schemes do not grant image fetching permission`() throws {
+        let content = try #require(paragraphContent(
+            in: "[![Diagram](reader:image)](reader:details)"
+        ))
+        let projectedImage = try #require(content.components.compactMap(image).first)
+        #expect(projectedImage.link == URL(string: "reader:details"))
+        #expect(FlatMarkImageRequest.resolve(url: projectedImage.url, policy: .webOnly)
+            == .rejected(URL(string: "reader:image")!))
+    }
+
     @Test
     func `projects images as explicit renderer values`() throws {
         let content = try #require(paragraphContent(in: "![Architecture diagram](https://example.com/diagram.png)"))

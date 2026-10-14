@@ -34,9 +34,17 @@ let package = Package(
                 .enableUpcomingFeature("ApproachableConcurrency"),
             ],
         ),
+        .executableTarget(
+            name: "FlatMarkNavigationTestHost",
+            dependencies: ["FlatMark"],
+            path: "Tests/FlatMarkNavigationTestHost"
+        ),
         .testTarget(
             name: "FlatMarkTests",
-            dependencies: ["FlatMark"],
+            dependencies: [
+                "FlatMark",
+                .target(name: "FlatMarkNavigationTestHost", condition: .when(platforms: [.macOS])),
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("ApproachableConcurrency"),
             ],
