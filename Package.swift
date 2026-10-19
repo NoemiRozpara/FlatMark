@@ -32,7 +32,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .enableUpcomingFeature("ApproachableConcurrency"),
-            ],
+            ]
         ),
         .executableTarget(
             name: "FlatMarkNavigationTestHost",
@@ -47,7 +47,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .enableUpcomingFeature("ApproachableConcurrency"),
-            ],
+            ]
         ),
     ]
 )

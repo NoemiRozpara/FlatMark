@@ -148,7 +148,6 @@ can navigate to any resolved absolute scheme, even when its image source is reje
 policy. Allowing navigation does not authorize image fetching.
 
 ## Text selection around linked images
-
 When a paragraph contains a linked image, FlatMark renders the text before and after it as
 separate selectable text regions so the image remains an independently actionable link.
 Selection is continuous within either text region, but cannot cross the linked image. Because
@@ -180,6 +179,97 @@ Verify this on macOS and iPadOS with a document containing checked, unchecked, a
 - Confirm nested tasks retain a distinct spoken level and visual indentation, and that state
   remains visually distinguishable by the symbol or control position rather than color alone.
 
+## Unsupported content
+
+`unsupportedContentPolicy` controls raw HTML and other parser nodes without
+a native renderer:
+
+```swift
+FlatMarkView(markdown: markdown) // .literal by default
+FlatMarkView(markdown: markdown, unsupportedContentPolicy: .omit)
+```
+
+- **`.literal`** displays inert text: HTML uses the parser's raw HTML;
+  other unsupported nodes use their original source slice, falling back
+  to readable descendants or empty text.
+- **`.omit`** removes the unsupported node without replacement text,
+  spaces, placeholders, or accessibility wording. Paragraphs, headings,
+  and recursively empty blockquotes emptied by omission also lose their
+  layout slots and quote rules.
+- **`.custom`** replaces each unsupported inline or block node with a host-owned native view,
+  including nested quotes, headings, lists/task rows, and table cells.
+
+Omission follows parser boundaries, not HTML element boundaries.
+`before <u>important</u> after` becomes `before important after`, while
+an HTML block such as `<div>hide</div>` disappears whole. Authored spaces
+and breaks remain unchanged; escaped tags, code, and ordinary text keep
+their Markdown meaning.
+
+Supported structure remains, including list markers and numbering,
+task controls, table rows/columns and cell padding, images, code blocks,
+and dividers. Pre-existing empty constructs are not globally removed.
+Unsupported wording in image descriptions follows the text policy: literal under `.literal`,
+absent under `.omit`/`.custom`; image descriptions are accessibility metadata, not view positions.
+
+Switching policies on unchanged Markdown preserves surviving node IDs, task editing addresses,
+and unaffected image-loading state, including images in task rows with unsupported inline nodes.
+Those rows keep their task control and inline content as siblings under every policy, so switching
+policies does not replace the image-owning inline view. State inside removed views is not preserved.
+
+Neither built-in policy interprets HTML attributes, fetches HTML resources, or
+executes HTML. Supported Markdown links and images retain their normal
+navigation and loading policies. Omission is not sanitization or browser
+rendering.
+
+### Custom native replacements
+
+`.custom(render: (String) -> AnyView)` is a presentation closure, not an event callback:
+
+```swift
+FlatMarkView(
+    markdown: markdown,
+    unsupportedContentPolicy: .custom { source in
+        AnyView(Button("Inspect") { inspect(source) })
+    }
+)
+```
+
+Each unsupported inline or block node supplies the same extracted string as `.literal`:
+HTML supplies parser `rawHTML` unchanged (including trailing newlines); unknown nodes use valid
+UTF-8 original-source coordinates, then readable descendants, then `""`. Empty extraction still
+reaches the closure, with no diagnostic wording. Tags are not paired into synthetic elements:
+`before <u>important</u> after` dispatches separate `<u>` and `</u>` arguments, with supported
+`important` between their replacements. Known containers recurse; escaped tags, code, and
+parser-classified ordinary text never invoke the closure.
+
+The native result occupies the original structural position with its ambient environment,
+interaction, and accessibility. FlatMark adds no literal fallback, diagnostic, link wrapper,
+secondary styling, border, placeholder, or minimum-size box. `AnyView(EmptyView())` is allowed;
+FlatMark does not inspect erased views for emptiness. Ordinary parent-stack spacing may remain:
+use `.omit` for recursive shell/gap collapse.
+
+Inline replacements reuse the native mixed image/text flow in source order, including its RTL
+layout behavior. Host views inherit ambient SwiftUI styles, including heading fonts. Inline
+presentation intents on adjacent attributed text (such as strong emphasis) are not copied onto
+opaque host views, and explicit host styles are not overridden. An enclosing Markdown link is
+never wrapped around a custom view or installed as its control action; supported neighboring
+text retains its own link/emphasis attributes. Host controls retain their native accessibility,
+not a duplicate or hiding text-only proxy. Task controls remain separate operable siblings.
+
+No spaces are synthesized: `a<u></u>b` with erased empty replacements shows `ab`. FlatMark does
+not introspect `AnyView` to infer omission or collapse its containing paragraph/heading/quote.
+Wrapping is run-based, not character-level typesetting: a supported text run may move as a
+whole, and a long run may wrap inside its own native view. Selection remains available for
+supported text but can be fragmented across runs/views; continuous selection across arbitrary
+views is not promised. See the runtime guide for platform observations and outstanding checks.
+
+Custom output is host-owned: interpretation, sanitization, resource fetching, and execution are
+the host's responsibility, not guaranteed inert or sanitized. SwiftUI may reevaluate presentation;
+invocation counts are not lifecycle guarantees.
+
+See the [runtime verification guide](Tests/README.md) for the manual checklist
+and backend-free fixture setup with policy switching, tasks, and load counters.
+
 ## GFM support matrix
 
 FlatMark uses [swift-markdown](https://github.com/swiftlang/swift-markdown) to parse the [GitHub Flavored Markdown (GFM) specification](https://github.github.com/gfm/), then projects the parsed document into native SwiftUI views. This matrix covers every CommonMark block and inline construct plus GFM's table, task-list, strikethrough, extended-autolink, and disallowed-raw-HTML extensions.
@@ -202,7 +292,7 @@ Status meanings:
 | Thematic breaks | Fully rendered | Native `Divider`. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L36). |
 | Indented code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; the source indentation is not reproduced. [Indented-code projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L379-L392). |
 | Fenced code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; fence characters and the optional info string are omitted. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L36). |
-| HTML blocks | Rendered with documented policy | Displayed as literal, secondary-styled fallback text; HTML is never executed or fetched. [Raw-HTML fallback test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L302-L307). |
+| HTML blocks | Rendered with documented policy | Inert literal text under `.literal`, using the parser's raw HTML unchanged with no diagnostic label; removed with its layout slot under `.omit`. `.custom` supplies the same raw HTML to a host-owned native replacement; only the built-in policies guarantee no HTML execution or fetching. [Literal HTML-block test](Tests/FlatMarkTests/Rendering/FlatMarkUnsupportedContentTests.swift), [omission layout test](Tests/FlatMarkTests/Rendering/FlatMarkOmittedContentTests.swift). |
 | Link reference definitions | Parsed but omitted | Definitions have no standalone output, but provide destinations for reference links. |
 | Blank lines | Parsed but omitted | They delimit block structure and have no native view of their own. |
 | Block quotes | Fully rendered | Nested native block list with a leading rule. [Basic block projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L9-L36). |
@@ -234,16 +324,16 @@ Status meanings:
 | CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links and use the same absolute-URL policy. [Link projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L310-L325). |
 | GFM extended autolinks (`www.` and bare email forms) | Unsupported | The parser is not configured with GFM's extended-autolink extension, so these forms remain text rather than link nodes. |
 | Images | Rendered with documented policy | The network-free default is a native alt-text placeholder. Hosts can supply an async loader; relative sources use `baseURL`, and the image scheme policy is applied before loading. Loading failures use a native unavailable placeholder, cancellation is not presented as failure, and titles are omitted. [Image loading tests](Tests/FlatMarkTests/Rendering/FlatMarkImageLoadingTests.swift). |
-| Inline raw HTML | Rendered with documented policy | Rendered as literal `HTML: <source>` text; HTML is never executed or fetched. [Fallback-content projection test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L253-L288). |
+| Inline raw HTML | Rendered with documented policy | Inert literal source text under `.literal`, keeping enclosing Markdown styling and links; absent under `.omit`, with authored spaces and surrounding structure retained. Under `.custom`, each parser node is replaced at its inline position by a host-owned native view, without inheriting an enclosing Markdown link action. [Custom replacement tests](Tests/FlatMarkTests/Rendering/FlatMarkCustomUnsupportedContentTests.swift). [Literal inline-HTML tests](Tests/FlatMarkTests/Rendering/FlatMarkUnsupportedContentTests.swift), [omission tests](Tests/FlatMarkTests/Rendering/FlatMarkOmittedContentTests.swift). |
 
 ### Parsing and GitHub-web behaviors
 
 | Item | Status | Notes |
 | --- | --- | --- |
 | LF, CRLF, and CR source line endings | Not applicable | They are normalized by Markdown parsing; line ending style is not a rendered construct or preserved source format. |
-| GFM disallowed-raw-HTML tag filtering | Not applicable | FlatMark does not create an HTML DOM. Raw HTML is shown literally under the HTML policies above, so it has nothing to sanitize or execute. |
+| GFM disallowed-raw-HTML tag filtering | Not applicable | FlatMark does not create an HTML DOM. Raw HTML is shown literally or omitted according to `unsupportedContentPolicy`, and GitHub's own filtering is not reproduced. Custom inline/block views are host-owned and may interpret their input. GitHub's tag filtering and sanitization are post-parse stages, not this native projection policy. |
 | GitHub sanitization and post-processing | Not applicable | FlatMark does not reproduce GitHub's repository-context links, issue/reference expansion, web UI, server-side transformations, or sanitization pipeline. |
-| Parsed node types without a native structural view | Rendered with documented policy | FlatMark displays a labeled, readable fallback where possible rather than silently dropping the node. [Unsupported-node fallback test](Tests/FlatMarkTests/Rendering/FlatMarkProjectorTests.swift#L279-L299). |
+| Parsed node types without a native structural view | Rendered with documented policy | Under `.literal`: the exact source slice the parser addressed, else readable descendant text, else empty text. Under `.omit` the node is removed whole rather than re-presented through its descendants. Under `.custom`, the same extracted string, including `""`, reaches a native replacement with no literal fallback. Known containers recurse under every policy. [Extraction-contract tests](Tests/FlatMarkTests/Rendering/FlatMarkUnsupportedContentTests.swift). |
 
 No construct in this matrix is silently omitted: any omission is identified above as metadata, source normalization, or an explicit rendering policy.
 
@@ -271,6 +361,9 @@ FlatMark is not:
 - a Markdown editor and does not provide editing controls;
 - a general Markdown serializer. Its only source mutation is the selected task marker's state byte (`[ ]` / `[x]`) for an interacted-with task, preserving every other byte;
 - an HTML renderer or browser;
+- an HTML sanitizer or attribute interpreter. Built-in [`unsupportedContentPolicy`](#unsupported-content)
+  paths show inert literal text or omit it; custom inline/block views belong to the host, including
+  any interpretation, sanitization, resource fetching, navigation, or execution they perform;
 - a fully conforming GitHub clone, including GitHub-specific post-processing such as GitHub’s web UI, repository-context link handling, issue/reference expansion, or other server-side enhancements.
 
 If you need any of those behaviors, keep them in the part of your app that owns editing, serialization, or HTML handling.

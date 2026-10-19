@@ -1,6 +1,6 @@
+@testable import FlatMark
 import Foundation
 import Testing
-@testable import FlatMark
 
 // MARK: - FlatMarkRenderProjectorTests
 
@@ -83,12 +83,16 @@ struct FlatMarkRenderProjectorTests {
         #expect(document.blocks.map(blockKindName) == ["heading(1)", "paragraph", "blockQuote", "list", "table"])
 
         let entries = try #require({
-            if case let .list(entries) = document.blocks[3].kind { return entries }
+            if case let .list(entries) = document.blocks[3].kind {
+                return entries
+            }
             return nil
         }())
         #expect(entries.compactMap(row).contains { $0.indentation > 0 })
         #expect(entries.compactMap(childBlock).contains {
-            if case .blockQuote = $0.block.kind { return true }
+            if case .blockQuote = $0.block.kind {
+                return true
+            }
             return false
         })
         let projectedTable = try #require(table(in: .init(blocks: [document.blocks[4]])))
@@ -102,7 +106,18 @@ struct FlatMarkRenderProjectorTests {
         // A child-block entry and the block it renders share one identity, so each rendered
         // element of the document appears exactly once.
         let paths = renderIDs(in: document).map(\.path)
-        for path in [[2, 1, 0], [3, 0], [3, 0, 1, 0], [3, 0, 2], [3, 0, 2, 0], [3, 0, 3], [4], [4, 0, 2], [4, 1, 0, 1], [4, 1, 1, 2]] {
+        for path in [
+            [2, 1, 0],
+            [3, 0],
+            [3, 0, 1, 0],
+            [3, 0, 2],
+            [3, 0, 2, 0],
+            [3, 0, 3],
+            [4],
+            [4, 0, 2],
+            [4, 1, 0, 1],
+            [4, 1, 1, 2],
+        ] {
             #expect(paths.contains(path), "missing rendered element at \(path)")
         }
 
@@ -299,15 +314,12 @@ struct FlatMarkRenderProjectorTests {
     }
 
     @Test
-    func `projects HTML fallback content visibly when source content is empty`() throws {
-        let image = try #require(paragraphContent(in: "![](https://example.com/diagram.png)"))
-        #expect(text(of: image) == "Image")
+    func `renders HTML content literally without a fallback label`() throws {
+        let commentLiteral = try #require(
+            unsupportedLiteral(in: FlatMarkRenderProjector.project(markdown: "<!-- -->")).first
+        )
 
-        let html = FlatMarkRenderProjector.project(markdown: "<!-- -->")
-        let htmlFallback = fallbackText(in: html)
-
-        #expect(!htmlFallback.isEmpty)
-        #expect(htmlFallback.allSatisfy { !$0.isEmpty })
+        #expect(commentLiteral == "<!-- -->\n")
     }
 
     @Test
@@ -319,14 +331,6 @@ struct FlatMarkRenderProjectorTests {
         """))
 
         #expect(content.plainText == "@Unknown {\nVisible descendant\n}")
-    }
-
-    @Test
-    func `retains raw HTML in the unsupported fallback`() {
-        let document = FlatMarkRenderProjector.project(markdown: "<details>Visible literal</details>")
-
-        #expect(document.blocks.first?.kind ==
-            .fallback(type: "HTMLBlock", content: "<details>Visible literal</details>\n"))
     }
 
     @Test
@@ -409,24 +413,34 @@ struct FlatMarkRenderProjectorTests {
         [target]: intro
         """, baseURL: base.flatMap { URL(string: $0) })
         let projectedTable = try #require(table(in: document))
-        let quote = try #require(allBlocks(in: document).compactMap { block -> FlatMarkRenderInlineContent? in
-            if case let .paragraph(content) = block.kind { return content }
-            return nil
-        }.first)
-        let list = try #require(allBlocks(in: document).compactMap { block -> [FlatMarkListRenderEntry]? in
-            if case let .list(entries) = block.kind { return entries }
-            return nil
-        }.first)
+        let quote = try #require(allBlocks(in: document)
+            .compactMap { block -> FlatMarkRenderInlineContent? in
+                if case let .paragraph(content) = block.kind {
+                    return content
+                }
+                return nil
+            }
+            .first)
+        let list = try #require(allBlocks(in: document)
+            .compactMap { block -> [FlatMarkListRenderEntry]? in
+                if case let .list(entries) = block.kind {
+                    return entries
+                }
+                return nil
+            }
+            .first)
         let item = try #require(list.compactMap(row).first)
         let expected = base == "https://example.com/docs/page" ? URL(string: "https://example.com/docs/intro") : nil
         for (content, label) in [(projectedTable.header[0].content, "Header"),
                                  (projectedTable.rows[0].cells[0].content, "Cell"),
-                                 (quote, "Quote"), (item.content, "Item")] {
+                                 (quote, "Quote"), (item.content, "Item")]
+        {
             #expect(content.plainText == label)
             #expect(run(containing: label, in: content)?.link == expected)
         }
         #expect(run(containing: "Header", in: projectedTable.header[0].content)?
-            .inlinePresentationIntent?.contains(.stronglyEmphasized) == true)
+            .inlinePresentationIntent?
+            .contains(.stronglyEmphasized) == true)
     }
 
     @Test(arguments: [
@@ -464,8 +478,8 @@ struct FlatMarkRenderProjectorTests {
         ))
         let projectedImage = try #require(content.components.compactMap(image).first)
         #expect(projectedImage.link == URL(string: "reader:details"))
-        #expect(FlatMarkImageRequest.resolve(url: projectedImage.url, policy: .webOnly)
-            == .rejected(URL(string: "reader:image")!))
+        #expect(try FlatMarkImageRequest.resolve(url: projectedImage.url, policy: .webOnly)
+            == .rejected(#require(URL(string: "reader:image"))))
     }
 
     @Test
@@ -552,11 +566,10 @@ private func blockKindName(_ block: FlatMarkRenderBlock) -> String {
         "thematicBreak"
     case .table:
         "table"
-    case let .fallback(type, _):
-        "fallback(\(type))"
+    case .unsupported:
+        "unsupported"
     }
 }
-
 
 private func renderIDs(in document: FlatMarkRenderDocument) -> [FlatMarkRenderNodeID] {
     renderIDs(in: document.blocks)
@@ -717,13 +730,13 @@ private func allBlocks(in blocks: [FlatMarkRenderBlock]) -> [FlatMarkRenderBlock
     }
 }
 
-private func fallbackText(in document: FlatMarkRenderDocument) -> [String] {
+private func unsupportedLiteral(in document: FlatMarkRenderDocument) -> [String] {
     allBlocks(in: document).compactMap { block -> String? in
-        guard case let .fallback(_, content) = block.kind else {
+        guard case let .unsupported(content) = block.kind else {
             return nil
         }
 
-        return text(of: content)
+        return text(of: content.literalText)
     }
 }
 
@@ -757,9 +770,13 @@ private func run(
     containing text: String,
     in content: FlatMarkRenderInlineContent
 ) -> AttributedString.Runs.Element? {
-    content.components.lazy.compactMap(attributedText).compactMap { attributedText in
-        run(containing: text, in: attributedText)
-    }.first
+    content.components
+        .lazy
+        .compactMap(attributedText)
+        .compactMap { attributedText in
+            run(containing: text, in: attributedText)
+        }
+        .first
 }
 
 private func attributedText(

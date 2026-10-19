@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
 
+// MARK: - FlatMarkImageLoader
+
 /// A host-provided asynchronous image source for Markdown images.
 ///
 /// FlatMark never performs network access itself. The loader is invoked only after
@@ -24,6 +26,8 @@ public struct FlatMarkImageLoader: Sendable {
     }
 }
 
+// MARK: - FlatMarkImageURLPolicy
+
 /// Controls which resolved image URL schemes may be passed to a host image loader.
 public struct FlatMarkImageURLPolicy: Sendable {
     public static let webOnly = FlatMarkImageURLPolicy(allowedSchemes: ["http", "https"])
@@ -43,12 +47,13 @@ public struct FlatMarkImageURLPolicy: Sendable {
     }
 }
 
+// MARK: - FlatMarkURLResolver
+
 enum FlatMarkURLResolver {
     static func resolve(_ source: String, relativeTo baseURL: URL?) -> URL? {
         guard !source.isEmpty else {
             return nil
         }
-
         guard let url = URL(string: source, relativeTo: baseURL)?.absoluteURL,
               url.scheme != nil
         else {
@@ -58,6 +63,8 @@ enum FlatMarkURLResolver {
         return url
     }
 }
+
+// MARK: - FlatMarkImageRequest
 
 enum FlatMarkImageRequest: Equatable, Sendable {
     case unresolved

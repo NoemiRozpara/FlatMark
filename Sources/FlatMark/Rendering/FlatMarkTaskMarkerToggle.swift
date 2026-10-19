@@ -34,72 +34,14 @@ enum FlatMarkTaskMarkerToggle {
         for sourceRange: FlatMarkSourceRange,
         in markdown: String
     ) -> Range<Int>? {
-        guard let lowerBound = utf8Offset(for: sourceRange.lowerBound, in: markdown),
-              let upperBound = utf8Offset(for: sourceRange.upperBound, in: markdown),
+        guard let lowerBound = FlatMarkSourceRange.utf8Offset(for: sourceRange.lowerBound, in: markdown),
+              let upperBound = FlatMarkSourceRange.utf8Offset(for: sourceRange.upperBound, in: markdown),
               lowerBound <= upperBound
         else {
             return nil
         }
 
         return lowerBound ..< upperBound
-    }
-
-    /// Maps one semantic source location onto a UTF-8 byte offset within the
-    /// unchanged original Markdown snapshot from which it was projected.
-    ///
-    /// Combines two authorities:
-    /// - GFM "Characters and lines": line ends are LF, standalone CR, or CRLF,
-    ///   with CRLF counted as one line ending.
-    /// - swift-markdown `SourceLocation`: one-based lines, one-based columns
-    ///   measured in UTF-8 bytes, and half-open source ranges.
-    ///
-    /// Returns nil for coordinates that do not exist in the snapshot: nonpositive
-    /// lines or columns, nonexistent lines, and columns past a line's content
-    /// length. A coordinate at the line's content end is accepted as a valid
-    /// exclusive range endpoint.
-    static func utf8Offset(
-        for location: FlatMarkSourceRange.Location,
-        in markdown: String
-    ) -> Int? {
-        guard location.line > 0, location.column > 0 else {
-            return nil
-        }
-
-        let bytes = Array(markdown.utf8)
-        var line = 1
-        var lineStart = 0
-        var index = 0
-
-        while index < bytes.count, line < location.line {
-            if bytes[index] == 13 { // CR; with a following LF this is one CRLF line ending.
-                if index + 1 < bytes.count, bytes[index + 1] == 10 {
-                    index += 1
-                }
-            } else if bytes[index] != 10 { // Not LF; only the two terminator bytes advance lines.
-                index += 1
-                continue
-            }
-            line += 1
-            lineStart = index + 1
-            index += 1
-        }
-
-        guard line == location.line else {
-            return nil
-        }
-
-        // A line beginning exactly at the snapshot's end is only the phantom line past a final terminator.
-        guard lineStart < bytes.count || location.line == 1 else {
-            return nil
-        }
-
-        // The line's content ends just before its first terminator byte, or at the snapshot's end.
-        let lineEnd = bytes[lineStart...].firstIndex(where: { $0 == 13 || $0 == 10 }) ?? bytes.count
-        guard location.column - 1 <= lineEnd - lineStart else {
-            return nil
-        }
-
-        return lineStart + location.column - 1
     }
 
     private static func markerOffset(in markdown: String, range: Range<Int>) -> Int? {

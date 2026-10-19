@@ -1,5 +1,7 @@
 import SwiftUI
 
+// MARK: - FlatMarkInlineFlowLayout
+
 /// Places inline Markdown elements on shared text baselines and wraps them as a paragraph.
 struct FlatMarkInlineFlowLayout: Layout {
     struct LineBreakKey: LayoutValueKey {
@@ -14,9 +16,14 @@ struct FlatMarkInlineFlowLayout: Layout {
         cache _: inout ()
     ) -> CGSize {
         let rows = rows(for: subviews, width: proposal.width)
+        let fittingWidth = rows.map(\.width).max() ?? 0
+        // Report the width this layout places. Reporting the proposal instead makes the view
+        // wider than its own lines, and that unused width shifts the view wherever a frame
+        // smaller than the proposal sizes it. A lone item that cannot fit keeps the offer.
+        let width = proposal.width.map { min($0, fittingWidth) } ?? fittingWidth
 
         return CGSize(
-            width: proposal.width ?? rows.map(\.width).max() ?? 0,
+            width: width,
             height: rows.reduce(0) { $0 + $1.height }
         )
     }
@@ -90,11 +97,15 @@ struct FlatMarkInlineFlowLayout: Layout {
     }
 }
 
+// MARK: - Item
+
 private struct Item {
     let index: Int
     let size: CGSize
     let baseline: CGFloat
 }
+
+// MARK: - Row
 
 private struct Row {
     private(set) var items: [Item] = []

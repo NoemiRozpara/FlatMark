@@ -4,14 +4,16 @@
 /// through blocks, lists, and inline content.
 ///
 /// Bundles what the renderer needs rather than what each view wants: image loading, the URL
-/// scheme policy applied before that loader runs, and the task-marker toggle. The image fields
-/// are read by inline content and tables; `taskToggleAction` is read only by task rows, so a
-/// `nil` action renders tasks as static content, and a task with no editing address is static
-/// content even when this action exists. Handing the second row a callback is a renderer bug
-/// rather than a host choice, and a development build asserts on it.
+/// scheme policy applied before that loader runs, what to do with content that has no native
+/// view, and the task-marker toggle. The image fields are read by inline content and tables;
+/// `unsupportedContentPolicy` is read wherever an unsupported node appears; `taskToggleAction`
+/// is read only by task rows, so a `nil` action renders tasks as static content, and a task with
+/// no editing address is static content even when this action exists. Handing the second row a
+/// callback is a renderer bug rather than a host choice, and a development build asserts on it.
 ///
 /// The context is not `Sendable`, and that is deliberate. Its `taskToggleAction` forwards to the
-/// host closure taken by ``FlatMarkView/init(markdown:baseURL:imageLoader:imageURLPolicy:taskToggleAction:)``,
+/// host closure taken by
+/// ``FlatMarkView/init(markdown:baseURL:imageLoader:imageURLPolicy:unsupportedContentPolicy:linkActivationAction:taskToggleAction:)``,
 /// whose `taskToggleAction` parameter is a plain `(String) -> Void`. Making this type `Sendable`
 /// would require that public parameter to become `@Sendable`, which is a breaking change for
 /// callers that capture non-`Sendable` state. If a call site ever needs an isolated context,
@@ -26,15 +28,18 @@ struct FlatMarkRenderContext {
 
     let imageLoader: FlatMarkImageLoader?
     let imageURLPolicy: FlatMarkImageURLPolicy
+    let unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy
     let taskToggleAction: ((FlatMarkSourceRange) -> Void)?
 
     init(
         imageLoader: FlatMarkImageLoader? = nil,
         imageURLPolicy: FlatMarkImageURLPolicy = .webOnly,
+        unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy = .literal,
         taskToggleAction: ((FlatMarkSourceRange) -> Void)? = nil
     ) {
         self.imageLoader = imageLoader
         self.imageURLPolicy = imageURLPolicy
+        self.unsupportedContentPolicy = unsupportedContentPolicy
         self.taskToggleAction = taskToggleAction
     }
 }

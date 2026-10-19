@@ -23,13 +23,21 @@ private struct FlatMarkBlockListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ForEach(blocks) { block in
+            ForEach(visibleBlocks) { block in
                 FlatMarkBlockView(
                     block: block,
                     context: context
                 )
             }
         }
+    }
+
+    /// The blocks this policy lays out, in document order.
+    ///
+    /// Omitted blocks are absent from the list rather than emptied, so the gap between two
+    /// supported blocks matches the same document without the unsupported one.
+    private var visibleBlocks: [FlatMarkRenderBlock] {
+        blocks.filter { context.unsupportedContentPolicy.presents($0) }
     }
 }
 
@@ -52,9 +60,9 @@ struct FlatMarkBlockView: View {
                 content: content,
                 context: context
             )
-                .font(font(for: level))
-                .bold()
-                .accessibilityAddTraits(.isHeader)
+            .font(font(for: level))
+            .bold()
+            .accessibilityAddTraits(.isHeader)
 
         case let .codeBlock(content):
             Text(content)
@@ -81,9 +89,15 @@ struct FlatMarkBlockView: View {
         case let .table(table):
             FlatMarkTableView(table: table, context: context)
 
-        case let .fallback(type, content):
-            Text("\(type): \(content)")
-                .foregroundStyle(.secondary)
+        case let .unsupported(content):
+            // A host renderer owns what appears here: no literal fallback, label, border, or
+            // minimum-size box is added around what it returns.
+            if case let .custom(render) = context.unsupportedContentPolicy {
+                render(String(content.literalText.characters))
+            } else {
+                Text(context.unsupportedContentPolicy.literalText(for: content))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
@@ -168,6 +182,7 @@ struct FlatMarkInlineView: View {
         case standaloneLinkedImage(URL)
         case linkedImageFlow
         case responsiveImageFlow
+        case customInlineFlow
     }
 
     enum ImagePhase {
@@ -198,6 +213,7 @@ struct FlatMarkInlineView: View {
             case text(AttributedString)
             case lineBreak
             case image(componentIndex: Int, image: FlatMarkRenderImage)
+            case custom(FlatMarkRenderUnsupportedContent)
         }
 
         let id: Int
@@ -211,6 +227,10 @@ struct FlatMarkInlineView: View {
     @State private var imagePhases: [Int: ImagePhase] = [:]
 
     var renderingMode: RenderingMode {
+        if context.unsupportedContentPolicy.hasCustomInlineContent(in: content) {
+            return .customInlineFlow
+        }
+
         if let destination = content.standaloneLinkedImageDestination {
             return .standaloneLinkedImage(destination)
         }
@@ -225,8 +245,20 @@ struct FlatMarkInlineView: View {
     }
 
     var body: some View {
-        renderedContent
-            .accessibilityRepresentation {
+        accessibleContent
+            .task(id: imageTaskID) {
+                await loadImages()
+            }
+    }
+
+    @ViewBuilder
+    private var accessibleContent: some View {
+        if renderingMode == .customInlineFlow {
+            // Native children expose supported text/links, images, and host controls once.
+            // A text-only proxy here would hide the host's controls.
+            renderedContent
+        } else {
+            renderedContent.accessibilityRepresentation {
                 if let destination = content.standaloneLinkedImageDestination {
                     Link(destination: destination) {
                         accessibilityText
@@ -235,9 +267,7 @@ struct FlatMarkInlineView: View {
                     accessibilityText
                 }
             }
-            .task(id: imageTaskID) {
-                await loadImages()
-            }
+        }
     }
 
     @ViewBuilder
@@ -252,7 +282,7 @@ struct FlatMarkInlineView: View {
                 }
             }
 
-        case .linkedImageFlow, .responsiveImageFlow:
+        case .linkedImageFlow, .responsiveImageFlow, .customInlineFlow:
             FlatMarkInlineFlowLayout(layoutDirection: layoutDirection) {
                 ForEach(inlineElements) { element in
                     inlineView(for: element)
@@ -265,34 +295,41 @@ struct FlatMarkInlineView: View {
     }
 
     private var inlineElements: [InlineElement] {
-        Self.inlineElements(for: content)
+        Self.inlineElements(for: content, policy: context.unsupportedContentPolicy)
     }
 
-    static func inlineElements(for content: FlatMarkRenderInlineContent) -> [InlineElement] {
+    static func inlineElements(
+        for content: FlatMarkRenderInlineContent,
+        policy: FlatMarkUnsupportedContentPolicy
+    ) -> [InlineElement] {
         var elements: [InlineElement] = []
 
         for (componentIndex, component) in content.components.enumerated() {
+            let text: AttributedString
             switch component {
-            case let .text(text):
-                for fragment in text.inlineFragments {
-                    switch fragment {
-                    case let .text(text):
-                        elements.append(InlineElement(
-                            id: elements.count,
-                            content: .text(text)
-                        ))
-                    case .lineBreak:
-                        elements.append(InlineElement(
-                            id: elements.count,
-                            content: .lineBreak
-                        ))
-                    }
-                }
+            case let .text(supportedText):
+                text = supportedText
             case let .image(image):
                 elements.append(InlineElement(
                     id: elements.count,
                     content: .image(componentIndex: componentIndex, image: image)
                 ))
+                continue
+            case let .unsupported(unsupported):
+                if case .custom = policy {
+                    elements.append(InlineElement(id: elements.count, content: .custom(unsupported)))
+                    continue
+                }
+                text = policy.literalText(for: unsupported)
+            }
+
+            for fragment in text.inlineFragments {
+                let content: InlineElement.Content =
+                    switch fragment {
+                    case let .text(text): .text(text)
+                    case .lineBreak: .lineBreak
+                    }
+                elements.append(InlineElement(id: elements.count, content: content))
             }
         }
 
@@ -304,6 +341,8 @@ struct FlatMarkInlineView: View {
         switch element.content {
         case let .text(text):
             Text(text)
+                // Selectable native text must not intercept an adjacent host control's hit area.
+                .contentShape(Rectangle())
         case .lineBreak:
             Color.clear
                 .frame(width: 0, height: 0)
@@ -314,8 +353,21 @@ struct FlatMarkInlineView: View {
                 Link(destination: destination) {
                     imageView(for: image, at: index)
                 }
+                .accessibilityLabel(Self.accessibilityLabel(
+                    for: image, phase: imagePhases[index] ?? .placeholder,
+                    policy: context.unsupportedContentPolicy
+                ))
             } else {
                 imageView(for: image, at: index)
+                    .accessibilityLabel(Self.accessibilityLabel(
+                        for: image, phase: imagePhases[index] ?? .placeholder,
+                        policy: context.unsupportedContentPolicy
+                    ))
+            }
+        case let .custom(unsupported):
+            if case let .custom(render) = context.unsupportedContentPolicy {
+                // No enclosing Markdown link or attributed-text style is applied to opaque views.
+                render(String(unsupported.literalText.characters))
             }
         }
     }
@@ -344,6 +396,8 @@ struct FlatMarkInlineView: View {
                 return result + Text(text)
             case let .image(image):
                 return result + imageText(for: image, at: index)
+            case let .unsupported(unsupported):
+                return result + Text(context.unsupportedContentPolicy.literalText(for: unsupported))
             }
         }
     }
@@ -357,10 +411,14 @@ struct FlatMarkInlineView: View {
                 return result + Text(text)
             case let .image(image):
                 let phase = imagePhases[index] ?? .placeholder
-                let labelText = Self.accessibilityLabel(for: image, phase: phase)
+                let labelText = Self.accessibilityLabel(
+                    for: image, phase: phase, policy: context.unsupportedContentPolicy
+                )
                 var label = AttributedString(labelText)
                 label.link = image.link
                 return result + Text(label)
+            case let .unsupported(unsupported):
+                return result + Text(context.unsupportedContentPolicy.literalText(for: unsupported))
             }
         }
     }
@@ -389,34 +447,37 @@ struct FlatMarkInlineView: View {
     }
 
     private func imageText(for image: FlatMarkRenderImage, at index: Int) -> Text {
-        switch imagePhases[index] ?? .placeholder {
+        let label = context.unsupportedContentPolicy.imageLabel(for: image)
+        return switch imagePhases[index] ?? .placeholder {
         case .placeholder:
-            labeledImageText(systemName: "photo", label: image.accessibleLabel)
+            labeledImageText(systemName: "photo", label: label)
         case .loading:
-            labeledImageText(systemName: "clock", label: image.accessibleLabel)
+            labeledImageText(systemName: "clock", label: label)
         case .loaded:
-            Text(image.accessibleLabel)
+            Text(label)
         case .failed:
             labeledImageText(
                 systemName: "exclamationmark.triangle",
-                label: image.accessibleLabel
+                label: label
             )
         }
     }
 
     static func accessibilityLabel(
         for image: FlatMarkRenderImage,
-        phase: ImagePhase
+        phase: ImagePhase,
+        policy: FlatMarkUnsupportedContentPolicy = .literal
     ) -> String {
-        switch phase {
+        let label = policy.imageLabel(for: image)
+        return switch phase {
         case .placeholder:
-            "\(image.accessibleLabel), not loaded"
+            "\(label), not loaded"
         case .loading:
-            "\(image.accessibleLabel), loading"
+            "\(label), loading"
         case .loaded:
-            image.accessibleLabel
+            label
         case .failed:
-            "\(image.accessibleLabel), failed to load"
+            "\(label), failed to load"
         }
     }
 
@@ -427,13 +488,14 @@ struct FlatMarkInlineView: View {
     private func loadImages() async {
         let imageLoader = context.imageLoader
         imagePhases = Dictionary(uniqueKeysWithValues: imageRequests.map { imageRequest in
-            let phase: ImagePhase = if imageLoader == nil {
-                .placeholder
-            } else if case .allowed = imageRequest.request {
-                .loading
-            } else {
-                .failed
-            }
+            let phase: ImagePhase =
+                if imageLoader == nil {
+                    .placeholder
+                } else if case .allowed = imageRequest.request {
+                    .loading
+                } else {
+                    .failed
+                }
 
             return (imageRequest.componentIndex, phase)
         })
@@ -514,14 +576,14 @@ private extension AttributedString {
 
         for index in characters.indices where characters[index].isNewline {
             if fragmentStart < index {
-                fragments.append(.text(AttributedString(self[fragmentStart..<index])))
+                fragments.append(.text(AttributedString(self[fragmentStart ..< index])))
             }
             fragments.append(.lineBreak)
             fragmentStart = characters.index(after: index)
         }
 
         if fragmentStart < endIndex {
-            fragments.append(.text(AttributedString(self[fragmentStart..<endIndex])))
+            fragments.append(.text(AttributedString(self[fragmentStart ..< endIndex])))
         }
 
         return fragments

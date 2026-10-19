@@ -8,28 +8,41 @@ struct FlatMarkRenderDocument: Equatable, Sendable {
     let blocks: [FlatMarkRenderBlock]
 }
 
-// MARK: - FlatMarkRenderInlineContent
+// MARK: - FlatMarkRenderImage
 
 struct FlatMarkRenderImage: Equatable, Sendable {
     let url: URL?
-    let altText: String
+    /// Keep description nodes until presentation so unsupported wording follows the host policy.
+    let altContent: FlatMarkRenderInlineContent
     let link: URL?
 
-    init(url: URL?, altText: String, link: URL? = nil) {
+    init(url: URL?, altContent: FlatMarkRenderInlineContent, link: URL? = nil) {
         self.url = url
-        self.altText = altText
+        self.altContent = altContent
         self.link = link
     }
 
-    var accessibleLabel: String {
-        altText.isEmpty ? "Image" : altText
+    init(url: URL?, altText: String, link: URL? = nil) {
+        self.init(url: url, altContent: FlatMarkRenderInlineContent(text: AttributedString(altText)), link: link)
     }
 }
+
+// MARK: - FlatMarkRenderInlineContent
 
 struct FlatMarkRenderInlineContent: Equatable, Sendable, ExpressibleByStringLiteral {
     enum Component: Equatable, Sendable {
         case text(AttributedString)
         case image(FlatMarkRenderImage)
+        case unsupported(FlatMarkRenderUnsupportedContent)
+
+        /// `true` for the content this renderer has no native view for.
+        var isUnsupported: Bool {
+            if case .unsupported = self {
+                return true
+            }
+
+            return false
+        }
     }
 
     private(set) var components: [Component] = []
@@ -48,15 +61,37 @@ struct FlatMarkRenderInlineContent: Equatable, Sendable, ExpressibleByStringLite
         self.init(text: AttributedString(value))
     }
 
+    /// The literal plain text, with every unsupported node contributing its own extracted text.
     var plainText: String {
-        components.map { component in
+        Self.plainText(of: components) { $0.literalText }
+    }
+
+    /// The plain text of one component list, with unsupported nodes resolved by `unsupportedText`.
+    static func plainText(
+        of components: [Component],
+        unsupportedText: (FlatMarkRenderUnsupportedContent) -> AttributedString
+    ) -> String {
+        components.map { component -> String in
             switch component {
             case let .text(text):
-                String(text.characters)
+                return String(text.characters)
             case let .image(image):
-                image.accessibleLabel
+                let altText = Self.plainText(of: image.altContent.components, unsupportedText: unsupportedText)
+                return altText.isEmpty ? "Image" : altText
+            case let .unsupported(unsupported):
+                return String(unsupportedText(unsupported).characters)
             }
-        }.joined()
+        }
+        .joined()
+    }
+
+    /// Whether omission leaves this span with nothing to present.
+    ///
+    /// `true` only when every component is content the renderer has no native view for, so a
+    /// supported space, break, or image is still content and a span that was already empty is not
+    /// an emptied shell.
+    var isEmptiedByOmission: Bool {
+        !components.isEmpty && components.allSatisfy(\.isUnsupported)
     }
 
     var standaloneLinkedImageDestination: URL? {
@@ -91,9 +126,13 @@ struct FlatMarkRenderInlineContent: Equatable, Sendable, ExpressibleByStringLite
             case let .image(image):
                 return .image(FlatMarkRenderImage(
                     url: image.url,
-                    altText: image.altText,
+                    altContent: image.altContent,
                     link: url
                 ))
+            case let .unsupported(unsupported):
+                var linked = unsupported
+                linked.literalText.link = url
+                return .unsupported(linked)
             }
         }
     }
@@ -115,9 +154,12 @@ struct FlatMarkRenderInlineContent: Equatable, Sendable, ExpressibleByStringLite
         components = components.map { component in
             switch component {
             case let .text(text):
-                .text(transform(text))
+                return .text(transform(text))
             case .image:
-                component
+                return component
+            case var .unsupported(unsupported):
+                unsupported.literalText = transform(unsupported.literalText)
+                return .unsupported(unsupported)
             }
         }
     }
@@ -134,7 +176,7 @@ struct FlatMarkRenderBlock: Identifiable, Equatable, Sendable {
         case list([FlatMarkListRenderEntry])
         case thematicBreak
         case table(FlatMarkRenderTable)
-        case fallback(type: String, content: AttributedString)
+        case unsupported(FlatMarkRenderUnsupportedContent)
     }
 
     let id: FlatMarkRenderNodeID
@@ -209,44 +251,57 @@ struct FlatMarkListChildRenderBlock: Equatable, Sendable {
 
 enum FlatMarkRenderProjector {
     static func project(markdown: String, baseURL: URL? = nil) -> FlatMarkRenderDocument {
-        let document = Document(parsing: markdown)
-        return FlatMarkRenderDocument(
-            blocks: projectChildren(of: document, path: [], indentation: 0, baseURL: baseURL)
-        )
+        project(Document(parsing: markdown), source: markdown, baseURL: baseURL)
+    }
+
+    /// Projects a document the caller already parsed, against the snapshot it was parsed from.
+    ///
+    /// A fixture that needs a node kind production parsing never produces uses this seam instead
+    /// of an option the renderer could ask for; the rendered view always parses its own snapshot.
+    static func project(
+        _ document: Document,
+        source: String,
+        baseURL: URL? = nil
+    ) -> FlatMarkRenderDocument {
+        FlatMarkDocumentProjector(source: source, baseURL: baseURL).document(from: document)
     }
 }
 
-private extension FlatMarkRenderProjector {
-    static func projectChildren(
-        of markup: some Markup,
-        path: [Int],
-        indentation: Int,
-        baseURL: URL?
-    ) -> [FlatMarkRenderBlock] {
+// MARK: - FlatMarkDocumentProjector
+
+/// Projects the block values of one Markdown snapshot.
+///
+/// The snapshot and the base address are read-only state that every destination and every
+/// unsupported-content extraction needs, so the projector holds them instead of threading
+/// them through each call.
+private struct FlatMarkDocumentProjector {
+    let source: String
+    let baseURL: URL?
+
+    func document(from markup: some Markup) -> FlatMarkRenderDocument {
+        FlatMarkRenderDocument(blocks: projectChildren(of: markup, path: [], indentation: 0))
+    }
+
+    func projectChildren(of markup: some Markup, path: [Int], indentation: Int) -> [FlatMarkRenderBlock] {
         markup.children.enumerated().map { index, child in
-            project(child, path: path + [index], indentation: indentation, baseURL: baseURL)
+            project(child, path: path + [index], indentation: indentation)
         }
     }
 
-    static func project(
-        _ markup: any Markup,
-        path: [Int],
-        indentation: Int,
-        baseURL: URL?
-    ) -> FlatMarkRenderBlock {
+    func project(_ markup: any Markup, path: [Int], indentation: Int) -> FlatMarkRenderBlock {
         let id = id(path: path)
 
         switch markup {
         case let paragraph as Paragraph:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .paragraph(inlineContent(of: paragraph, baseURL: baseURL))
+                kind: .paragraph(inlineContent(of: paragraph))
             )
 
         case let heading as Heading:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .heading(level: heading.level, content: inlineContent(of: heading, baseURL: baseURL))
+                kind: .heading(level: heading.level, content: inlineContent(of: heading))
             )
 
         case let codeBlock as CodeBlock:
@@ -261,8 +316,7 @@ private extension FlatMarkRenderProjector {
                 kind: .blockQuote(projectChildren(
                     of: blockQuote,
                     path: path,
-                    indentation: indentation,
-                    baseURL: baseURL
+                    indentation: indentation
                 ))
             )
 
@@ -271,8 +325,7 @@ private extension FlatMarkRenderProjector {
                 orderedList,
                 startIndex: Int(orderedList.startIndex),
                 path: path,
-                indentation: indentation,
-                baseURL: baseURL
+                indentation: indentation
             )
 
         case let unorderedList as UnorderedList:
@@ -280,8 +333,7 @@ private extension FlatMarkRenderProjector {
                 unorderedList,
                 startIndex: nil,
                 path: path,
-                indentation: indentation,
-                baseURL: baseURL
+                indentation: indentation
             )
 
         case is ThematicBreak:
@@ -293,36 +345,34 @@ private extension FlatMarkRenderProjector {
         case let table as Table:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .table(tableProjection(from: table, path: path, baseURL: baseURL))
+                kind: .table(tableProjection(from: table, path: path))
             )
 
         case let htmlBlock as HTMLBlock:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .fallback(type: nodeType(of: htmlBlock), content: htmlFallbackContent(for: htmlBlock))
+                kind: .unsupported(unsupported(htmlBlock))
             )
 
         default:
             return FlatMarkRenderBlock(
                 id: id,
-                kind: .fallback(type: nodeType(of: markup), content: fallbackContent(for: markup))
+                kind: .unsupported(unsupported(markup))
             )
         }
     }
 
-    static func listBlock(
+    func listBlock(
         _ list: some Markup,
         startIndex: Int?,
         path: [Int],
-        indentation: Int,
-        baseURL: URL?
+        indentation: Int
     ) -> FlatMarkRenderBlock {
         let rows = listRows(
             from: list,
             startIndex: startIndex,
             path: path,
-            indentation: indentation,
-            baseURL: baseURL
+            indentation: indentation
         )
 
         return FlatMarkRenderBlock(
@@ -331,12 +381,11 @@ private extension FlatMarkRenderProjector {
         )
     }
 
-    static func listRows(
+    func listRows(
         from list: some Markup,
         startIndex: Int?,
         path: [Int],
-        indentation: Int,
-        baseURL: URL?
+        indentation: Int
     ) -> [FlatMarkListRenderEntry] {
         list.children.enumerated().flatMap { index, child -> [FlatMarkListRenderEntry] in
             guard let item = child as? ListItem else {
@@ -349,15 +398,14 @@ private extension FlatMarkRenderProjector {
                 id: id(path: itemPath),
                 indentation: indentation,
                 marker: marker,
-                content: firstParagraphContent(of: item, baseURL: baseURL) ?? FlatMarkRenderInlineContent()
+                content: firstParagraphContent(of: item) ?? FlatMarkRenderInlineContent()
             )
             let children = item.children.enumerated().flatMap { childIndex, child in
                 listItemEntries(
                     from: child,
                     at: childIndex,
                     itemPath: itemPath,
-                    indentation: indentation + 1,
-                    baseURL: baseURL
+                    indentation: indentation + 1
                 )
             }
 
@@ -365,12 +413,11 @@ private extension FlatMarkRenderProjector {
         }
     }
 
-    static func listItemEntries(
+    func listItemEntries(
         from markup: any Markup,
         at index: Int,
         itemPath: [Int],
-        indentation: Int,
-        baseURL: URL?
+        indentation: Int
     ) -> [FlatMarkListRenderEntry] {
         guard !(index == 0 && markup is Paragraph) else {
             return []
@@ -383,8 +430,7 @@ private extension FlatMarkRenderProjector {
                 from: orderedList,
                 startIndex: Int(orderedList.startIndex),
                 path: path,
-                indentation: indentation,
-                baseURL: baseURL
+                indentation: indentation
             )
 
         case let unorderedList as UnorderedList:
@@ -392,8 +438,7 @@ private extension FlatMarkRenderProjector {
                 from: unorderedList,
                 startIndex: nil,
                 path: path,
-                indentation: indentation,
-                baseURL: baseURL
+                indentation: indentation
             )
 
         default:
@@ -401,14 +446,14 @@ private extension FlatMarkRenderProjector {
                 FlatMarkListRenderEntry.childBlock(
                     FlatMarkListChildRenderBlock(
                         indentation: indentation,
-                        block: project(markup, path: path, indentation: indentation, baseURL: baseURL)
+                        block: project(markup, path: path, indentation: indentation)
                     )
                 ),
             ]
         }
     }
 
-    static func listMarker(for item: ListItem, orderedIndex: Int?) -> FlatMarkListMarker {
+    func listMarker(for item: ListItem, orderedIndex: Int?) -> FlatMarkListMarker {
         switch item.checkbox {
         case .checked:
             .task(isChecked: true, sourceRange: item.range.map { FlatMarkSourceRange($0) })
@@ -419,22 +464,15 @@ private extension FlatMarkRenderProjector {
         }
     }
 
-    static func firstParagraphContent(
-        of item: ListItem,
-        baseURL: URL?
-    ) -> FlatMarkRenderInlineContent? {
+    func firstParagraphContent(of item: ListItem) -> FlatMarkRenderInlineContent? {
         guard let paragraph = item.child(at: 0) as? Paragraph else {
             return nil
         }
 
-        return inlineContent(of: paragraph, baseURL: baseURL)
+        return inlineContent(of: paragraph)
     }
 
-    static func tableProjection(
-        from table: Table,
-        path: [Int],
-        baseURL: URL?
-    ) -> FlatMarkRenderTable {
+    func tableProjection(from table: Table, path: [Int]) -> FlatMarkRenderTable {
         // swift-markdown stores Head at child 0 and Body at child 1; continuation
         // cells are real children and retain their indices within those branches.
         let sourceHeader = Array(table.head.cells)
@@ -443,8 +481,7 @@ private extension FlatMarkRenderProjector {
         let header = tableCells(
             from: sourceHeader,
             path: path + [0],
-            columnCount: columnCount,
-            baseURL: baseURL
+            columnCount: columnCount
         )
         let rows = sourceRows.enumerated().map { index, sourceCells in
             FlatMarkRenderTable.Row(
@@ -452,8 +489,7 @@ private extension FlatMarkRenderProjector {
                 cells: tableCells(
                     from: sourceCells,
                     path: path + [1, index],
-                    columnCount: columnCount,
-                    baseURL: baseURL
+                    columnCount: columnCount
                 )
             )
         }
@@ -461,11 +497,10 @@ private extension FlatMarkRenderProjector {
         return FlatMarkRenderTable(header: header, rows: rows)
     }
 
-    static func tableCells(
+    func tableCells(
         from sourceCells: [Table.Cell],
         path: [Int],
-        columnCount: Int,
-        baseURL: URL?
+        columnCount: Int
     ) -> [FlatMarkRenderTable.Cell] {
         let cells = sourceCells.enumerated().map { index, cell in
             let colspan = Int(cell.colspan)
@@ -474,7 +509,7 @@ private extension FlatMarkRenderProjector {
                 id: id(path: path + [index]),
                 content: isSpanContinuation
                     ? FlatMarkRenderInlineContent()
-                    : inlineContent(of: cell, baseURL: baseURL),
+                    : inlineContent(of: cell),
                 colspan: colspan
             )
         }
@@ -490,54 +525,24 @@ private extension FlatMarkRenderProjector {
         return cells + fillerCells
     }
 
-    static func inlineContent(
-        of markup: some Markup,
-        baseURL: URL?
-    ) -> FlatMarkRenderInlineContent {
-        var projector = FlatMarkInlineAttributedStringProjector(baseURL: baseURL)
+    func inlineContent(of markup: some Markup) -> FlatMarkRenderInlineContent {
+        var projector = FlatMarkInlineAttributedStringProjector(
+            source: source,
+            baseURL: baseURL
+        )
+
         return projector.project(markup)
     }
 
-    static func readableText(of markup: any Markup) -> String {
-        switch markup {
-        case let text as Text:
-            text.string
-        case let inlineCode as InlineCode:
-            inlineCode.code
-        case let html as InlineHTML:
-            html.rawHTML
-        case is SoftBreak, is LineBreak:
-            "\n"
-        default:
-            markup.children.map(readableText).joined()
-        }
-    }
-
-    static func fallbackContent(for markup: any Markup) -> AttributedString {
-        let content = readableText(of: markup)
-        return AttributedString(content.isEmpty ? "[\(nodeType(of: markup))]" : content)
-    }
-
-    static func htmlFallbackContent(for htmlBlock: HTMLBlock) -> AttributedString {
-        let content = htmlBlock.rawHTML
-        return AttributedString(content.isEmpty ? "[HTMLBlock]" : content)
-    }
-
-    static func nodeType(of markup: any Markup) -> String {
-        String(describing: type(of: markup))
+    /// The one extraction result every presentation policy of this node will show.
+    func unsupported(_ markup: any Markup) -> FlatMarkRenderUnsupportedContent {
+        FlatMarkRenderUnsupportedContent(
+            literalText: FlatMarkUnsupportedContentExtractor.literal(from: markup, source: source)
+        )
     }
 
     /// Identity comes from the tree alone, so a missing parser range cannot abort projection.
-    static func id(path: [Int]) -> FlatMarkRenderNodeID {
+    func id(path: [Int]) -> FlatMarkRenderNodeID {
         FlatMarkRenderNodeID(path: path)
-    }
-}
-
-private extension FlatMarkSourceRange {
-    init(_ sourceRange: Markdown.SourceRange) {
-        self.init(
-            lowerBound: .init(line: sourceRange.lowerBound.line, column: sourceRange.lowerBound.column),
-            upperBound: .init(line: sourceRange.upperBound.line, column: sourceRange.upperBound.column)
-        )
     }
 }

@@ -27,6 +27,12 @@ public struct FlatMarkView: View {
     ///   - imageLoader: An optional host-provided image loader. When omitted, images
     ///     are deterministic, network-free placeholders containing their alt text.
     ///   - imageURLPolicy: The scheme policy applied before invoking `imageLoader`.
+    ///   - unsupportedContentPolicy: What to render where Markdown carries content that has no
+    ///     native view. The default renders inert literal text, so HTML and unknown nodes are
+    ///     never replaced by renderer diagnostics; `.omit` removes that content instead, together
+    ///     with the layout slot of a block it leaves empty. `.custom(render:)` replaces unsupported
+    ///     inline and block nodes with host-owned native views, without a literal fallback or an
+    ///     enclosing Markdown link action. Hosts own their views' styling, actions, and accessibility.
     ///   - linkActivationAction: An optional synchronous action receiving the resolved
     ///     absolute destination on activation. Handling or rejecting suppresses opening;
     ///     default opening delegates once to the inherited SwiftUI environment opener.
@@ -37,15 +43,17 @@ public struct FlatMarkView: View {
         baseURL: URL? = nil,
         imageLoader: FlatMarkImageLoader? = nil,
         imageURLPolicy: FlatMarkImageURLPolicy = .webOnly,
+        unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy = .literal,
         linkActivationAction: ((URL) -> FlatMarkLinkActivationResult)? = nil,
         taskToggleAction: ((String) -> Void)? = nil
     ) {
         self.markdown = markdown
         self.baseURL = baseURL
         self.linkActivationAction = linkActivationAction
-        self.context = FlatMarkRenderContext(
+        context = FlatMarkRenderContext(
             imageLoader: imageLoader,
             imageURLPolicy: imageURLPolicy,
+            unsupportedContentPolicy: unsupportedContentPolicy,
             taskToggleAction: taskToggleAction.map { action in
                 { sourceRange in
                     guard let updatedMarkdown = FlatMarkTaskMarkerToggle.toggledMarkdown(
@@ -61,8 +69,8 @@ public struct FlatMarkView: View {
         )
     }
 
-    // Capture the inherited opener, not the environment installed on the document.
-    // Returning .systemAction here would bypass a host-provided opener.
+    /// Capture the inherited opener, not the environment installed on the document.
+    /// Returning .systemAction here would bypass a host-provided opener.
     private var activationOpenURL: OpenURLAction {
         activationOpenURL(inheriting: openURL)
     }

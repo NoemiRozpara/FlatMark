@@ -1,5 +1,7 @@
-import Testing
 @testable import FlatMark
+import Testing
+
+// MARK: - FlatMarkTaskMarkerToggleTests
 
 struct FlatMarkTaskMarkerToggleTests {
     @Test
@@ -44,11 +46,13 @@ struct FlatMarkTaskMarkerToggleTests {
     }
 }
 
-// MARK: - 1 & 2. Equivalent-document newline matrix with exact mutation assertions
+// MARK: - FlatMarkTaskMarkerToggleNewlineMatrixTests
 
 struct FlatMarkTaskMarkerToggleNewlineMatrixTests {
-    @Test("equivalent LF, CRLF, and CR documents toggle the same logical tasks byte for byte",
-          arguments: NewlineVariants.all)
+    @Test(
+        "equivalent LF, CRLF, and CR documents toggle the same logical tasks byte for byte",
+        arguments: NewlineVariants.all
+    )
     func equivalentNewlineVariantsToggleSameLogicalTasks(variant: NewlineVariants.Variant) throws {
         let input = TaskToggleFixture.joined(with: variant.joiner)
         let inputBytes = Array(input.utf8)
@@ -86,7 +90,7 @@ struct FlatMarkTaskMarkerToggleNewlineMatrixTests {
     }
 }
 
-// MARK: - 3. Boundary cases
+// MARK: - FlatMarkTaskMarkerToggleBoundaryTests
 
 struct FlatMarkTaskMarkerToggleBoundaryTests {
     @Test
@@ -114,8 +118,10 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
         }
     }
 
-    @Test("documents with a final line ending toggle correctly for every terminator",
-          arguments: NewlineVariants.all)
+    @Test(
+        "documents with a final line ending toggle correctly for every terminator",
+        arguments: NewlineVariants.all
+    )
     func finalLineEndingVariants(variant: NewlineVariants.Variant) throws {
         let input = TaskToggleFixture.joined(with: variant.joiner) + variant.joiner
         let inputBytes = Array(input.utf8)
@@ -183,7 +189,7 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
             (line: 4, column: 1),
             // ...and line 3 has 25 content bytes, so column 27 is beyond its content.
             (line: 3, column: 27),
-            (line: 1, column: 10_000),
+            (line: 1, column: 10000),
         ]
 
         for bad in cases {
@@ -204,32 +210,32 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
         let crBytes = Array(cr.utf8)
         // Independent expectations for the same logical lines as LF-only would mislocate:
         // line 2 starts right after the first standalone CR, and the blank line 3 exists.
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 2, column: 1), in: cr)
-                    == firstByteIndex(of: "- [ ] Alpha", in: crBytes))
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 3, column: 1), in: cr) == 35)
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 4, column: 1), in: cr)
-                    == firstByteIndex(of: "- [x] Tail", in: crBytes))
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 2, column: 1), in: cr)
+            == firstByteIndex(of: "- [ ] Alpha", in: crBytes))
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 3, column: 1), in: cr) == 35)
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 4, column: 1), in: cr)
+            == firstByteIndex(of: "- [x] Tail", in: crBytes))
         // Line 1 has 16 content bytes: columns 1...17 land in [0, 16], where 17 is the content end
         // (the terminator position), and anything further is beyond the line.
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 1, column: 16), in: cr) == 15)
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 1, column: 17), in: cr) == 16)
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 1, column: 18), in: cr) == nil)
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 1, column: 16), in: cr) == 15)
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 1, column: 17), in: cr) == 16)
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 1, column: 18), in: cr) == nil)
         // A line past the snapshot end is nonexistent.
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 5, column: 1), in: cr) == nil)
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 5, column: 1), in: cr) == nil)
 
         let crlf = "Intro 🧪 café\r\n- [ ] Alpha café\r\n- [ ] Omega café\r\n- [x] Tail 😀"
         let crlfBytes = Array(crlf.utf8)
         // CRLF advances lines by one, not two.
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 2, column: 1), in: crlf)
-                    == firstByteIndex(of: "- [ ] Alpha", in: crlfBytes))
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 3, column: 1), in: crlf)
-                    == firstByteIndex(of: "- [ ] Omega", in: crlfBytes))
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: .init(line: 4, column: 1), in: crlf)
-                    == firstByteIndex(of: "- [x] Tail", in: crlfBytes))
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 2, column: 1), in: crlf)
+            == firstByteIndex(of: "- [ ] Alpha", in: crlfBytes))
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 3, column: 1), in: crlf)
+            == firstByteIndex(of: "- [ ] Omega", in: crlfBytes))
+        #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 4, column: 1), in: crlf)
+            == firstByteIndex(of: "- [x] Tail", in: crlfBytes))
     }
 }
 
-// MARK: - 4. Unicode coordinate-contract coverage
+// MARK: - FlatMarkTaskMarkerToggleCoordinateContractTests
 
 struct FlatMarkTaskMarkerToggleCoordinateContractTests {
     @Test("a real parsed range endpoint after multibyte text maps to its original byte offset")
@@ -248,7 +254,7 @@ struct FlatMarkTaskMarkerToggleCoordinateContractTests {
         let cjkEnd = cjkStart + Array("你好".utf8).count
         #expect(cjkEnd == bytes.count)
 
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: endpoint, in: markdown) == cjkEnd)
+        #expect(FlatMarkSourceRange.utf8Offset(for: endpoint, in: markdown) == cjkEnd)
     }
 
     @Test("a parsed endpoint on an earlier line after multibyte text maps past that line's content")
@@ -262,7 +268,7 @@ struct FlatMarkTaskMarkerToggleCoordinateContractTests {
         let firstNewline = try #require(bytes.firstIndex(of: 10))
         let cjkEnd = try #require(firstByteIndex(of: "你好", in: bytes)) + Array("你好".utf8).count
         #expect(cjkEnd == firstNewline)
-        #expect(FlatMarkTaskMarkerToggle.utf8Offset(for: endpoint, in: markdown) == firstNewline)
+        #expect(FlatMarkSourceRange.utf8Offset(for: endpoint, in: markdown) == firstNewline)
     }
 }
 
@@ -353,6 +359,8 @@ private func firstByteIndex(of pattern: String, in bytes: [UInt8]) -> Int? {
     }
     return nil
 }
+
+// MARK: - TaskAddress
 
 /// One projected task's structural path and the editing address a toggle is handed.
 private struct TaskAddress: Equatable, Sendable {

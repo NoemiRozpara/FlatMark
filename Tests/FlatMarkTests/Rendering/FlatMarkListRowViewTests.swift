@@ -1,6 +1,6 @@
+@testable import FlatMark
 import SwiftUI
 import Testing
-@testable import FlatMark
 
 // MARK: - FlatMarkListRowViewTests
 
@@ -44,6 +44,49 @@ struct FlatMarkListRowViewTests {
 
         for marker: FlatMarkListMarker in [.unordered, .ordered(index: 3)] {
             #expect(makeRowView(marker: marker, hostAction: spy.action).taskToggleAction == nil)
+        }
+    }
+
+    @Test(arguments: [
+        ("literal", "Level 1 task: Buy <u>milk</u>", "Level 1 task: Call <u>doctor</u>"),
+        ("omit", "Level 1 task: Buy milk", "Level 1 task: Call doctor"),
+        ("custom", "Level 1 task: Buy milk", "Level 1 task: Call doctor"),
+    ] as [(String, String, String)])
+    func `task controls resolve distinct names under every unsupported-content policy`(
+        policyName: String,
+        firstName: String,
+        secondName: String
+    ) throws {
+        let policy: FlatMarkUnsupportedContentPolicy =
+            switch policyName {
+            case "literal": .literal
+            case "omit": .omit
+            default: .custom { _ in AnyView(EmptyView()) }
+            }
+        let rows = try #require(taskRows(in: "- [ ] Buy <u>milk</u>\n- [ ] Call <u>doctor</u>"))
+
+        // Two tasks at the same level must never collapse into one generic name, under any policy.
+        let names = rows.map { row in
+            FlatMarkListRowView(
+                row: row,
+                context: FlatMarkRenderContext(unsupportedContentPolicy: policy)
+            ).taskAccessibilityLabel
+        }
+        #expect(names == [firstName, secondName])
+    }
+
+    private func taskRows(in markdown: String) -> [FlatMarkListRenderRow]? {
+        guard case let .list(entries)? = FlatMarkRenderProjector.project(markdown: markdown).blocks.first?.kind
+        else {
+            return nil
+        }
+
+        return entries.compactMap { entry -> FlatMarkListRenderRow? in
+            guard case let .row(row) = entry else {
+                return nil
+            }
+
+            return row
         }
     }
 

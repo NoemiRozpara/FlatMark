@@ -35,13 +35,29 @@ struct FlatMarkListView: View {
 
     var body: some View {
         VStack(alignment: .flatMarkListContent, spacing: 8) {
-            ForEach(entries) { entry in
+            ForEach(visibleEntries) { entry in
                 switch entry {
                 case let .row(row):
                     FlatMarkListRowView(row: row, context: context)
                 case let .childBlock(childBlock):
                     FlatMarkListChildBlockView(childBlock: childBlock, context: context)
                 }
+            }
+        }
+    }
+
+    /// The entries this policy lays out.
+    ///
+    /// A row is an item of the list, not a container of unsupported content, so omission keeps
+    /// every marker, ordered number, and task control. Only a continuation block that presents
+    /// nothing leaves the sequence.
+    private var visibleEntries: [FlatMarkListRenderEntry] {
+        entries.filter { entry in
+            switch entry {
+            case .row:
+                true
+            case let .childBlock(childBlock):
+                context.unsupportedContentPolicy.presents(childBlock.block)
             }
         }
     }
@@ -57,14 +73,14 @@ private struct FlatMarkListChildBlockView: View {
 
     var body: some View {
         FlatMarkBlockView(block: childBlock.block, context: context)
-        .alignmentGuide(.flatMarkListContent) { dimensions in
-            dimensions[.leading]
-        }
-        .markdownListIndentation(
-            childBlock.indentation - 1,
-            spacing: 8,
-            layoutDirection: layoutDirection
-        )
+            .alignmentGuide(.flatMarkListContent) { dimensions in
+                dimensions[.leading]
+            }
+            .markdownListIndentation(
+                childBlock.indentation - 1,
+                spacing: 8,
+                layoutDirection: layoutDirection
+            )
     }
 }
 
@@ -89,11 +105,9 @@ struct FlatMarkListRowView: View {
         guard case let .task(_, sourceRange) = row.marker else {
             return nil
         }
-
         guard let hostTaskToggleAction = context.taskToggleAction else {
             return nil
         }
-
         guard let sourceRange else {
             assertionFailure("A task row that offers a host toggle action must carry an editing address.")
             return nil
@@ -112,7 +126,36 @@ struct FlatMarkListRowView: View {
 
     @ViewBuilder
     private func taskRow(isChecked: Bool) -> some View {
-        if let taskToggleAction {
+        if row.content.components.contains(where: \.isUnsupported) {
+            // Keep this hierarchy policy-independent so inline image state survives switching.
+            // A Toggle label or an ignored task row can swallow nested host controls, so the
+            // task control and mixed content remain accessible siblings under every policy.
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                if let taskToggleAction {
+                    Toggle(isOn: Binding(
+                        get: { isChecked },
+                        set: { _ in taskToggleAction() }
+                    )) {
+                        Text(taskAccessibilityLabel)
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    #if os(macOS)
+                        .toggleStyle(.checkbox)
+                    #endif
+                } else {
+                    marker()
+                        .accessibilityHidden(false)
+                        .accessibilityLabel(taskAccessibilityLabel)
+                        .accessibilityValue(isChecked ? "Checked" : "Unchecked")
+                }
+                inlineContent
+                    .alignmentGuide(.flatMarkListContent) { $0[.leading] }
+            }
+            .markdownListIndentation(
+                row.indentation, spacing: 8, layoutDirection: layoutDirection
+            )
+        } else if let taskToggleAction {
             Toggle(
                 isOn: Binding(
                     get: { isChecked },
@@ -153,8 +196,10 @@ struct FlatMarkListRowView: View {
         )
     }
 
-    private var taskAccessibilityLabel: String {
-        "Level \(row.indentation + 1) task: \(row.content.plainText)"
+    /// The control's VoiceOver name: the task level plus the row's wording under the active
+    /// unsupported-content policy, so two tasks at the same level stay distinguishable.
+    var taskAccessibilityLabel: String {
+        "Level \(row.indentation + 1) task: \(context.unsupportedContentPolicy.plainText(for: row.content))"
     }
 
     private var inlineContent: some View {

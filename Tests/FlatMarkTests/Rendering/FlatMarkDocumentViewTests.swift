@@ -1,6 +1,7 @@
-import Foundation
-import Testing
 @testable import FlatMark
+import Foundation
+import SwiftUI
+import Testing
 
 // MARK: - FlatMarkTableViewTests
 
@@ -34,6 +35,7 @@ struct FlatMarkTableViewTests {
             Issue.record("Expected a table")
             return
         }
+
         let view = FlatMarkTableView(table: table, context: .readOnly)
 
         #expect(view.rendersTable)
@@ -56,6 +58,77 @@ struct FlatMarkTableViewTests {
 
 @MainActor
 struct FlatMarkInlineViewTests {
+    @Test
+    func `custom inline flow keeps supported attributes breaks and image positions`() throws {
+        let document = FlatMarkRenderProjector.project(
+            markdown: "**before <u>x</u>**\n[linked <u>y</u>](https://example.com/md) ![alt](https://example.com/image.png)"
+        )
+        guard case let .paragraph(content) = try #require(document.blocks.first).kind else {
+            Issue.record("Expected a paragraph")
+            return
+        }
+
+        let policy = FlatMarkUnsupportedContentPolicy.custom { _ in AnyView(EmptyView()) }
+        let view = FlatMarkInlineView(
+            content: content,
+            context: FlatMarkRenderContext(unsupportedContentPolicy: policy)
+        )
+        let elements = FlatMarkInlineView.inlineElements(for: content, policy: policy)
+        let text = elements.compactMap { element -> AttributedString? in
+            if case let .text(text) = element.content {
+                text
+            } else {
+                nil
+            }
+        }
+        let payloads = elements.compactMap { element -> String? in
+            if case let .custom(value) = element.content {
+                String(value.literalText.characters)
+            } else {
+                nil
+            }
+        }
+        #expect(view.renderingMode == .customInlineFlow)
+        #expect(payloads == ["<u>", "</u>", "<u>", "</u>"])
+        #expect(text.first?
+            .runs
+            .allSatisfy { $0.inlinePresentationIntent?.contains(.stronglyEmphasized) == true } == true)
+        let linked = try #require(text.first { String($0.characters) == "linked " })
+        #expect(linked.runs.allSatisfy { $0.link == URL(string: "https://example.com/md") })
+        #expect(elements.contains { $0.content == .lineBreak })
+        guard case let .image(index, image) = try #require(elements.last).content else {
+            Issue.record("Expected the unaffected image after the replacements")
+            return
+        }
+
+        #expect(index == content.components.count - 1)
+        #expect(image.url == URL(string: "https://example.com/image.png"))
+    }
+
+    /// Both tags of an HTML pair that carries nothing between them stay two positions under every
+    /// policy, with the supported text on either side of them in its own slot.
+    ///
+    /// This is composition, not geometry: it says which slots the pair occupies, not what a host view
+    /// that draws nothing leaves in the space where a tag was.
+    @Test
+    func `keeps an empty HTML pair in two inline positions for every policy`() throws {
+        let document = FlatMarkRenderProjector.project(markdown: "a<u></u>b")
+        guard case let .paragraph(content) = try #require(document.blocks.first).kind else {
+            Issue.record("Expected a paragraph")
+            return
+        }
+
+        let policies: [(FlatMarkUnsupportedContentPolicy, [String])] = [
+            (.literal, ["a", "<u>", "</u>", "b"]),
+            (.omit, ["a", "b"]),
+            (.custom(render: { _ in AnyView(EmptyView()) }), ["a", "custom(<u>)", "custom(</u>)", "b"]),
+        ]
+
+        for (policy, expected) in policies {
+            #expect(FlatMarkInlineView.inlineElements(for: content, policy: policy).map(shaped) == expected)
+        }
+    }
+
     @Test
     func `ordinary images use native selectable inline text`() {
         let view = inlineView(components: [
@@ -101,11 +174,14 @@ struct FlatMarkInlineViewTests {
             altText: "Diagram",
             link: URL(string: "https://example.com/details")
         )
-        let elements = FlatMarkInlineView.inlineElements(for: .init(components: [
-            .text(AttributedString("Several words before ")),
-            .image(image),
-            .text(AttributedString(" and several words after")),
-        ]))
+        let elements = FlatMarkInlineView.inlineElements(
+            for: .init(components: [
+                .text(AttributedString("Several words before ")),
+                .image(image),
+                .text(AttributedString(" and several words after")),
+            ]),
+            policy: .literal
+        )
 
         #expect(elements.count == 3)
         #expect(elements[0].content == .text(AttributedString("Several words before ")))
@@ -115,14 +191,17 @@ struct FlatMarkInlineViewTests {
 
     @Test
     func `linked image flow preserves explicit line breaks`() {
-        let elements = FlatMarkInlineView.inlineElements(for: .init(components: [
-            .text(AttributedString("Before\nafter")),
-            .image(FlatMarkRenderImage(
-                url: nil,
-                altText: "Diagram",
-                link: URL(string: "https://example.com/details")
-            )),
-        ]))
+        let elements = FlatMarkInlineView.inlineElements(
+            for: .init(components: [
+                .text(AttributedString("Before\nafter")),
+                .image(FlatMarkRenderImage(
+                    url: nil,
+                    altText: "Diagram",
+                    link: URL(string: "https://example.com/details")
+                )),
+            ]),
+            policy: .literal
+        )
 
         #expect(elements.map(\.content) == [
             .text(AttributedString("Before")),
@@ -160,5 +239,20 @@ struct FlatMarkInlineViewTests {
             content: FlatMarkRenderInlineContent(components: components),
             context: .readOnly
         )
+    }
+
+    /// What one inline element contributes, spelled so one expectation reads the same way under all
+    /// three policies: supported text by its own wording, a host position by its payload.
+    private func shaped(_ element: FlatMarkInlineView.InlineElement) -> String {
+        switch element.content {
+        case let .text(text):
+            String(text.characters)
+        case let .custom(unsupported):
+            "custom(\(String(unsupported.literalText.characters)))"
+        case .lineBreak:
+            "line break"
+        case .image:
+            "image"
+        }
     }
 }
