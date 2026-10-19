@@ -3,14 +3,14 @@ import SwiftUI
 
 // MARK: - FlatMarkCustomPolicyKind
 
-enum FlatMarkCustomPolicyKind: String, CaseIterable, Identifiable, Hashable {
+public enum FlatMarkCustomPolicyKind: String, CaseIterable, Identifiable, Hashable {
     case literal
     case omit
     case custom
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .literal: "Literal"
         case .omit: "Omit"
@@ -21,12 +21,17 @@ enum FlatMarkCustomPolicyKind: String, CaseIterable, Identifiable, Hashable {
 
 // MARK: - FlatMarkCustomFixture
 
-/// Backend-free policy-switching fixture. Copy this file and `FlatMarkRecordedImageLoads.swift`
-/// into a host app target and present `FlatMarkCustomFixture(model:)` for iOS/macOS observation.
-struct FlatMarkCustomFixture: View {
-    @Bindable var model: FlatMarkCustomFixtureModel
+/// Backend-free policy-switching fixture, shared by the automated suite and `FlatMarkFixtureHost`.
+/// Present `FlatMarkCustomFixture(model:)` for iOS/macOS observation; run the host with
+/// `scripts/run-fixture-host.sh`.
+public struct FlatMarkCustomFixture: View {
+    @Bindable public var model: FlatMarkCustomFixtureModel
 
-    var body: some View {
+    public init(model: FlatMarkCustomFixtureModel) {
+        self.model = model
+    }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Picker("Unsupported content", selection: $model.policyKind) {
                 ForEach(FlatMarkCustomPolicyKind.allCases) { kind in
@@ -53,10 +58,14 @@ struct FlatMarkCustomFixture: View {
 }
 
 /// Document-only path for mounted tests; unrelated controls cannot make its content oracle pass.
-struct FlatMarkCustomDocumentFixture: View {
-    let model: FlatMarkCustomFixtureModel
+public struct FlatMarkCustomDocumentFixture: View {
+    public let model: FlatMarkCustomFixtureModel
 
-    var body: some View {
+    public init(model: FlatMarkCustomFixtureModel) {
+        self.model = model
+    }
+
+    public var body: some View {
         FlatMarkView(
             markdown: model.markdown,
             baseURL: URL(string: "https://example.com/"),
@@ -78,8 +87,8 @@ struct FlatMarkCustomDocumentFixture: View {
 
 @MainActor
 @Observable
-final class FlatMarkCustomFixtureModel {
-    static let omissionMarkdown = """
+public final class FlatMarkCustomFixtureModel {
+    public static let omissionMarkdown = """
     Before
 
     <div>hidden block</div>
@@ -107,7 +116,7 @@ final class FlatMarkCustomFixtureModel {
     After
     """
 
-    static let omissionReferenceMarkdown = """
+    public static let omissionReferenceMarkdown = """
     Before
 
     - [x] Keep checked
@@ -129,7 +138,7 @@ final class FlatMarkCustomFixtureModel {
     After
     """
 
-    static let markdown = """
+    public static let markdown = """
     Before
 
     <div>hidden block</div>
@@ -160,25 +169,25 @@ final class FlatMarkCustomFixtureModel {
     After
     """
 
-    var markdown: String
-    var policyKind: FlatMarkCustomPolicyKind = .literal {
+    public var markdown: String
+    public var policyKind: FlatMarkCustomPolicyKind = .literal {
         didSet { payloads = [] }
     }
-    var replacementLabel = "Replacement"
-    var allowsTaskEditing = true
-    var showsButtons = false
-    var showsEmpty = false
-    var enlargedText = false
-    var rightToLeft = false
-    var customActivations = 0
-    var linkActivations = 0
-    var taskUpdates = 0
-    @ObservationIgnored var payloads: [String] = []
-    @ObservationIgnored var presentedLabels: [String] = []
-    let imageCalls = FlatMarkRecordedImageLoads()
-    let loader: FlatMarkImageLoader
+    public var replacementLabel = "Replacement"
+    public var allowsTaskEditing = true
+    public var showsButtons = false
+    public var showsEmpty = false
+    public var enlargedText = false
+    public var rightToLeft = false
+    public var customActivations = 0
+    public var linkActivations = 0
+    public var taskUpdates = 0
+    @ObservationIgnored public var payloads: [String] = []
+    @ObservationIgnored public var presentedLabels: [String] = []
+    public let imageCalls = FlatMarkRecordedImageLoads()
+    public let loader: FlatMarkImageLoader
 
-    init(markdown: String = FlatMarkCustomFixtureModel.markdown) {
+    public init(markdown: String = FlatMarkCustomFixtureModel.markdown) {
         self.markdown = markdown
         let imageCalls = imageCalls
         loader = FlatMarkImageLoader(configurationID: UUID()) { url in
@@ -187,7 +196,7 @@ final class FlatMarkCustomFixtureModel {
         }
     }
 
-    func policy(rendering label: String) -> FlatMarkUnsupportedContentPolicy {
+    public func policy(rendering label: String) -> FlatMarkUnsupportedContentPolicy {
         switch policyKind {
         case .literal:
             return .literal

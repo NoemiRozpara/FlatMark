@@ -1,6 +1,7 @@
 #if os(macOS)
     import AppKit
     import FlatMark
+    import FlatMarkFixtures
     import SwiftUI
     import Testing
 

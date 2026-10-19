@@ -6,45 +6,23 @@ Automated checks do not replace the platform and accessibility observations belo
 ## Backend-free fixture setup
 
 One fixture covers every policy observation:
-[FlatMarkCustomFixture.swift](FlatMarkTests/Rendering/FlatMarkCustomFixture.swift) provides the
+[FlatMarkCustomFixture.swift](FlatMarkFixtures/FlatMarkCustomFixture.swift) provides the
 Literal/Custom/Omit picker, editable replacement label, host-button and empty-output switches,
 enlarged text (`accessibility2`), RTL control, a **Load omission sample** button, and counters for
 image loads, host activations, link activations, and task updates. Its document includes inline and
 block HTML, strong text, headings, linked text, nested quotes, a task row, table cells, multiline
-text, an explicit break, and an unaffected local image.
+text, an explicit break, and an unaffected local image. These files live in the `FlatMarkFixtures`
+target, shared by the host and the automated suite, so an observation can never use code the tests
+do not also compile.
 
-To run it, temporarily copy it together with `FlatMarkRecordedImageLoads.swift` (the shared image
-recorder) into the existing `ToDoo` app target and replace the app entry point with the following.
-This bypasses session restoration and needs no login, backend data, or network access. Restore the
-normal app entry afterwards; do not retain either app-target change.
-
-```swift
-import SwiftUI
-
-@main
-struct ToDooApp: App {
-    @State private var model: FlatMarkCustomFixtureModel
-
-    init() {
-        let model = FlatMarkCustomFixtureModel()
-        model.policyKind = .custom
-        model.showsButtons = true
-        model.replacementLabel = "Go"
-        model.enlargedText = true // repeat with false; also try rightToLeft/showsEmpty
-        _model = State(initialValue: model)
-    }
-
-    var body: some Scene {
-        WindowGroup {
-            ScrollView {
-                FlatMarkCustomFixture(model: model)
-            }
-        }
-    }
-}
-```
-
-Initialize the model before passing it to `State(initialValue:)` for a deterministic initial state.
+To run it, boot an iPhone simulator and execute `scripts/run-fixture-host.sh` (default `ios`) from
+the repository root. It builds `FlatMarkFixtureHost` for the simulator, wraps and installs the app,
+and launches it. The entry point presets Custom with host buttons, the label "Go", and enlarged
+text; switch them with the fixture's own controls (also try `rightToLeft`/`showsEmpty`). No login,
+backend data, network access, or host-app code is involved. Pass `macos` to run the same fixture
+as a desktop window (`scripts/run-fixture-host.sh macos`); the app bundle is left under `/tmp` so it
+survives the script exiting. The host initializes the model before passing it to
+`State(initialValue:)` for a deterministic initial state.
 
 ## Manual checklist
 

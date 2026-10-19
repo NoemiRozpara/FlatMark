@@ -1,5 +1,6 @@
 #if os(macOS)
     @testable import FlatMark
+    import FlatMarkFixtures
     import Foundation
     import Testing
 

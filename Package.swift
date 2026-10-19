@@ -39,10 +39,24 @@ let package = Package(
             dependencies: ["FlatMark"],
             path: "Tests/FlatMarkNavigationTestHost"
         ),
+        .target(
+            name: "FlatMarkFixtures",
+            dependencies: ["FlatMark"],
+            path: "Tests/FlatMarkFixtures",
+            swiftSettings: [
+                .enableUpcomingFeature("ApproachableConcurrency"),
+            ]
+        ),
+        .executableTarget(
+            name: "FlatMarkFixtureHost",
+            dependencies: ["FlatMark", "FlatMarkFixtures"],
+            path: "Tests/FlatMarkFixtureHost"
+        ),
         .testTarget(
             name: "FlatMarkTests",
             dependencies: [
                 "FlatMark",
+                "FlatMarkFixtures",
                 .target(name: "FlatMarkNavigationTestHost", condition: .when(platforms: [.macOS])),
             ],
             swiftSettings: [

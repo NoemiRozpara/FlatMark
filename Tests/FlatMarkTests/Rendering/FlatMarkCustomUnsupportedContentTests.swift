@@ -1,4 +1,5 @@
 @testable import FlatMark
+import FlatMarkFixtures
 import Markdown
 import SwiftUI
 import Testing

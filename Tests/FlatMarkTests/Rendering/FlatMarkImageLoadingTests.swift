@@ -1,4 +1,5 @@
 @testable import FlatMark
+import FlatMarkFixtures
 import Foundation
 import Observation
 import SwiftUI
