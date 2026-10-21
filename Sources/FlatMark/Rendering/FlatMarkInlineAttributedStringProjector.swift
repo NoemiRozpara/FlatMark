@@ -7,6 +7,7 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
 
     let source: String
     let baseURL: URL?
+    let detectMentions: Bool
 
     mutating func project(_ markup: Markup) -> FlatMarkRenderInlineContent {
         visit(markup)
@@ -23,7 +24,11 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
     }
 
     mutating func visitText(_ text: Markdown.Text) -> FlatMarkRenderInlineContent {
-        FlatMarkRenderInlineContent(text: AttributedString(text.string))
+        var value = AttributedString(text.string)
+        if detectMentions {
+            Self.boldMentions(in: &value)
+        }
+        return FlatMarkRenderInlineContent(text: value)
     }
 
     mutating func visitSoftBreak(_: SoftBreak) -> FlatMarkRenderInlineContent {
@@ -53,7 +58,9 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
     }
 
     mutating func visitLink(_ link: Link) -> FlatMarkRenderInlineContent {
-        var result = defaultVisit(link)
+        // A separate label projection leaves even unresolved links ineligible for detection.
+        var labelProjector = Self(source: source, baseURL: baseURL, detectMentions: false)
+        var result = labelProjector.defaultVisit(link)
 
         if let destination = link.destination,
            let url = FlatMarkURLResolver.resolve(destination, relativeTo: baseURL)
@@ -65,7 +72,9 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
     }
 
     mutating func visitImage(_ image: Markdown.Image) -> FlatMarkRenderInlineContent {
-        let altContent = defaultVisit(image)
+        // Image descriptions retain their existing rendering.
+        var altProjector = Self(source: source, baseURL: baseURL, detectMentions: false)
+        let altContent = altProjector.defaultVisit(image)
         return FlatMarkRenderInlineContent(
             components: [.image(FlatMarkRenderImage(
                 url: image.source.flatMap { FlatMarkURLResolver.resolve($0, relativeTo: baseURL) },
@@ -85,6 +94,23 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
         var result = defaultVisit(markup)
         result.applyPresentationIntent(intent)
         return result
+    }
+
+    private static func boldMentions(in text: inout AttributedString) {
+        let source = String(text.characters)
+        let candidates = /@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*/.matchingSemantics(.unicodeScalar)
+        for match in source.matches(of: candidates) {
+            if let previous = source[..<match.range.lowerBound].unicodeScalars.last {
+                switch previous.value {
+                case 48 ... 57, 65 ... 90, 95, 97 ... 122:
+                    continue
+                default:
+                    break
+                }
+            }
+            guard let range = Range(match.range, in: text) else { continue }
+            text[range].inlinePresentationIntent = .stronglyEmphasized
+        }
     }
 
     /// A container whose children FlatMark projects one by one.

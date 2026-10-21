@@ -31,6 +31,16 @@
                 .joined(separator: " ")
         }
 
+        /// Attributes emitted by SwiftUI's native text fields, in display order.
+        var visibleAttributedText: NSAttributedString {
+            view.layoutSubtreeIfNeeded()
+            let result = NSMutableAttributedString(string: "")
+            for field in view.descendants.compactMap({ $0 as? NSTextField }) {
+                result.append(field.attributedStringValue)
+            }
+            return result
+        }
+
         func close() {
             window.orderOut(nil)
             window.contentView = nil

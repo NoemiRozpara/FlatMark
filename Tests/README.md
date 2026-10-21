@@ -24,6 +24,34 @@ as a desktop window (`scripts/run-fixture-host.sh macos`); the app bundle is lef
 survives the script exiting. The host initializes the model before passing it to
 `State(initialValue:)` for a deterministic initial state.
 
+## Mention rendering (#200)
+
+The backend-free [mention fixture](FlatMarkFixtures/FlatMarkMentionFixture.swift) is selected by
+launching `FlatMarkFixtureHost` with `--mentions`. For example, from the repository root on macOS:
+
+```sh
+mobilebuildmcp swift-package run --json '{"packagePath":"FlatMark","executableName":"FlatMarkFixtureHost","arguments":["--mentions"],"background":true}'
+```
+
+Toggle **Detect mentions** to compare enabled/disabled rendering. Check that `@ja*ne*` bolds only
+`@ja`, whole-token italic/strikethrough styles are preserved, and code and link labels stay
+unchanged. Each Markdown text node is scanned independently: `*email*@example.com` bolds
+`@example.com`, while ordinary `email@example.com` stays unbolded. Also inspect list/table content, wrapping, text selection, and
+ordinary link activation. Mentions themselves are not links.
+
+`FlatMarkMentionTests` mounts the public `FlatMarkView` and observes native text, font traits,
+strikethrough, and link attributes. It covers grammar and disabled behavior, formatting-terminated
+tokens and independently checked text-node boundaries, code/link exclusions (including empty and
+unresolved links), headings/lists/table cells, whitespace, and surrounding-text order. These macOS-gated checks
+exercise real rendering, not an exported grammar or a copied serialization test corpus.
+
+**Observed on macOS:** a fresh mention fixture capture showed formatting-terminated bolding
+(`@ja*ne*` bolds only `@ja`), whole-token bolding with retained emphasis/strikethrough, unbolded
+plain-email/code/link-label text, list/table mentions, and natural wrapping. The capture also
+confirmed the accepted bolding of `@example.com` after italic `email`.
+**Outstanding:** iOS runtime observation, live selection gestures, VoiceOver, and interactive
+link/toggle checks for this fixture. Mounted font/link assertions do not establish those behaviors.
+
 ## Manual checklist
 
 Use the document above, plus **Load omission sample** for the omission cases. On iOS and macOS:

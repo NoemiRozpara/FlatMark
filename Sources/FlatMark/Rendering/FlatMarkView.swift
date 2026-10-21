@@ -11,6 +11,7 @@ public struct FlatMarkView: View {
     private let baseURL: URL?
     private let context: FlatMarkRenderContext
     private let linkActivationAction: ((URL) -> FlatMarkLinkActivationResult)?
+    private let detectMentions: Bool
 
     @Environment(\.openURL) private var openURL
 
@@ -36,6 +37,11 @@ public struct FlatMarkView: View {
     ///   - linkActivationAction: An optional synchronous action receiving the resolved
     ///     absolute destination on activation. Handling or rejecting suppresses opening;
     ///     default opening delegates once to the inherited SwiftUI environment opener.
+    ///   - detectMentions: Whether to render lexical `@username` tokens in bold, without
+    ///     adding actions or link semantics. Each Markdown text node is scanned independently;
+    ///     formatting is a hard boundary. Code and link labels are excluded.
+    ///     Handles are ASCII letters, digits, and underscores, optionally
+    ///     separated by internal dots or hyphens. No user lookup is performed.
     ///   - taskToggleAction: An optional closure called with the complete updated
     ///     Markdown source when a task checkbox is toggled.
     public init(
@@ -45,11 +51,13 @@ public struct FlatMarkView: View {
         imageURLPolicy: FlatMarkImageURLPolicy = .webOnly,
         unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy = .literal,
         linkActivationAction: ((URL) -> FlatMarkLinkActivationResult)? = nil,
+        detectMentions: Bool = false,
         taskToggleAction: ((String) -> Void)? = nil
     ) {
         self.markdown = markdown
         self.baseURL = baseURL
         self.linkActivationAction = linkActivationAction
+        self.detectMentions = detectMentions
         context = FlatMarkRenderContext(
             imageLoader: imageLoader,
             imageURLPolicy: imageURLPolicy,
@@ -91,7 +99,7 @@ public struct FlatMarkView: View {
 
     public var body: some View {
         FlatMarkDocumentView(
-            document: FlatMarkRenderProjector.project(markdown: markdown, baseURL: baseURL),
+            document: FlatMarkRenderProjector.project(markdown: markdown, baseURL: baseURL, detectMentions: detectMentions),
             context: context
         )
         .environment(\.openURL, activationOpenURL)

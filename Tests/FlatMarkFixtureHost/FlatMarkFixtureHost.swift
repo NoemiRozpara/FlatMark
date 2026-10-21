@@ -21,7 +21,11 @@ struct FlatMarkFixtureHost: App {
     var body: some Scene {
         WindowGroup {
             ScrollView {
-                FlatMarkCustomFixture(model: model)
+                if CommandLine.arguments.contains("--mentions") {
+                    FlatMarkMentionFixture()
+                } else {
+                    FlatMarkCustomFixture(model: model)
+                }
             }
         }
     }
