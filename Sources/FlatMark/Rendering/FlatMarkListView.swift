@@ -84,6 +84,28 @@ private struct FlatMarkListChildBlockView: View {
     }
 }
 
+#if os(iOS)
+private struct FlatMarkCheckboxToggleStyle: ToggleStyle {
+    let accessibilityLabel: String
+
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                .font(.body)
+                .foregroundStyle(configuration.isOn ? .green : .secondary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(configuration.isOn ? "Checked" : "Unchecked")
+        .accessibilityAddTraits(.isToggle)
+    }
+}
+#endif
+
 // MARK: - FlatMarkListRowView
 
 struct FlatMarkListRowView: View {
@@ -117,83 +139,45 @@ struct FlatMarkListRowView: View {
     }
 
     var body: some View {
-        if case let .task(isChecked, _) = row.marker {
-            taskRow(isChecked: isChecked)
-        } else {
-            rowContent()
+        // Keep the control and paragraph as siblings so links/custom controls remain
+        // independently actionable and inline image identity survives policy changes.
+        // A whole-row accessibilityRepresentation would replace the paragraph's accessible
+        // links/custom controls with a single element.
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            leadingElement
+            inlineContent
+                .alignmentGuide(.flatMarkListContent) { $0[.leading] }
         }
+        .markdownListIndentation(
+            row.indentation, spacing: 8, layoutDirection: layoutDirection
+        )
     }
 
     @ViewBuilder
-    private func taskRow(isChecked: Bool) -> some View {
-        if row.content.components.contains(where: \.isUnsupported) {
-            // Keep this hierarchy policy-independent so inline image state survives switching.
-            // A Toggle label or an ignored task row can swallow nested host controls, so the
-            // task control and mixed content remain accessible siblings under every policy.
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                if let taskToggleAction {
-                    Toggle(isOn: Binding(
-                        get: { isChecked },
-                        set: { _ in taskToggleAction() }
-                    )) {
-                        Text(taskAccessibilityLabel)
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                    #if os(macOS)
-                        .toggleStyle(.checkbox)
-                    #endif
-                } else {
-                    marker()
-                        .accessibilityHidden(false)
-                        .accessibilityLabel(taskAccessibilityLabel)
-                        .accessibilityValue(isChecked ? "Checked" : "Unchecked")
-                }
-                inlineContent
-                    .alignmentGuide(.flatMarkListContent) { $0[.leading] }
-            }
-            .markdownListIndentation(
-                row.indentation, spacing: 8, layoutDirection: layoutDirection
-            )
-        } else if let taskToggleAction {
-            Toggle(
-                isOn: Binding(
+    private var leadingElement: some View {
+        if case let .task(isChecked, _) = row.marker {
+            if let taskToggleAction {
+                Toggle(isOn: Binding(
                     get: { isChecked },
                     set: { _ in taskToggleAction() }
-                )
-            ) {
-                inlineContent
-            }
-            #if os(macOS)
-            .toggleStyle(.checkbox)
-            #endif
-            .accessibilityLabel(taskAccessibilityLabel)
-            .markdownListIndentation(
-                row.indentation,
-                spacing: 8,
-                layoutDirection: layoutDirection
-            )
-        } else {
-            rowContent()
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(taskAccessibilityLabel)
-                .accessibilityValue(isChecked ? "Checked" : "Unchecked")
-        }
-    }
-
-    private func rowContent() -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            marker()
-            inlineContent
-                .alignmentGuide(.flatMarkListContent) { dimensions in
-                    dimensions[.leading]
+                )) {
+                    Text(taskAccessibilityLabel)
                 }
+                .labelsHidden()
+                .fixedSize()
+                #if os(macOS)
+                    .toggleStyle(.checkbox)
+                #else
+                    .toggleStyle(FlatMarkCheckboxToggleStyle(accessibilityLabel: taskAccessibilityLabel))
+                #endif
+            } else {
+                marker()
+                    .accessibilityLabel(taskAccessibilityLabel)
+                    .accessibilityValue(isChecked ? "Checked" : "Unchecked")
+            }
+        } else {
+            marker()
         }
-        .markdownListIndentation(
-            row.indentation,
-            spacing: 8,
-            layoutDirection: layoutDirection
-        )
     }
 
     /// The control's VoiceOver name: the task level plus the row's wording under the active
@@ -221,7 +205,6 @@ struct FlatMarkListRowView: View {
             Image(systemName: isChecked ? "checkmark.square.fill" : "square")
                 .font(.body)
                 .foregroundStyle(isChecked ? .green : .secondary)
-                .accessibilityHidden(true)
         }
     }
 }
