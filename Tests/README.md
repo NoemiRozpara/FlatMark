@@ -167,6 +167,66 @@ The omission sample additionally confirms markers stay `7.`/`8.`, both table col
 body cell remain, and activating the empty-label task marks only it and increments the task counter
 once.
 
+## Task-marker appearance (#224)
+
+In the shared custom fixture, choose **Load task-marker sample**. The host also accepts
+`--task-markers` to start with that sample. Use **Task marker** to switch Default marker / Host
+marker, **Task editing** to independently select interactive / read-only, and **Disable tasks** to
+exercise inherited disabled state. Host marker is a passive square-plus-offset-checkmark drawing,
+not another toggle. The sample includes checked/unchecked and nested tasks, a neighboring Details
+link, and independently actionable custom content.
+
+Manual checklist on **both iOS and macOS**:
+
+- Compare default and host markers with Task editing on and off. iOS and macOS use the same
+  drawn default marker and control appearance. Every nested task uses the selected appearance and
+  correct checked state.
+- Toggle an unchecked host marker: only that marker changes, and **tasks** increases once.
+  With Task editing off there is no task action; with Disable tasks on, activating the marker
+  must not increase **tasks**. Re-enable and toggle again.
+- Activate **Details** separately from its marker and a **Go** replacement separately from its
+  marker. Only **links**, **actions**, or **tasks**, respectively, should increase.
+- Inspect normal and Large text at the fixture's 240-point width, then RTL. Markers must follow
+  the leading edge without overlapping wording or hiding the independently actionable content.
+- With VoiceOver, check distinguishable task names, checked state, and a single control per task
+  (no accessible host drawing); static markers announce label/state but offer no toggle action.
+  Confirm links and custom buttons remain independently reachable.
+
+**Automated:** `FlatMarkTaskMarkerTests` mounts both public initializers with interactive/read-only
+nested checked/unchecked tasks, observes host builder states, and checks unchanged selectable
+wording. Its native event-loop host checks source-preserving custom-marker dispatch, read-only
+and disabled no-dispatch, and activation outside the 12-point drawing near the edge of the
+44-point interactive hit target. Existing task, navigation, and unsupported-content tests remain in the full package run.
+The task interaction host now uses one geometry-recording passive marker in every mode, rather
+than relying on native macOS NSButton storage; callback and independent-action checks remain. These are behavioral observations, not private style-storage tests.
+
+**Observed 2026-10-27, before unifying the platform toggle styles:** the fixture built and ran on iPhone 18 Pro (iOS 27 simulator) and macOS.
+iOS screenshots showed custom checked/unchecked nested markers at Large text, normal text, and
+read-only RTL, plus built-in read-only markers. Runtime snapshots exposed distinguishable task
+switches and checked values without separate drawing elements; activating Nested pending changed
+its value and incremented tasks once. Turning Task editing off removed task switches while leaving
+the host drawing visible. On macOS, screenshots compared native built-in interactive checkboxes
+with host interactive markers, and host read-only RTL. The Large text fixture switch was on for
+the macOS captures; unlike iOS, it did not visibly enlarge macOS text. A host task activation and
+a separate custom-content activation incremented only their respective counters.
+
+Fixture builds used the existing `scripts/run-fixture-host.sh` packaging lane; package tests ran
+via MobileBuildMCP. Simulator observations used MobileBuildMCP snapshots/screenshots and taps;
+macOS observations used System Events and screen capture.
+
+**After unifying the toggle styles:** fresh iOS and macOS fixture builds succeeded. A macOS
+screenshot showed the drawn green checked / secondary unchecked default markers, including nested
+tasks, instead of native checkboxes. The iOS runtime snapshot retained distinguishable checked and
+unchecked task switches with the Default marker selected. The full package suite passed with the
+geometry-based interaction host.
+
+**Outstanding:** live VoiceOver announcements/rotor actions on both platforms, enlarged system
+text on macOS, and a complete per-platform interaction matrix (especially disabled iOS controls
+and actual link activation beside a custom marker). The macOS Details accessibility press did not
+increment the link counter, so link activation is not recorded as verified by that attempt.
+The unchanged link implementation and existing automated navigation checks are not a substitute
+for completing that live check.
+
 ## What the automated checks assert
 
 Automated rendering checks assert **which elements exist**, not how they are laid out. Three

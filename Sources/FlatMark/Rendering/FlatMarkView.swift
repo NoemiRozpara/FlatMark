@@ -33,13 +33,15 @@ public struct FlatMarkView: View {
     ///     rejecting prevents opening; default opening calls the inherited SwiftUI opener once.
     ///   - taskToggleAction: Receives the complete updated source after a checkbox toggle,
     ///     derived from `document.markdown` to keep editing addresses paired with their snapshot.
+    ///   - taskMarker: A passive task-marker visual, independent of whether editing is enabled.
     public init(
         document: FlatMarkDocument,
         imageLoader: FlatMarkImageLoader? = nil,
         imageURLPolicy: FlatMarkImageURLPolicy = .webOnly,
         unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy = .literal,
         linkActivationAction: ((URL) -> FlatMarkLinkActivationResult)? = nil,
-        taskToggleAction: ((String) -> Void)? = nil
+        taskToggleAction: ((String) -> Void)? = nil,
+        taskMarker: FlatMarkTaskMarker = .default
     ) {
         self.document = document
         self.linkActivationAction = linkActivationAction
@@ -58,7 +60,8 @@ public struct FlatMarkView: View {
 
                     action(updatedMarkdown)
                 }
-            }
+            },
+            taskMarker: taskMarker
         )
     }
 
@@ -94,6 +97,7 @@ public struct FlatMarkView: View {
     ///     separated by internal dots or hyphens. No user lookup is performed.
     ///   - taskToggleAction: An optional closure called with the complete updated
     ///     Markdown source when a task checkbox is toggled.
+    ///   - taskMarker: A passive task-marker visual, independent of whether editing is enabled.
     public init(
         markdown: String,
         baseURL: URL? = nil,
@@ -102,7 +106,8 @@ public struct FlatMarkView: View {
         unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy = .literal,
         linkActivationAction: ((URL) -> FlatMarkLinkActivationResult)? = nil,
         detectMentions: Bool = false,
-        taskToggleAction: ((String) -> Void)? = nil
+        taskToggleAction: ((String) -> Void)? = nil,
+        taskMarker: FlatMarkTaskMarker = .default
     ) {
         self.init(
             document: FlatMarkDocument(markdown: markdown, baseURL: baseURL, detectMentions: detectMentions),
@@ -110,7 +115,8 @@ public struct FlatMarkView: View {
             imageURLPolicy: imageURLPolicy,
             unsupportedContentPolicy: unsupportedContentPolicy,
             linkActivationAction: linkActivationAction,
-            taskToggleAction: taskToggleAction
+            taskToggleAction: taskToggleAction,
+            taskMarker: taskMarker
         )
     }
 

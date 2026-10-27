@@ -50,6 +50,31 @@ The callback receives the complete updated source, not an address to apply to th
 source. Hosts that defer accepting or persisting callback results are responsible for ensuring an
 older result does not overwrite newer Markdown.
 
+### Host task-marker appearance
+
+Both initializers accept `taskMarker`, independently of `taskToggleAction`:
+
+```swift
+FlatMarkView(
+    markdown: markdown,
+    taskToggleAction: { markdown = $0 },
+    taskMarker: .custom { isChecked in
+        Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(.purple)
+    }
+)
+```
+
+The builder receives only checked state. Supply a **passive drawing**, not another button, toggle,
+or gesture. FlatMark owns the control, accessibility label and checked state, and minimum hit target;
+the drawing does not become a separate accessibility element. It inherits SwiftUI environment values
+such as `isEnabled`. Omitting the callback still renders read-only markers with the same drawing;
+`.disabled(...)` still disables editing when a callback is supplied.
+
+The `.default` appearance uses the same square marker and control appearance on iOS and macOS.
+A custom drawing replaces the marker for interactive, read-only, and nested tasks. No ToDoo theme
+or interaction dependency is required.
+
 ## Reusing one parsed value
 
 `FlatMarkView(markdown:)` parses when the host builds the view, so a preview whose parent
@@ -84,7 +109,7 @@ what makes comparing them useful.
 `baseURL` and `detectMentions` are projection inputs, not render-time inputs: relative
 destinations are resolved and mention spans projected when the document is built, so changing
 either means building a new document. `imageLoader`, `imageURLPolicy`,
-`unsupportedContentPolicy`, `linkActivationAction`, and `taskToggleAction` remain render-time host
+`unsupportedContentPolicy`, `linkActivationAction`, `taskToggleAction`, and `taskMarker` remain render-time host
 authorities on `FlatMarkView(document:)`: switching them re-renders the retained content without
 re-parsing.
 

@@ -456,8 +456,6 @@ struct FlatMarkCustomRenderingTests {
             let report = try await nativeHostReport(arguments: ["--task-interaction", "custom", markdown])
             #expect(report["completed"] == ["true"])
             #expect(report["initialMarkdown"] == [markdown])
-            #expect(report["initialCheckboxStates"] == ["0", "1"])
-            #expect(report["checkboxEnabled"] == ["true"])
             #expect(report["initialCustomActivations"] == ["0"])
             #expect(report["initialTaskUpdates"] == ["0"])
             #expect(Set(report["customPayloads"] ?? []) == ["<u>"])
@@ -466,7 +464,6 @@ struct FlatMarkCustomRenderingTests {
             #expect(report["markdown"] == [markdown, checkedMarkdown, checkedMarkdown])
             #expect(report["updates"] == [checkedMarkdown])
             #expect(report["linkActivations"] == ["0", "0", "0"])
-            #expect(report["finalCheckboxStates"] == ["1", "1"])
         }
 
         @Test(arguments: [false, true])

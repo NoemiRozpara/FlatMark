@@ -28,16 +28,19 @@ struct FlatMarkRenderContext {
     let imageURLPolicy: FlatMarkImageURLPolicy
     let unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy
     let taskToggleAction: ((FlatMarkSourceRange) -> Void)?
+    let taskMarker: FlatMarkTaskMarker
 
     init(
         imageLoader: FlatMarkImageLoader? = nil,
         imageURLPolicy: FlatMarkImageURLPolicy = .webOnly,
         unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy = .literal,
-        taskToggleAction: ((FlatMarkSourceRange) -> Void)? = nil
+        taskToggleAction: ((FlatMarkSourceRange) -> Void)? = nil,
+        taskMarker: FlatMarkTaskMarker = .default
     ) {
         self.imageLoader = imageLoader
         self.imageURLPolicy = imageURLPolicy
         self.unsupportedContentPolicy = unsupportedContentPolicy
         self.taskToggleAction = taskToggleAction
+        self.taskMarker = taskMarker
     }
 }

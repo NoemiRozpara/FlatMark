@@ -84,28 +84,6 @@ private struct FlatMarkListChildBlockView: View {
     }
 }
 
-#if os(iOS)
-private struct FlatMarkCheckboxToggleStyle: ToggleStyle {
-    let accessibilityLabel: String
-
-    func makeBody(configuration: Configuration) -> some View {
-        Button {
-            configuration.isOn.toggle()
-        } label: {
-            Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .font(.body)
-                .foregroundStyle(configuration.isOn ? .green : .secondary)
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityValue(configuration.isOn ? "Checked" : "Unchecked")
-        .accessibilityAddTraits(.isToggle)
-    }
-}
-#endif
-
 // MARK: - FlatMarkListRowView
 
 struct FlatMarkListRowView: View {
@@ -157,21 +135,20 @@ struct FlatMarkListRowView: View {
     private var leadingElement: some View {
         if case let .task(isChecked, _) = row.marker {
             if let taskToggleAction {
-                Toggle(isOn: Binding(
-                    get: { isChecked },
-                    set: { _ in taskToggleAction() }
-                )) {
-                    Text(taskAccessibilityLabel)
+                Button(action: taskToggleAction) {
+                    marker()
+                        .accessibilityHidden(true)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
-                .labelsHidden()
+                .buttonStyle(.plain)
                 .fixedSize()
-                #if os(macOS)
-                    .toggleStyle(.checkbox)
-                #else
-                    .toggleStyle(FlatMarkCheckboxToggleStyle(accessibilityLabel: taskAccessibilityLabel))
-                #endif
+                .accessibilityLabel(taskAccessibilityLabel)
+                .accessibilityValue(isChecked ? "Checked" : "Unchecked")
+                .accessibilityAddTraits(.isToggle)
             } else {
                 marker()
+                    .accessibilityElement(children: .ignore)
                     .accessibilityLabel(taskAccessibilityLabel)
                     .accessibilityValue(isChecked ? "Checked" : "Unchecked")
             }
@@ -202,9 +179,8 @@ struct FlatMarkListRowView: View {
                 .foregroundStyle(.secondary)
 
         case let .task(isChecked, _):
-            Image(systemName: isChecked ? "checkmark.square.fill" : "square")
-                .font(.body)
-                .foregroundStyle(isChecked ? .green : .secondary)
+            context.taskMarker.view(isChecked: isChecked)
+                .allowsHitTesting(false)
         }
     }
 }

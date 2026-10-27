@@ -52,13 +52,10 @@
             let expected = markdown.replacingOccurrences(of: "- [ ] <u></u>", with: "- [x] <u></u>")
             #expect(report["completed"] == ["true"])
             #expect(report["initialMarkdown"] == [markdown])
-            #expect(report["initialCheckboxStates"] == ["0", "1", "1"])
-            #expect(report["checkboxEnabled"] == ["true"])
             #expect(report["initialTaskUpdates"] == ["0"])
             #expect(report["updates"] == [expected])
             #expect(report["markdown"] == [expected])
             #expect(report["taskUpdates"] == ["1"])
-            #expect(report["finalCheckboxStates"] == ["1", "1", "1"])
             #expect(report["initialLoaded"] == ["https://example.com/image.png"])
             #expect(report["loaded"] == report["initialLoaded"])
         }

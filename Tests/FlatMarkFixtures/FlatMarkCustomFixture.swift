@@ -39,6 +39,14 @@ public struct FlatMarkCustomFixture: View {
                 }
             }
             .pickerStyle(.segmented)
+            Picker("Task marker", selection: $model.usesHostTaskMarker) {
+                Text("Default marker").tag(false)
+                Text("Host marker").tag(true)
+            }
+            .pickerStyle(.segmented)
+            Toggle("Task editing", isOn: $model.allowsTaskEditing)
+            Toggle("Disable tasks", isOn: $model.disablesTasks)
+            Button("Load task-marker sample") { model.markdown = FlatMarkCustomFixtureModel.taskMarkerMarkdown }
             Toggle("Host buttons", isOn: $model.showsButtons)
             Toggle("Empty output", isOn: $model.showsEmpty)
             Toggle("Large text", isOn: $model.enlargedText)
@@ -78,8 +86,12 @@ public struct FlatMarkCustomDocumentFixture: View {
             taskToggleAction: model.allowsTaskEditing ? { updatedMarkdown in
                 model.markdown = updatedMarkdown
                 model.taskUpdates += 1
-            } : nil
+            } : nil,
+            taskMarker: model.usesHostTaskMarker ? .custom { isChecked in
+                FlatMarkFixtureTaskMark(isChecked: isChecked)
+            } : .default
         )
+        .disabled(model.disablesTasks)
     }
 }
 
@@ -88,6 +100,14 @@ public struct FlatMarkCustomDocumentFixture: View {
 @MainActor
 @Observable
 public final class FlatMarkCustomFixtureModel {
+    public static let taskMarkerMarkdown = """
+    - [x] Shipped
+    - [ ] Review [Details](details)
+      - [ ] Nested pending
+      - [x] Nested complete
+    - [ ] Task with <u>host content</u>
+    """
+
     public static let omissionMarkdown = """
     Before
 
@@ -175,6 +195,8 @@ public final class FlatMarkCustomFixtureModel {
     }
     public var replacementLabel = "Replacement"
     public var allowsTaskEditing = true
+    public var usesHostTaskMarker = false
+    public var disablesTasks = false
     public var showsButtons = false
     public var showsEmpty = false
     public var enlargedText = false

@@ -7,7 +7,8 @@
     @MainActor
     enum TaskInteractionTestHost {
         static func run(mode: String, markdown: String) {
-            guard mode == "custom" || mode == "omit" else { exit(2) }
+            guard ["custom", "omit", "marker-interactive", "marker-readOnly", "marker-disabled"].contains(mode)
+            else { exit(2) }
 
             let application = NSApplication.shared
             application.setActivationPolicy(.prohibited)
@@ -34,18 +35,27 @@
                         await settle(hosting)
                     }
                 }
-                let buttons = nativeButtons(in: hosting)
-                let unchecked = buttons.filter { $0.state == .off }
-                guard unchecked.count == 1, let task = unchecked.first else { exit(7) }
-
-                let frame = task.convert(task.bounds, to: hosting)
+                if mode.hasPrefix("marker-") {
+                    guard let frame = model.markerFrames[false] else { exit(7) }
+                    let states = model.markerFrames.keys.map { String($0) }.sorted()
+                    // Probe near the edge of the 44-point target, outside the 12-point drawing.
+                    let x = mode == "marker-readOnly" ? frame.midX : frame.midX - 20
+                    click(
+                        at: NSPoint(x: x, y: frame.midY), in: hosting, window: window,
+                        allowsMiss: mode == "marker-readOnly"
+                    )
+                    await settle(hosting)
+                    let report = ["states": states, "updates": model.updates, "completed": ["true"]]
+                    guard let data = try? JSONSerialization.data(withJSONObject: report) else { exit(5) }
+                    FileHandle.standardOutput.write(data)
+                    exit(0)
+                }
+                guard let frame = model.markerFrames[false] else { exit(7) }
                 let checkboxPoint = NSPoint(x: frame.midX, y: frame.midY)
                 // The replacement is the first inline child after the eight-point sibling gap.
-                let hostPoint = NSPoint(x: frame.maxX + 20, y: frame.midY)
+                let hostPoint = NSPoint(x: frame.midX + 22 + 20, y: frame.midY)
                 var report = [
                     "initialMarkdown": [model.markdown],
-                    "initialCheckboxStates": buttons.map { String($0.state.rawValue) }.sorted(),
-                    "checkboxEnabled": [String(task.isEnabled)],
                     "initialLoaded": model.loadedURLs,
                     "initialCustomActivations": [String(model.customActivations)],
                     "initialTaskUpdates": [String(model.updates.count)],
@@ -61,7 +71,6 @@
                 report["updates"] = model.updates
                 report["customPayloads"] = model.payloads
                 report["loaded"] = model.loadedURLs
-                report["finalCheckboxStates"] = nativeButtons(in: hosting).map { String($0.state.rawValue) }.sorted()
                 report["completed"] = ["true"]
                 guard let data = try? JSONSerialization.data(withJSONObject: report) else { exit(5) }
 
@@ -78,14 +87,14 @@
             hosting.displayIfNeeded()
         }
 
-        private static func nativeButtons(in view: NSView) -> [NSButton] {
-            let button = (view as? NSButton).map { [$0] } ?? []
-            return button + view.subviews.flatMap { nativeButtons(in: $0) }
-        }
-
-        private static func click(at point: NSPoint, in hosting: NSView, window: NSWindow) {
+        private static func click(
+            at point: NSPoint, in hosting: NSView, window: NSWindow, allowsMiss: Bool = false
+        ) {
             // NSView.hitTest expects coordinates in its superview, not its own bounds.
-            guard let target = hosting.hitTest(hosting.convert(point, to: hosting.superview)) else { exit(3) }
+            guard let target = hosting.hitTest(hosting.convert(point, to: hosting.superview)) else {
+                if allowsMiss { return }
+                exit(3)
+            }
 
             let location = hosting.convert(point, to: nil)
             let timestamp = ProcessInfo.processInfo.systemUptime
@@ -113,6 +122,7 @@
         var customActivations = 0
         var linkActivations = 0
         var updates: [String] = []
+        @ObservationIgnored var markerFrames: [Bool: CGRect] = [:]
         @ObservationIgnored var payloads: [String] = []
         @ObservationIgnored var loadedURLs: [String] = []
         let loaderID = UUID()
@@ -149,21 +159,31 @@
                     },
                     unsupportedContentPolicy: model.mode == "custom" ? .custom { payload in
                         model.payloads.append(payload)
-                        // Keep this SwiftUI control separate from the native checkbox inventory.
                         return AnyView(Button("Replacement") { model.customActivations += 1 }.buttonStyle(.plain))
                     } : model.policy,
                     linkActivationAction: { _ in
                         model.linkActivations += 1
                         return .handled
                     },
-                    taskToggleAction: {
+                    taskToggleAction: model.mode == "marker-readOnly" ? nil : {
                         model.updates.append($0)
                         model.markdown = $0
+                    },
+                    taskMarker: .custom { isChecked in
+                        Image(systemName: isChecked ? "checkmark.circle" : "circle")
+                            .frame(width: 12, height: 12)
+                            .onGeometryChange(for: CGRect.self) { proxy in
+                                proxy.frame(in: .named("host"))
+                            } action: { frame in
+                                model.markerFrames[isChecked] = frame
+                            }
                     }
                 )
+                .disabled(model.mode == "marker-disabled")
                 .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .coordinateSpace(name: "host")
         }
     }
 #endif

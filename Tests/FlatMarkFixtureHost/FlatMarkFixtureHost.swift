@@ -11,7 +11,10 @@ struct FlatMarkFixtureHost: App {
     @State private var documentModel: FlatMarkDocumentFixtureModel
 
     init() {
-        let model = FlatMarkCustomFixtureModel()
+        let model = FlatMarkCustomFixtureModel(
+            markdown: CommandLine.arguments.contains("--task-markers")
+                ? FlatMarkCustomFixtureModel.taskMarkerMarkdown : FlatMarkCustomFixtureModel.markdown
+        )
         model.policyKind = .custom
         model.showsButtons = true
         model.replacementLabel = "Go"
