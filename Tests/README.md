@@ -52,6 +52,45 @@ confirmed the accepted bolding of `@example.com` after italic `email`.
 **Outstanding:** iOS runtime observation, live selection gestures, VoiceOver, and interactive
 link/toggle checks for this fixture. Mounted font/link assertions do not establish those behaviors.
 
+## Mounted native-content lane (#225)
+
+The normal package test command runs these checks; no executable host or extra setup is needed:
+
+```sh
+mobilebuildmcp swift-package test --package-path FlatMark
+```
+
+`MountedView.visibleText` / `visibleAttributedText` read the mounted renderer's **native
+selection backing**. After creating `NSApplication.shared` and laying out the view, the reader
+walks AppKit descendants in native order, invokes `selectAll:` on selection-capable views, and
+uses public `NSServicesMenuRequestor` APIs to export RTF to a unique pasteboard. It decodes that
+RTF as `NSAttributedString`, concatenating regions without synthetic separators and without
+also reading a requestor's descendants. Each temporary pasteboard is released; the user's
+general pasteboard is never used. Reading changes the selection in these disposable test views.
+
+**Requirements:** verified on macOS 27.0.1 with the repository's pinned Xcode 27 RC toolchain.
+The content must support native selection: `FlatMarkView` already enables it; a bare SwiftUI
+`Text` probe needs `.textSelection(.enabled)`. No accessibility trust, enhanced-accessibility
+setting, permission prompt, or separate application event loop is required. The APIs are public,
+but SwiftUI's descendant capabilities and traversal order are not a documented inspection
+contract. Requalify this lane after toolchain/OS changes.
+
+**Guarantees:** selectable wording and exported bold, italic, strikethrough, and link attributes
+for the tested corpus. All existing mention/custom-host assertions remain. Missing selection
+capability or failed RTF export throws immediately rather than polling and returning `""`;
+a live lane missing requested wording throws a separate bounded-timeout error.
+
+**Limits:** arbitrary nonselectable host controls, glyph visibility, clipping, opacity, geometry,
+selection gestures, and exact on-screen typeface identity are not established by RTF export.
+This is automated native-content observation, not manual visual verification.
+
+Do not replace this reader with an accessibility-tree reader: ordinary FlatMark inline content
+has an independent `accessibilityRepresentation`. That proxy can remain correct when visible
+rendering is broken. Qualification of this selection reader included temporary changes to
+`inlineText` only, leaving `accessibilityText` intact: substituting `"BROKEN-RENDERER"` failed
+content checks, and applying bold/italic/strikethrough to the visible text failed attribute checks.
+Both mutations were restored before the full package run.
+
 ## Manual checklist
 
 Use the document above, plus **Load omission sample** for the omission cases. On iOS and macOS:

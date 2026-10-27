@@ -23,22 +23,18 @@
             return view.fittingSize != .zero
         }
 
-        /// Native text exposed by the mounted AppKit hierarchy, suitable for content assertions.
+        /// Selectable wording in native descendant order, without synthetic separators.
         var visibleText: String {
-            view.layoutSubtreeIfNeeded()
-            return view.descendants
-                .compactMap { ($0 as? NSTextField)?.stringValue }
-                .joined(separator: " ")
+            get throws { try visibleAttributedText.string }
         }
 
-        /// Attributes emitted by SwiftUI's native text fields, in display order.
+        /// Attributes exported by the mounted renderer's native text selection as RTF.
+        /// Reading selects all text in each native selection region.
         var visibleAttributedText: NSAttributedString {
-            view.layoutSubtreeIfNeeded()
-            let result = NSMutableAttributedString(string: "")
-            for field in view.descendants.compactMap({ $0 as? NSTextField }) {
-                result.append(field.attributedStringValue)
+            get throws {
+                view.layoutSubtreeIfNeeded()
+                return try selectedText(in: view)
             }
-            return result
         }
 
         func close() {
@@ -54,6 +50,7 @@
         _ view: V,
         size: CGSize = CGSize(width: 360, height: 700)
     ) async -> MountedView<V> {
+        _ = NSApplication.shared
         let hosting = NSHostingView(rootView: view)
         hosting.frame = CGRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
@@ -66,12 +63,6 @@
         hosting.layoutSubtreeIfNeeded()
         hosting.displayIfNeeded()
         return MountedView(view: hosting, window: window)
-    }
-
-    private extension NSView {
-        var descendants: [NSView] {
-            subviews.flatMap { [$0] + $0.descendants }
-        }
     }
 
     @MainActor
@@ -94,19 +85,17 @@
         try? await Task.sleep(for: .milliseconds(30))
     }
 
-    /// The native text one mounted view exposes once it shows `wording`, or as far as it got within a
-    /// bound, so a view that renders at all is read after it laid out rather than after an arbitrary
-    /// sleep, and wording that never arrives stays a missing observation.
+    /// Polls only a working selection lane. Missing capability/export throws immediately;
+    /// live text missing the requested wording throws a distinct error after the bound.
     @MainActor
-    func visibleText<V>(showing wording: String, in hosted: MountedView<V>) async -> String {
+    func visibleText<V>(showing wording: String, in hosted: MountedView<V>) async throws -> String {
         for _ in 0 ..< 50 {
-            if hosted.visibleText.contains(wording) {
-                break
+            let text = try hosted.visibleText
+            if text.contains(wording) {
+                return text
             }
-
-            try? await Task.sleep(for: .milliseconds(10))
+            try await Task.sleep(for: .milliseconds(10))
         }
-
-        return hosted.visibleText
+        throw MountedTextObservationError.wordingNotFound(expected: wording, observed: try hosted.visibleText)
     }
 #endif

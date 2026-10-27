@@ -276,7 +276,7 @@ struct FlatMarkCustomRenderingTests {
 
             // Wait for visible wording before checking dispatch: `showsContent` alone would say only
             // that some view exists, and an empty payload set could otherwise pass before rendering.
-            #expect(await visibleText(showing: wording, in: hosted).contains(wording))
+            #expect(try await visibleText(showing: wording, in: hosted).contains(wording))
             #expect(await dispatchedPayloads(matching: Set(dispatched), in: recorder) == Set(dispatched))
         }
 
@@ -418,18 +418,18 @@ struct FlatMarkCustomRenderingTests {
                 switch policy {
                 case .literal:
                     #expect(model.payloads.isEmpty)
-                    #expect(hosted.visibleText.contains("important"))
-                    #expect(hosted.visibleText.contains("hidden block"))
+                    #expect(try hosted.visibleText.contains("important"))
+                    #expect(try hosted.visibleText.contains("hidden block"))
                 case .omit:
                     #expect(model.payloads.isEmpty)
-                    #expect(!hosted.visibleText.contains("<u>"))
-                    #expect(!hosted.visibleText.contains("hidden block"))
-                    #expect(hosted.visibleText.contains("important"))
-                    #expect(hosted.visibleText.contains("Before"))
+                    #expect(try !hosted.visibleText.contains("<u>"))
+                    #expect(try !hosted.visibleText.contains("hidden block"))
+                    #expect(try hosted.visibleText.contains("important"))
+                    #expect(try hosted.visibleText.contains("Before"))
                 case .custom:
                     #expect(Set(model.payloads) == dispatched)
                     #expect(Set(model.presentedLabels) == [model.replacementLabel])
-                    #expect(hosted.visibleText.contains(model.replacementLabel))
+                    #expect(try hosted.visibleText.contains(model.replacementLabel))
                 }
             }
 
@@ -443,8 +443,8 @@ struct FlatMarkCustomRenderingTests {
             await settleMountedRendering()
             #expect(Set(model.presentedLabels) == ["Other replacement"])
             #expect(Set(model.payloads) == dispatched)
-            #expect(hosted.visibleText.contains("Other replacement"))
-            #expect(!hosted.visibleText.contains("Replacement"))
+            #expect(try hosted.visibleText.contains("Other replacement"))
+            #expect(try !hosted.visibleText.contains("Replacement"))
             #expect(model.markdown == FlatMarkCustomFixtureModel.markdown)
             #expect(model.imageCalls.urls.count == 1)
         }
