@@ -534,6 +534,102 @@ struct FlatMarkRenderProjectorTests {
     }
 
     @Test
+    func `official Setext headings preserve levels and inline emphasis`() throws {
+        // GFM 0.29-gfm, example 50, unchanged.
+        let document = FlatMarkRenderProjector.project(markdown:
+            "Foo *bar*\n=========\n\nFoo *bar*\n---------\n")
+        #expect(document.blocks.count == 2)
+        for (index, block) in document.blocks.enumerated() {
+            guard case let .heading(level, content) = block.kind else {
+                Issue.record("Expected Setext heading")
+                continue
+            }
+            #expect(level == index + 1)
+            #expect(content.plainText == "Foo bar")
+            #expect(run(containing: "bar", in: content)?.inlinePresentationIntent?.contains(.emphasized) == true)
+        }
+    }
+
+    @Test(arguments: [
+        // GFM 0.29-gfm, examples 658 and 659, unchanged.
+        "foo  \nbaz\n", "foo\\\nbaz\n",
+    ])
+    func `official hard break forms project the same native newline`(markdown: String) throws {
+        let content = try #require(paragraphContent(in: markdown))
+        #expect(content.plainText == "foo\nbaz")
+    }
+
+    @Test
+    func `official escaped punctuation does not introduce emphasis`() throws {
+        // GFM 0.29-gfm, example 311, unchanged: escaped backslash followed by emphasis.
+        let content = try #require(paragraphContent(in: "\\\\*emphasis*\n"))
+        #expect(content.plainText == "\\emphasis")
+        #expect(run(containing: "\\", in: content)?.inlinePresentationIntent?.contains(.emphasized) != true)
+        #expect(run(containing: "emphasis", in: content)?.inlinePresentationIntent?.contains(.emphasized) == true)
+    }
+
+    @Test(arguments: [
+        // GFM 0.29-gfm, examples 321, 322 and 323, unchanged.
+        ("&nbsp; &amp; &copy; &AElig; &Dcaron;\n&frac34; &HilbertSpace; &DifferentialD;\n&ClockwiseContourIntegral; &ngE;\n",
+         "\u{00A0} & © Æ Ď\n¾ ℋ ⅆ\n∲ ≧̸"),
+        ("&#35; &#1234; &#992; &#0;\n", "# Ӓ Ϡ �"),
+        ("&#X22; &#XD06; &#xcab;\n", "\" ആ ಫ"),
+    ])
+    func `official character references project decoded text`(markdown: String, expected: String) throws {
+        #expect(try #require(paragraphContent(in: markdown)).plainText == expected)
+    }
+
+    @Test
+    func `container integration keeps rich linked images formatting and breaks`() throws {
+        // Adapted integration fixture, not an unchanged official example:
+        // GFM 0.29-gfm examples 50 (heading), 526 (linked image), 664 (emphasized break).
+        let document = FlatMarkRenderProjector.project(markdown: """
+        > - [**Label _nested_**](details) [![foo *bar*](image.png "omitted")](details)
+        >
+        >   | Heading | Image |
+        >   | --- | --- |
+        >   | [~~Cell~~](details) | ![Alt](image.png) |
+        >
+        >   *foo\\
+        >   bar*
+        """, baseURL: URL(string: "https://example.com/docs/"))
+        guard case let .blockQuote(children) = try #require(document.blocks.first).kind,
+              case let .list(entries) = try #require(children.first).kind else {
+            Issue.record("Expected quote containing list")
+            return
+        }
+        let item = try #require(entries.compactMap(row).first)
+        let nested = try #require(run(containing: "nested", in: item.content))
+        #expect(nested.inlinePresentationIntent?.contains(.stronglyEmphasized) == true)
+        #expect(nested.inlinePresentationIntent?.contains(.emphasized) == true)
+        #expect(nested.link == URL(string: "https://example.com/docs/details"))
+        let linkedImage = try #require(item.content.components.compactMap(image).first)
+        #expect(linkedImage.url == URL(string: "https://example.com/docs/image.png"))
+        #expect(linkedImage.link == nested.link)
+        #expect(linkedImage.altContent.plainText == "foo bar")
+        #expect(run(containing: "bar", in: linkedImage.altContent)?.inlinePresentationIntent?
+            .contains(.emphasized) == true)
+        let continuations = entries.compactMap(childBlock)
+        #expect(continuations.count == 2)
+        guard case let .table(projectedTable) = continuations[0].block.kind,
+              case let .paragraph(breakContent) = continuations[1].block.kind else {
+            Issue.record("Expected table then paragraph continuation")
+            return
+        }
+        let cell = projectedTable.rows[0].cells[0].content
+        #expect(cell.plainText == "Cell")
+        #expect(run(containing: "Cell", in: cell)?.link == nested.link)
+        #expect(run(containing: "Cell", in: cell)?.inlinePresentationIntent?.contains(.strikethrough) == true)
+        let cellImage = try #require(projectedTable.rows[0].cells[1].content.components.compactMap(image).first)
+        #expect(cellImage.url == linkedImage.url)
+        #expect(cellImage.altContent.plainText == "Alt")
+        #expect(cellImage.link == nil)
+        #expect(breakContent.plainText == "foo\nbar")
+        #expect(run(containing: "foo", in: breakContent)?.inlinePresentationIntent?.contains(.emphasized) == true)
+        #expect(run(containing: "bar", in: breakContent)?.inlinePresentationIntent?.contains(.emphasized) == true)
+    }
+
+    @Test
     func `projects indented code headings and directive-like text as GFM`() {
         let document = FlatMarkRenderProjector.project(markdown: """
         #### Heading
