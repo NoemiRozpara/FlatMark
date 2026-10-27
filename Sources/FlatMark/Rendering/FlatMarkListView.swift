@@ -138,7 +138,6 @@ struct FlatMarkListRowView: View {
                 Button(action: taskToggleAction) {
                     marker()
                         .accessibilityHidden(true)
-                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
