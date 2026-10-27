@@ -66,7 +66,7 @@ FlatMarkView(
 ```
 
 The builder receives only checked state. Supply a **passive drawing**, not another button, toggle,
-or gesture. FlatMark owns the control, accessibility label and checked state, and minimum hit target;
+or gesture. FlatMark owns the control, accessibility label and checked state, and hit testing;
 the drawing does not become a separate accessibility element. It inherits SwiftUI environment values
 such as `isEnabled`. Omitting the callback still renders read-only markers with the same drawing;
 `.disabled(...)` still disables editing when a callback is supplied.

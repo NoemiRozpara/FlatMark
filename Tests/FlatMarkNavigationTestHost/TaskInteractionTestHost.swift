@@ -38,10 +38,9 @@
                 if mode.hasPrefix("marker-") {
                     guard let frame = model.markerFrames[false] else { exit(7) }
                     let states = model.markerFrames.keys.map { String($0) }.sorted()
-                    // Probe near the edge of the 44-point target, outside the 12-point drawing.
-                    let x = mode == "marker-readOnly" ? frame.midX : frame.midX - 20
+                    // Use the measured drawing center without assuming a larger control frame.
                     click(
-                        at: NSPoint(x: x, y: frame.midY), in: hosting, window: window,
+                        at: NSPoint(x: frame.midX, y: frame.midY), in: hosting, window: window,
                         allowsMiss: mode == "marker-readOnly"
                     )
                     await settle(hosting)

@@ -195,8 +195,8 @@ Manual checklist on **both iOS and macOS**:
 **Automated:** `FlatMarkTaskMarkerTests` mounts both public initializers with interactive/read-only
 nested checked/unchecked tasks, observes host builder states, and checks unchanged selectable
 wording. Its native event-loop host checks source-preserving custom-marker dispatch, read-only
-and disabled no-dispatch, and activation outside the 12-point drawing near the edge of the
-44-point interactive hit target. Existing task, navigation, and unsupported-content tests remain in the full package run.
+and disabled no-dispatch by clicking the measured marker center. These checks do not
+establish a minimum hit-target size. Existing task, navigation, and unsupported-content tests remain in the full package run.
 The task interaction host now uses one geometry-recording passive marker in every mode, rather
 than relying on native macOS NSButton storage; callback and independent-action checks remain. These are behavioral observations, not private style-storage tests.
 
