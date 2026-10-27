@@ -8,6 +8,7 @@ import SwiftUI
 @main
 struct FlatMarkFixtureHost: App {
     @State private var model: FlatMarkCustomFixtureModel
+    @State private var documentModel: FlatMarkDocumentFixtureModel
 
     init() {
         let model = FlatMarkCustomFixtureModel()
@@ -16,6 +17,7 @@ struct FlatMarkFixtureHost: App {
         model.replacementLabel = "Go"
         model.enlargedText = true
         _model = State(initialValue: model)
+        _documentModel = State(initialValue: FlatMarkDocumentFixtureModel())
     }
 
     var body: some Scene {
@@ -23,6 +25,8 @@ struct FlatMarkFixtureHost: App {
             ScrollView {
                 if CommandLine.arguments.contains("--mentions") {
                     FlatMarkMentionFixture()
+                } else if CommandLine.arguments.contains("--document") {
+                    FlatMarkDocumentFixture(model: documentModel)
                 } else {
                     FlatMarkCustomFixture(model: model)
                 }

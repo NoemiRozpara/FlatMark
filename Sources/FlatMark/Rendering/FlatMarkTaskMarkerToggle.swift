@@ -8,7 +8,7 @@ enum FlatMarkTaskMarkerToggle {
     /// Requires `sourceRange` to have been projected from the unchanged `markdown` snapshot.
     /// Snapshot freshness is not validated: applying a stale range to different Markdown can
     /// toggle an unrelated marker rather than return nil. FlatMarkView keeps the range and source
-    /// paired by projecting the same immutable Markdown value captured by its toggle action.
+    /// paired by toggling the rendered ``FlatMarkDocument``'s snapshot.
     ///
     /// Only the selected marker's state byte is replaced; every other byte, including line
     /// terminators and Unicode, is left untouched.

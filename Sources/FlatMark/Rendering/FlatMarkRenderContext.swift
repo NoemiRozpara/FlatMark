@@ -12,10 +12,8 @@
 /// callback is a renderer bug rather than a host choice, and a development build asserts on it.
 ///
 /// The context is not `Sendable`, and that is deliberate. Its `taskToggleAction` forwards to the
-/// host closure taken by
-/// ``FlatMarkView/init(markdown:baseURL:imageLoader:imageURLPolicy:unsupportedContentPolicy:linkActivationAction:taskToggleAction:)``,
-/// whose `taskToggleAction` parameter is a plain `(String) -> Void`. Making this type `Sendable`
-/// would require that public parameter to become `@Sendable`, which is a breaking change for
+/// plain `(String) -> Void` closure supplied to ``FlatMarkView``. Making this type `Sendable`
+/// would require that parameter to become `@Sendable`, a breaking change for
 /// callers that capture non-`Sendable` state. If a call site ever needs an isolated context,
 /// change the public signature first; `readOnly` can then return to being a `static let`.
 struct FlatMarkRenderContext {

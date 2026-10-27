@@ -52,6 +52,44 @@ confirmed the accepted bolding of `@example.com` after italic `email`.
 **Outstanding:** iOS runtime observation, live selection gestures, VoiceOver, and interactive
 link/toggle checks for this fixture. Mounted font/link assertions do not establish those behaviors.
 
+## Reusing one parsed document (#223)
+
+The backend-free [document fixture](FlatMarkFixtures/FlatMarkDocumentFixture.swift) is selected by
+launching `FlatMarkFixtureHost` with `--document`. For example, from the repository root:
+
+```sh
+mobilebuildmcp swift-package run --json '{"packagePath":"FlatMark","executableName":"FlatMarkFixtureHost","arguments":["--document"],"background":true}'
+```
+
+The fixture presents one retained `FlatMarkDocument` twice beside the string-based initializer
+rendering the same source.
+
+- **Re-render without editing** raises `Refresh requests` without replacing the retained document.
+  This counts user requests, not renderer evaluations or parser calls.
+- **Edit source** replaces the document; all three copies must show the appended task.
+- **Detect mentions** replaces the document with the new projection input; `@jane` must become bold
+  in every copy, including inside the quote.
+- Toggling any task must print the complete updated source in **Last toggle produced** and change
+  only that marker's checkbox.
+- All three copies must show identical wording, bolding, resolved links, table cells, and task rows.
+
+`FlatMarkDocumentTests` checks source/input equality, retained inputs, and defaults through the
+public API. `FlatMarkDocumentRenderingTests` checks expected selectable wording and attribute
+parity between the document- and string-backed initializers. The no-reparse guarantee is established
+structurally: `FlatMarkView.body` reads the retained projection, and the only production call to
+`FlatMarkRenderProjector.project(markdown:)` is in `FlatMarkDocument.init`. The string-backed
+comparison constructs its own document whenever that view is rebuilt.
+
+**Previously observed on iOS 27 simulator (iPhone 18 Pro), before fixture simplification:**
+semantic-tree captures showed matching wording and checkbox values in all three presentations.
+Task toggles updated the corresponding marker in every copy and returned the complete source;
+refresh requests preserved the content, source edits added a task, and mention detection could be
+switched. The fixture's former counters measured host bookkeeping, not parser calls.
+
+**Outstanding:** the simplified fixture has not been re-observed in a running app. The previous
+semantic tree did not establish typeface; bolding rests on the mounted suite. VoiceOver and a macOS
+runtime pass for this fixture are also outstanding.
+
 ## Mounted native-content lane (#225)
 
 The normal package test command runs these checks; no executable host or extra setup is needed:

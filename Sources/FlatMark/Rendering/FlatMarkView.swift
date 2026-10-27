@@ -6,19 +6,69 @@ import SwiftUI
 /// `taskToggleAction`,
 /// task-list checkboxes can update their corresponding source marker; FlatMark does
 /// not otherwise edit or serialize Markdown.
+///
+/// For repeated rendering, retain a ``FlatMarkDocument`` and use the `document:` initializer
+/// to avoid reparsing.
 public struct FlatMarkView: View {
-    private let markdown: String
-    private let baseURL: URL?
+    private let document: FlatMarkDocument
     private let context: FlatMarkRenderContext
     private let linkActivationAction: ((URL) -> FlatMarkLinkActivationResult)?
-    private let detectMentions: Bool
 
     @Environment(\.openURL) private var openURL
 
-    /// Creates a Markdown preview.
+    /// Creates a preview from a retained document without parsing again.
+    ///
+    /// Links use native URL opening without a scheme allowlist. Image fetching requires a loader
+    /// and is restricted separately by `imageURLPolicy`.
+    ///
+    /// - Parameters:
+    ///   - document: The parsed snapshot to reuse across renders.
+    ///   - imageLoader: Loads images; when omitted, renders network-free alt-text placeholders.
+    ///   - imageURLPolicy: Allowed image schemes, checked before calling the loader.
+    ///   - unsupportedContentPolicy: Renders unsupported content as inert text by default.
+    ///     `.omit` removes it and any emptied block's layout slot. `.custom(render:)` supplies
+    ///     host-owned views without literal fallback or an enclosing Markdown link action;
+    ///     the host owns their styling, actions, and accessibility.
+    ///   - linkActivationAction: Synchronously handles the resolved absolute URL. Handling or
+    ///     rejecting prevents opening; default opening calls the inherited SwiftUI opener once.
+    ///   - taskToggleAction: Receives the complete updated source after a checkbox toggle,
+    ///     derived from `document.markdown` to keep editing addresses paired with their snapshot.
+    public init(
+        document: FlatMarkDocument,
+        imageLoader: FlatMarkImageLoader? = nil,
+        imageURLPolicy: FlatMarkImageURLPolicy = .webOnly,
+        unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy = .literal,
+        linkActivationAction: ((URL) -> FlatMarkLinkActivationResult)? = nil,
+        taskToggleAction: ((String) -> Void)? = nil
+    ) {
+        self.document = document
+        self.linkActivationAction = linkActivationAction
+        context = FlatMarkRenderContext(
+            imageLoader: imageLoader,
+            imageURLPolicy: imageURLPolicy,
+            unsupportedContentPolicy: unsupportedContentPolicy,
+            taskToggleAction: taskToggleAction.map { action in
+                { sourceRange in
+                    guard let updatedMarkdown = FlatMarkTaskMarkerToggle.toggledMarkdown(
+                        in: document.markdown,
+                        sourceRange: sourceRange
+                    ) else {
+                        return
+                    }
+
+                    action(updatedMarkdown)
+                }
+            }
+        )
+    }
+
+    /// Creates a Markdown preview from a source string.
     ///
     /// Links use native URL opening on activation, without a navigation scheme allowlist.
     /// Image fetching is independently restricted by `imageURLPolicy` and requires a loader.
+    ///
+    /// Parses on each initialization. For repeated rendering, retain a ``FlatMarkDocument``
+    /// and use the `document:` initializer instead.
     ///
     /// - Parameters:
     ///   - markdown: The Markdown source to render.
@@ -54,26 +104,13 @@ public struct FlatMarkView: View {
         detectMentions: Bool = false,
         taskToggleAction: ((String) -> Void)? = nil
     ) {
-        self.markdown = markdown
-        self.baseURL = baseURL
-        self.linkActivationAction = linkActivationAction
-        self.detectMentions = detectMentions
-        context = FlatMarkRenderContext(
+        self.init(
+            document: FlatMarkDocument(markdown: markdown, baseURL: baseURL, detectMentions: detectMentions),
             imageLoader: imageLoader,
             imageURLPolicy: imageURLPolicy,
             unsupportedContentPolicy: unsupportedContentPolicy,
-            taskToggleAction: taskToggleAction.map { action in
-                { sourceRange in
-                    guard let updatedMarkdown = FlatMarkTaskMarkerToggle.toggledMarkdown(
-                        in: markdown,
-                        sourceRange: sourceRange
-                    ) else {
-                        return
-                    }
-
-                    action(updatedMarkdown)
-                }
-            }
+            linkActivationAction: linkActivationAction,
+            taskToggleAction: taskToggleAction
         )
     }
 
@@ -99,7 +136,7 @@ public struct FlatMarkView: View {
 
     public var body: some View {
         FlatMarkDocumentView(
-            document: FlatMarkRenderProjector.project(markdown: markdown, baseURL: baseURL, detectMentions: detectMentions),
+            document: document.renderDocument,
             context: context
         )
         .environment(\.openURL, activationOpenURL)

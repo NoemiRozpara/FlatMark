@@ -39,9 +39,9 @@ The toggle is source-preserving: only the selected marker's state character chan
 `[x]`, always the lowercase `x`). LF, CRLF, standalone CR, and mixed line endings are retained as
 written, and every other byte — Unicode included — stays identical. Each task marker carries the
 editing address of its state byte in the unchanged Markdown snapshot that was projected.
-`FlatMarkView` projects the same immutable source value captured by its toggle action, keeping
-addresses and mutations paired with that snapshot rather than applying old coordinates to newer
-Markdown. The internal toggle operation does not validate snapshot freshness; applying an address
+`FlatMarkView` applies each address to the Markdown snapshot of the `FlatMarkDocument` it renders,
+keeping addresses and mutations paired with that snapshot rather than applying old coordinates to
+newer Markdown. The internal toggle operation does not validate snapshot freshness; applying an address
 to a different snapshot is unsupported and can toggle an unrelated marker rather than fail.
 A task the parser could not give an address to renders as static content that keeps its checked
 state and never invokes the closure.
@@ -49,6 +49,48 @@ state and never invokes the closure.
 The callback receives the complete updated source, not an address to apply to the host's current
 source. Hosts that defer accepting or persisting callback results are responsible for ensuring an
 older result does not overwrite newer Markdown.
+
+## Reusing one parsed value
+
+`FlatMarkView(markdown:)` parses when the host builds the view, so a preview whose parent
+re-creates it on every render parses again each time. When the same Markdown is presented more than
+once — a composer preview that mounts two copies of the same view, a live preview that re-renders
+while its host re-evaluates, or a long document on a screen SwiftUI redraws — build one
+`FlatMarkDocument` and render that instead:
+
+```swift
+let document = FlatMarkDocument(
+    markdown: todo.description,
+    baseURL: URL(string: "https://example.com/docs/readme.md"),
+    detectMentions: true
+)
+
+struct DescriptionPreview: View {
+    let document: FlatMarkDocument
+
+    var body: some View {
+        FlatMarkView(document: document)
+    }
+}
+```
+
+Parsing and projection happen in `FlatMarkDocument.init(markdown:baseURL:detectMentions:)` and
+nowhere else. `FlatMarkView(document:)` never calls the parser or the projector while `body` is
+evaluated, so every render of one retained value reuses the same projected content. Retain a single
+value per snapshot: building a new document for each render reproduces the string-based behavior.
+Two documents are equal when they carry the same source and the same projection inputs, which is
+what makes comparing them useful.
+
+`baseURL` and `detectMentions` are projection inputs, not render-time inputs: relative
+destinations are resolved and mention spans projected when the document is built, so changing
+either means building a new document. `imageLoader`, `imageURLPolicy`,
+`unsupportedContentPolicy`, `linkActivationAction`, and `taskToggleAction` remain render-time host
+authorities on `FlatMarkView(document:)`: switching them re-renders the retained content without
+re-parsing.
+
+A retained document also pins task editing. `FlatMarkView(document:)` applies a task's editing
+address to `document.markdown` — the same value the address was projected from — rather than to a
+string captured separately when the view was created.
 
 ## Links and document bases
 

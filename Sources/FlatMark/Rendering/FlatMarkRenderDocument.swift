@@ -260,8 +260,8 @@ enum FlatMarkRenderProjector {
 
     /// Projects a document the caller already parsed, against the snapshot it was parsed from.
     ///
-    /// A fixture that needs a node kind production parsing never produces uses this seam instead
-    /// of an option the renderer could ask for; the rendered view always parses its own snapshot.
+    /// Lets fixtures supply node kinds absent from production parsing. Production views reuse
+    /// the projection retained by ``FlatMarkDocument``.
     static func project(
         _ document: Document,
         source: String,
