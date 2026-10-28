@@ -35,6 +35,12 @@ let package = Package(
             ]
         ),
         .executableTarget(
+            name: "FlatMarkConstructionBenchmark",
+            dependencies: ["FlatMark"],
+            path: "Benchmarks/Construction",
+            exclude: ["Baselines"]
+        ),
+        .executableTarget(
             name: "FlatMarkNavigationTestHost",
             dependencies: ["FlatMark"],
             path: "Tests/FlatMarkNavigationTestHost"

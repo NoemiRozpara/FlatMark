@@ -1,0 +1,36 @@
+# device=iPhone11,8; OS=Version 18.7 (Build 22H20)
+# start=2026-10-28 13:16:07 +0000; thermal=0; lowPower=false
+FlatMark construction benchmark: Release required; 5 warmups; 30 samples; ms; no SwiftUI rendering
+fixture,scenario,samples,median_ms,p95_ms,min_ms
+# ordinary: 1 section; UTF8=172
+ordinary,initial,30,0.140666,0.297042,0.136542
+ordinary,source-change,30,0.147333,0.169666,0.140750
+ordinary,baseURL-change,30,0.130375,0.144375,0.129125
+ordinary,mentions-change,30,1.178083,1.286834,1.154833
+ordinary,retained-copy-per-value,30,0.000039,0.000050,0.000039
+# large-100: 100 sections; UTF8=17200
+large-100,initial,30,11.720167,12.327000,11.609583
+large-100,source-change,30,11.655959,11.730625,11.600542
+large-100,baseURL-change,30,11.664167,11.694750,11.581500
+large-100,mentions-change,30,113.809750,114.340084,113.267708
+large-100,retained-copy-per-value,30,0.000042,0.000045,0.000040
+# large-1000: 1000 sections; UTF8=172000
+large-1000,initial,30,128.795125,130.417083,121.208208
+large-1000,source-change,30,129.816583,134.948000,126.626292
+large-1000,baseURL-change,30,132.423917,133.867375,130.520458
+large-1000,mentions-change,30,1265.196000,1276.756625,1244.402875
+large-1000,retained-copy-per-value,30,0.000048,0.000052,0.000042
+# nested: 32 quote levels + 32 list levels; UTF8=1416
+nested,initial,30,0.821417,0.854000,0.817750
+nested,source-change,30,0.833916,0.868000,0.828584
+nested,baseURL-change,30,0.824167,0.849209,0.735625
+nested,mentions-change,30,5.708875,5.744542,5.113500
+nested,retained-copy-per-value,30,0.000048,0.000054,0.000044
+# links-tables: 500 rows, 3 columns, 1500 relative links; UTF8=37107
+links-tables,initial,30,40.805583,42.114708,40.166459
+links-tables,source-change,30,40.903833,42.219791,40.424750
+links-tables,baseURL-change,30,40.800959,42.219666,40.343084
+links-tables,mentions-change,30,41.576583,42.839584,40.980833
+links-tables,retained-copy-per-value,30,0.000049,0.000062,0.000047
+Consumed snapshot checksum: 573663895
+# end=2026-10-28 13:18:16 +0000; thermal=0
