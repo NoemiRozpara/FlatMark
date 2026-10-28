@@ -3,22 +3,61 @@
 Run package checks using the repository's [build and test policy](../../docs/BUILD_AND_TEST.md#packages).
 Automated checks do not replace the platform and accessibility observations below.
 
+## Recipe Lab playground (#228)
+
+The host opens **Recipe Lab**: one compact focaccia recipe, also mounted by the policy-transition
+tests. It combines ingredients, nested checked/unchecked tasks, links, one linked illustration,
+quotes, a table, code, ordered steps, an explicit break, and inline/block HTML. The former prep,
+clipping, mixed-content, and task-marker documents are consolidated into this source.
+Mention and omission examples are woven into the recipe itself. **Notebook rendering** switches the
+main recipe between string and retained-document initialization. There are no duplicate recipe
+copies or separate regression documents on the page.
+Exploration controls and **Capture presets & diagnostics** follow the recipe. See the
+[reference matrix, reproduction commands, observed defects, and outstanding VoiceOver checks](References/RecipeLab/README.md).
+Existing screenshots and runtime observations predate this content reduction; they have not been
+refreshed or re-verified for it. No snapshot dependency was added.
+
+**2026-10-28 (single-page merge, before content reduction):** the page menu, the settings sheet, the capture-preset disclosure,
+the two regression-sample buttons, and the **Use full available width** switch were removed; the host
+no longer takes `--mentions`, `--document`, or `--task-markers`. All sixteen recipe references were
+refreshed for the merged page. `mobilebuildmcp swift-package test --package-path FlatMark` and
+`sweetpad -C FlatMark test` (155 tests in 19 suites) passed, and the iOS and macOS hosts built and
+ran. Runtime observation of the merged page is recorded in the
+[reference guide](References/RecipeLab/README.md); the settings switches still could not be operated
+by the automation lane, and VoiceOver remains outstanding.
+
+The **Disable all recipe controls** switch and `FlatMarkCustomFixtureModel.disablesTasks` were also
+deleted. Setting `.disabled(true)` on the rendered document only suppressed `Button` and `Link`
+activation — both created by `FlatMarkListView.swift:138` and `FlatMarkDocumentView.swift:263, 277,
+353` — which is platform behavior, and FlatMark itself never reads `isEnabled`. The matching
+`marker-disabled` mode in `TaskInteractionTestHost` and its `"disabled"` case in
+`FlatMarkTaskMarkerTests` went with it. The automatic check that host views at both inline and
+whole-block positions receive the ancestor's enabled state is retained: that one is a fact about the
+renderer's own composition, not about `Button`.
+
 ## Backend-free fixture setup
 
-One fixture covers every policy observation:
-[FlatMarkCustomFixture.swift](FlatMarkFixtures/FlatMarkCustomFixture.swift) provides the
-Literal/Custom/Omit picker, editable replacement label, host-button and empty-output switches,
-enlarged text (`accessibility2`), RTL control, a **Load omission sample** button, and counters for
-image loads, host activations, link activations, and task updates. Its document includes inline and
-block HTML, strong text, headings, linked text, nested quotes, a task row, table cells, multiline
-text, an explicit break, and an unaffected local image. These files live in the `FlatMarkFixtures`
-target, shared by the host and the automated suite, so an observation can never use code the tests
-do not also compile.
+One shared fixture covers every observation:
+[FlatMarkCustomFixture.swift](FlatMarkFixtures/FlatMarkCustomFixture.swift) renders the shared recipe
+on one page and provides the Literal/Custom/Omit picker, editable replacement label, host-button and
+empty-output switches, enlarged text (`accessibility2`), RTL control, and counters for image loads,
+host activations, link activations, and task updates. The recipe has one Markdown source and one
+retained snapshot; the automated suite mounts the same view with either initializer. These files live in the `FlatMarkFixtures` target, shared by the host and the automated
+suite, so an observation can never use code the tests do not also compile.
+
+Documents are capped at a 240-point reading column on iOS. macOS has no cap: resize the window to
+change the reading width.
 
 To run it, boot an iPhone simulator and execute `scripts/run-fixture-host.sh` (default `ios`) from
 the repository root. It builds `FlatMarkFixtureHost` for the simulator, wraps and installs the app,
-and launches it. The entry point presets Custom with host buttons, the label "Go", and enlarged
-text; switch them with the fixture's own controls (also try `rightToLeft`/`showsEmpty`). No login,
+and launches it. The entry point presets the `daylight` capture: Custom with host buttons, the label
+“Baker’s tip”, and standard text. Change the controls directly on the page. Pass `--capture generous`
+after the platform argument to start with enlarged text.
+
+The historical checklists below use former control labels. Current equivalents are **Larger recipe
+text**, **Right-to-left recipe layout**, **Use custom checkmarks**, **Allow ticking tasks**,
+**Make replacements tappable**, and **Replace with nothing**.
+Literal / Custom / Omit are presented as **Show HTML / Replace tags / Hide HTML**. No login,
 backend data, network access, or host-app code is involved. Pass `macos` to run the same fixture
 as a desktop window (`scripts/run-fixture-host.sh macos`); the app bundle is left under `/tmp` so it
 survives the script exiting. The host initializes the model before passing it to
@@ -26,12 +65,9 @@ survives the script exiting. The host initializes the model before passing it to
 
 ## Mention rendering (#200)
 
-The backend-free [mention fixture](FlatMarkFixtures/FlatMarkMentionFixture.swift) is selected by
-launching `FlatMarkFixtureHost` with `--mentions`. For example, from the repository root on macOS:
-
-```sh
-mobilebuildmcp swift-package run --json '{"packagePath":"FlatMark","executableName":"FlatMarkFixtureHost","arguments":["--mentions"],"background":true}'
-```
+The shared [recipe](FlatMarkFixtures/FlatMarkRecipeSample.swift) includes mention examples in prose,
+emphasis, a task, a table, code, and a link label. Run `scripts/run-fixture-host.sh`; **Detect mentions**
+in Appearance controls the recipe and defaults to on.
 
 Toggle **Detect mentions** to compare enabled/disabled rendering. Check that `@ja*ne*` bolds only
 `@ja`, whole-token italic/strikethrough styles are preserved, and code and link labels stay
@@ -54,24 +90,16 @@ link/toggle checks for this fixture. Mounted font/link assertions do not establi
 
 ## Reusing one parsed document (#223)
 
-The backend-free [document fixture](FlatMarkFixtures/FlatMarkDocumentFixture.swift) is selected by
-launching `FlatMarkFixtureHost` with `--document`. For example, from the repository root:
+The main recipe supports both public initializers. In **Notebook rendering**, enable **Use retained
+document** to switch the recipe’s initializer without changing its content.
 
-```sh
-mobilebuildmcp swift-package run --json '{"packagePath":"FlatMark","executableName":"FlatMarkFixtureHost","arguments":["--document"],"background":true}'
-```
-
-The fixture presents one retained `FlatMarkDocument` twice beside the string-based initializer
-rendering the same source.
-
-- **Re-render without editing** raises `Refresh requests` without replacing the retained document.
+- **Re-render without editing** raises **Refresh requests** without replacing the retained document.
   This counts user requests, not renderer evaluations or parser calls.
-- **Edit source** replaces the document; all three copies must show the appended task.
-- **Detect mentions** replaces the document with the new projection input; `@jane` must become bold
-  in every copy, including inside the quote.
-- Toggling any task must print the complete updated source in **Last toggle produced** and change
-  only that marker's checkbox.
-- All three copies must show identical wording, bolding, resolved links, table cells, and task rows.
+- **Add a tasting note** appends a task to the shared source and replaces the snapshot.
+- **Detect mentions** replaces the snapshot with the new projection input.
+- Toggling any task updates only its checkbox and increments **Task updates** once.
+- Switch between initializers: wording, styles, resolved links, table cells, and tasks should agree.
+  Automated tests compare separate mounted views; the playground shows only one recipe.
 
 `FlatMarkDocumentTests` checks source/input equality, retained inputs, and defaults through the
 public API. `FlatMarkDocumentRenderingTests` checks expected selectable wording and attribute
@@ -131,11 +159,14 @@ Both mutations were restored before the full package run.
 
 ## Manual checklist
 
-Use the document above, plus **Load omission sample** for the omission cases. On iOS and macOS:
+Use the recipe on the page. Its empty nested quotes disappear with **Hide HTML**, while the
+supported tasting note survives. Deliberately empty task labels, ordered rows, and table cells are
+kept in the independent oracle in `FlatMarkOmissionLiveUpdateTests`, not the readable notebook.
+The historical omission observations below refer to that oracle. On iOS and macOS:
 
 - **Policy transitions:** drive Literal → Custom → Omit → Literal → Omit → Custom → Literal
   without editing the Markdown. Nested output must refresh, tasks keep their addresses, and the
-  image counter must stay at one. With `.omit`, unsupported content and the blocks that only
+  image counter must not increase. With `.omit`, unsupported content and the blocks that only
   carried it vanish, and the gap matches the same document typed without them — not a blank line
   or extra empty region. Nested quotes collapse with their rule; a quote holding a list, table, or
   divider keeps that content.
@@ -153,7 +184,8 @@ Use the document above, plus **Load omission sample** for the omission cases. On
 - **Images:** a supported Markdown image beside omitted HTML loads exactly once and is not
   restarted by a policy change; `<img src=...>`, `<script>`, `<iframe>`, and `onclick` never reach
   the image loader or any handler.
-- **Layout:** inspect at 240 points with normal and enlarged text, including headings, table cells,
+- **Layout:** inspect iOS at its fixed 240 points, and macOS at several window widths, with normal
+  and enlarged text, including headings, table cells,
   nested content, explicit line breaks, and mixed images. Runs may move as a whole or wrap inside
   their own views. Smoke-check RTL.
 - **Selection:** long-press/select supported text and drag across the native regions, recording
@@ -161,7 +193,7 @@ Use the document above, plus **Load omission sample** for the omission cases. On
   fragmentation is an observation, not necessarily a bug.
 - **Accessibility:** host buttons must be reachable once and operable, not hidden by a text-only
   proxy; task controls and host controls remain separate accessible siblings. Check VoiceOver
-  announcements/actions and inherited environment (e.g. disabled state).
+  announcements/actions.
 
 The omission sample additionally confirms markers stay `7.`/`8.`, both table columns and the empty
 body cell remain, and activating the empty-label task marks only it and increments the task counter
@@ -169,11 +201,10 @@ once.
 
 ## Task-marker appearance (#224)
 
-In the shared custom fixture, choose **Load task-marker sample**. The host also accepts
-`--task-markers` to start with that sample. Use **Task marker** to switch Default marker / Host
-marker, **Task editing** to independently select interactive / read-only, and **Disable tasks** to
-exercise inherited disabled state. Host marker is a passive square-plus-offset-checkmark drawing,
-not another toggle. The sample includes checked/unchecked and nested tasks, a neighboring Details
+In the shared fixture, use the **Bake along** checklist in the recipe. Use **Use custom
+checkmarks** to switch the marker appearance and **Allow ticking tasks** to independently select
+interactive / read-only. Host marker is a passive square-plus-offset-checkmark drawing,
+not another toggle. The recipe includes checked/unchecked and nested tasks, a neighboring tin-note
 link, and independently actionable custom content.
 
 Manual checklist on **both iOS and macOS**:
@@ -182,11 +213,11 @@ Manual checklist on **both iOS and macOS**:
   drawn default marker and control appearance. Every nested task uses the selected appearance and
   correct checked state.
 - Toggle an unchecked host marker: only that marker changes, and **tasks** increases once.
-  With Task editing off there is no task action; with Disable tasks on, activating the marker
-  must not increase **tasks**. Re-enable and toggle again.
+  With Task editing off there is no task action. Re-enable and toggle again.
 - Activate **Details** separately from its marker and a **Go** replacement separately from its
   marker. Only **links**, **actions**, or **tasks**, respectively, should increase.
-- Inspect normal and Large text at the fixture's 240-point width, then RTL. Markers must follow
+- Inspect normal and Large text at iOS's fixed 240-point column (on macOS, at several window
+  widths), then RTL. Markers must follow
   the leading edge without overlapping wording or hiding the independently actionable content.
 - With VoiceOver, check distinguishable task names, checked state, and a single control per task
   (no accessible host drawing); static markers announce label/state but offer no toggle action.
@@ -194,8 +225,8 @@ Manual checklist on **both iOS and macOS**:
 
 **Automated:** `FlatMarkTaskMarkerTests` mounts both public initializers with interactive/read-only
 nested checked/unchecked tasks, observes host builder states, and checks unchanged selectable
-wording. Its native event-loop host checks source-preserving custom-marker dispatch, read-only
-and disabled no-dispatch by clicking the measured marker center. These checks do not
+wording. Its native event-loop host checks source-preserving custom-marker dispatch and read-only
+no-dispatch by clicking the measured marker center. These checks do not
 establish a minimum hit-target size. Existing task, navigation, and unsupported-content tests remain in the full package run.
 The task interaction host now uses one geometry-recording passive marker in every mode, rather
 than relying on native macOS NSButton storage; callback and independent-action checks remain. These are behavioral observations, not private style-storage tests.
@@ -221,7 +252,8 @@ unchecked task switches with the Default marker selected. The full package suite
 geometry-based interaction host.
 
 **Outstanding:** live VoiceOver announcements/rotor actions on both platforms, enlarged system
-text on macOS, and a complete per-platform interaction matrix (especially disabled iOS controls
+text on macOS, and a complete per-platform interaction matrix (especially disabled iOS controls —
+that control has since been removed, see the #228 note above —
 and actual link activation beside a custom marker). The macOS Details accessibility press did not
 increment the link counter, so link activation is not recorded as verified by that attempt.
 The unchanged link implementation and existing automated navigation checks are not a substitute

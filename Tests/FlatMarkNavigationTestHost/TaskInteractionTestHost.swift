@@ -7,7 +7,7 @@
     @MainActor
     enum TaskInteractionTestHost {
         static func run(mode: String, markdown: String) {
-            guard ["custom", "omit", "marker-interactive", "marker-readOnly", "marker-disabled"].contains(mode)
+            guard ["custom", "omit", "marker-interactive", "marker-readOnly"].contains(mode)
             else { exit(2) }
 
             let application = NSApplication.shared
@@ -178,7 +178,6 @@
                             }
                     }
                 )
-                .disabled(model.mode == "marker-disabled")
                 .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

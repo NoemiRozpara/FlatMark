@@ -2,7 +2,6 @@ import SwiftUI
 
 /// A host-owned drawing, with no action, accessibility semantics, or sensory feedback.
 struct FlatMarkFixtureTaskMark: View {
-    @Environment(\.isEnabled) private var isEnabled
     let isChecked: Bool
 
     var body: some View {
@@ -17,6 +16,5 @@ struct FlatMarkFixtureTaskMark: View {
                 }
             }
             .font(.title3)
-            .opacity(isEnabled ? 1 : 0.5)
     }
 }

@@ -1,6 +1,7 @@
 #if os(macOS)
     import AppKit
     import FlatMark
+    import FlatMarkFixtures
     import SwiftUI
     import Testing
 
@@ -20,6 +21,24 @@
             await #expect(throws: MountedTextObservationError.selectionUnavailable) {
                 try await visibleText(showing: "missing", in: mounted)
             }
+        }
+
+        @Test
+        func `recipe mention detection updates without replacing its source`() async throws {
+            let model = FlatMarkCustomFixtureModel()
+            let mounted = await mountTestView(FlatMarkCustomDocumentFixture(model: model))
+            defer { mounted.close() }
+            _ = try await visibleText(showing: "@jane.doe", in: mounted)
+            let enabled = try mounted.visibleAttributedText
+            #expect(boldText(in: enabled).contains("@jane.doe"))
+            #expect(!attributeText(.link, in: enabled).contains("@jane.doe"))
+
+            model.detectMentions = false
+            await settleMountedRendering()
+            let disabled = try mounted.visibleAttributedText
+            #expect(disabled.string.contains("@jane.doe"))
+            #expect(!boldText(in: disabled).contains("@jane.doe"))
+            #expect(model.markdown == FlatMarkRecipeSample.markdown)
         }
 
         @Test

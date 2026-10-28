@@ -395,9 +395,10 @@ struct FlatMarkCustomRenderingTests {
             #expect(Set(report["customPayloads"] ?? []) == Set(["<div>raw</div>\n"]))
         }
 
-        @Test
-        func `switching policies on unchanged Markdown refreshes inline and block output`() async throws {
+        @Test(arguments: [false, true])
+        func `switching policies on unchanged Markdown refreshes inline and block output`(usesRetainedDocument: Bool) async throws {
             let model = FlatMarkCustomFixtureModel()
+            model.usesRetainedDocument = usesRetainedDocument
             let hosted = await mountTestView(
                 FlatMarkCustomDocumentFixture(model: model)
                     .fixedSize(horizontal: false, vertical: true)
@@ -406,7 +407,11 @@ struct FlatMarkCustomRenderingTests {
             defer { hosted.close() }
             try await waitForImage(in: model.imageCalls)
 
-            let dispatched: Set<String> = ["<div>hidden block</div>\n", "<div>quoted block</div>\n", "<u>", "</u>"]
+            let dispatched: Set<String> = [
+                "<div>Print this recipe · Subscribe to the newsletter</div>\n",
+                "<div>Baker’s secret: a slow rise brings more flavour.</div>\n",
+                "<u>", "</u>",
+            ]
             // Starting with Literal, this sequence exercises all six directed edges and returns
             // to Literal without changing the source.
             for policy in [FlatMarkCustomPolicyKind.custom, .omit, .literal, .omit, .custom, .literal] {
@@ -418,14 +423,14 @@ struct FlatMarkCustomRenderingTests {
                 switch policy {
                 case .literal:
                     #expect(model.payloads.isEmpty)
-                    #expect(try hosted.visibleText.contains("important"))
-                    #expect(try hosted.visibleText.contains("hidden block"))
+                    #expect(try hosted.visibleText.contains("before slicing"))
+                    #expect(try hosted.visibleText.contains("Subscribe to the newsletter"))
                 case .omit:
                     #expect(model.payloads.isEmpty)
                     #expect(try !hosted.visibleText.contains("<u>"))
-                    #expect(try !hosted.visibleText.contains("hidden block"))
-                    #expect(try hosted.visibleText.contains("important"))
-                    #expect(try hosted.visibleText.contains("Before"))
+                    #expect(try !hosted.visibleText.contains("Subscribe to the newsletter"))
+                    #expect(try hosted.visibleText.contains("before slicing"))
+                    #expect(try hosted.visibleText.contains("Sunday focaccia"))
                 case .custom:
                     #expect(Set(model.payloads) == dispatched)
                     #expect(Set(model.presentedLabels) == [model.replacementLabel])

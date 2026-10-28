@@ -5,7 +5,7 @@
 
     @MainActor
     struct FlatMarkTaskMarkerTests {
-        @Test(arguments: ["interactive", "readOnly", "disabled"])
+        @Test(arguments: ["interactive", "readOnly"])
         func `custom markers preserve task editing policy and source`(mode: String) async throws {
             let markdown = "- [x] Parent\n  - [ ] Child [Details](https://example.com/details)"
             let report = try await nativeHostReport(arguments: ["--task-interaction", "marker-" + mode, markdown])

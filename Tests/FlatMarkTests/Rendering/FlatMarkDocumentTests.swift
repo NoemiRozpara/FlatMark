@@ -1,4 +1,5 @@
 import FlatMark
+import FlatMarkFixtures
 import Foundation
 import Testing
 
@@ -89,6 +90,36 @@ struct FlatMarkDocumentTests {
             #expect(retainedText.string == Self.plainText)
             #expect(stringBackedText.string == Self.plainText)
             #expect(renderSignature(of: retainedText) == renderSignature(of: stringBackedText))
+        }
+
+        @Test
+        func `recipe initializers stay equivalent after edits and mention changes`() async throws {
+            let model = FlatMarkCustomFixtureModel()
+            model.policyKind = .omit
+            let retained = await mountTestView(FlatMarkCustomDocumentFixture(model: model, usesRetainedDocument: true))
+            defer { retained.close() }
+            let stringBacked = await mountTestView(FlatMarkCustomDocumentFixture(model: model, usesRetainedDocument: false))
+            defer { stringBacked.close() }
+
+            for edited in [false, true] {
+                if edited {
+                    model.markdown += "\n\n- [ ] Try olives next Sunday"
+                    model.detectMentions = false
+                }
+                await settleMountedRendering()
+                let retainedText = try retained.visibleAttributedText
+                let stringText = try stringBacked.visibleAttributedText
+                #expect(retainedText.string.contains("Sunday focaccia"))
+                #expect(renderSignature(of: retainedText) == renderSignature(of: stringText))
+                #expect(model.document.markdown == model.markdown)
+                #expect(model.document.detectMentions == model.detectMentions)
+            }
+
+            let snapshot = model.document
+            model.refreshRequests += 1
+            await settleMountedRendering()
+            #expect(model.document == snapshot)
+            #expect(try retained.visibleAttributedText.string.contains("Try olives next Sunday"))
         }
 
         /// Each exported run with the styling and destination this reader can observe, so parity

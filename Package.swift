@@ -43,6 +43,7 @@ let package = Package(
             name: "FlatMarkFixtures",
             dependencies: ["FlatMark"],
             path: "Tests/FlatMarkFixtures",
+            resources: [.copy("focaccia.png")],
             swiftSettings: [
                 .enableUpcomingFeature("ApproachableConcurrency"),
             ]
