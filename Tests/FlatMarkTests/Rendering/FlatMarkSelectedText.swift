@@ -5,6 +5,7 @@
         case selectionUnavailable
         case selectionExportFailed(String)
         case wordingNotFound(expected: String, observed: String)
+        case wordingMismatch(expected: String, observed: String)
     }
 
     /// Reads the mounted renderer's native selection backing, not its accessibility representation.
@@ -30,9 +31,17 @@
                 guard requestor.writeSelection?(to: pasteboard, types: [.rtf, .string]) == true,
                       let data = pasteboard.data(forType: .rtf),
                       let text = NSAttributedString(rtf: data, documentAttributes: nil) else {
-                    throw MountedTextObservationError.selectionExportFailed(
-                        "Selection view did not export decodable RTF: \(type(of: view))"
-                    )
+                    // A region displaying nothing has no selection to export, and omission leaves
+                    // such a region behind on purpose: an emptied list row, item, or cell keeps its
+                    // slot. Report that as blank wording. A region that takes space and still
+                    // refuses to export is a broken lane, and must say so.
+                    guard view.frame.width == 0 else {
+                        throw MountedTextObservationError.selectionExportFailed(
+                            "Selection view did not export decodable RTF: \(type(of: view)) frame: \(view.frame)"
+                        )
+                    }
+                    foundSelection = true
+                    return
                 }
                 result.append(text)
                 foundSelection = true

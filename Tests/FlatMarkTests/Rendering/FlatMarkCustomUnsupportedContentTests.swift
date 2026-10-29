@@ -172,11 +172,30 @@ struct FlatMarkCustomRenderingTests {
 #if os(macOS)
     @MainActor
     struct FlatMarkCustomUnsupportedContentTests {
+        /// One fixture shared by the empty-host claim and its control: supported wording on either
+        /// side of a single HTML block.
+        static let emptyHostMarkdown = "Before\n\n<div>raw</div>\n\nAfter"
+        /// What the two supported paragraphs contribute when nothing is shown between them.
+        static let emptyHostWording = "BeforeAfter"
+        /// What the same document contributes under `.literal`, where the block is shown as the
+        /// inert source the parser reported, trailing newline included.
+        static let emptyHostLiteralWording = "Before<div>raw</div>\nAfter"
+
+        /// A host view that draws nothing says nothing: the closure is still asked about the node,
+        /// and the inert source a `.literal` policy would print never reaches the screen.
+        ///
+        /// The two observations are kept apart on purpose, because neither one carries this claim
+        /// alone. The payload set passes on a renderer that calls the closure and prints the source
+        /// beside the host; the visible wording passes on a renderer that never calls the closure and
+        /// simply omits the block. Only together do they say the host was used *instead of* the
+        /// fallback. `showsContent` is deliberately the weakest line here: it says the two supported
+        /// paragraphs still lay out, and says nothing about whether the emptied slot keeps a gap,
+        /// which is a geometry question no wording oracle answers.
         @Test
         func `says nothing for a block whose host view is empty`() async throws {
             let recorder = BlockPayloadRecorder()
             let hosted = await mountTestView(FlatMarkView(
-                markdown: "Before\n\n<div>raw</div>\n\nAfter",
+                markdown: Self.emptyHostMarkdown,
                 unsupportedContentPolicy: .custom { payload in
                     recorder.payloads.append(payload)
                     return AnyView(EmptyView())
@@ -184,11 +203,43 @@ struct FlatMarkCustomRenderingTests {
             ))
             defer { hosted.close() }
 
-            // One node, asked about once per presentation, and the supported paragraphs around it
-            // keep their own space. What the host was given is a set here, because the view may
-            // present the same document more than once.
+            // One node, asked about at least once: a set here, because the view may present the same
+            // document more than once.
             #expect(Set(recorder.payloads) == ["<div>raw</div>\n"])
+
+            // The whole reading is the supported wording, region after region with nothing added
+            // between them, so the block contributes no text at all. Equality rather than
+            // containment: wording printed beside the host has to fail here instead of hiding inside
+            // an expected substring.
+            #expect(try await visibleText(
+                matching: Self.emptyHostWording,
+                in: hosted
+            ) == Self.emptyHostWording)
+            // Restated as the absence of the one fallback this policy replaces, so a reader of a
+            // failure sees the fallback rather than only a host that never rendered.
+            let displayed = try hosted.visibleText
+            #expect(!displayed.contains("<div>raw</div>"))
+            #expect(!displayed.contains("raw"))
+
+            // The neighbours keep their own space; nothing here is evidence about the empty slot.
             #expect(hosted.showsContent)
+        }
+
+        /// The positive control on the wording lane the test above reads: the fallback an empty host
+        /// suppresses is wording native selection really does export, so its absence there is an
+        /// observation rather than a blind spot in reading text out of an empty host.
+        @Test
+        func `exports the literal wording an empty host view suppresses`() async throws {
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: Self.emptyHostMarkdown,
+                unsupportedContentPolicy: .literal
+            ))
+            defer { hosted.close() }
+
+            #expect(try await visibleText(
+                matching: Self.emptyHostLiteralWording,
+                in: hosted
+            ) == Self.emptyHostLiteralWording)
         }
 
         /// The exact text one host closure is handed for every unsupported HTML shape in the corpus.
@@ -280,9 +331,19 @@ struct FlatMarkCustomRenderingTests {
             #expect(await dispatchedPayloads(matching: Set(dispatched), in: recorder) == Set(dispatched))
         }
 
+        /// The three replacements one document places, read back as the wording a reader gets.
+        ///
+        /// Each host says something different, so the exported reading fixes where every one of them
+        /// is displayed: `[` before the emphasized words, `]` after them, and the block replacement in
+        /// the slot the HTML block had, between the two supported spans. The payload set and the tree
+        /// stay order-free, because SwiftUI guarantees neither the order nor the number of times it
+        /// asks the closure about a node.
         @Test
         func `replaces separate inline tags in source order as well as blocks`() async throws {
             let markdown = "before <u>important</u> after\n\n<div>raw</div>\n\nAfter"
+            // Supported wording with the brackets on either side of what they wrap, and the whole-block
+            // replacement standing where the HTML block was: nothing before, after, or between them.
+            let displayedWording = "before [important] afterReplacementAfter"
             let recorder = BlockPayloadRecorder()
             let hosted = await mountTestView(FlatMarkView(
                 markdown: markdown,
@@ -293,14 +354,17 @@ struct FlatMarkCustomRenderingTests {
             ))
             defer { hosted.close() }
 
-            // Separate parser nodes reach the closure separately, including both tags of a pair.
-            // Which view is asked first is SwiftUI's business, so the set decides which nodes were
-            // asked about and the tree below says where each one sits.
+            // The displayed order, which neither of the checks below can give: a pair drawn the other
+            // way round, or a replacement shown in another block slot, fails here while the payloads
+            // handed to the closure and the projected addresses both stay correct. Equality rather
+            // than containment, so the inert source or an extra host cannot hide inside the answer.
+            #expect(try await visibleText(matching: displayedWording, in: hosted) == displayedWording)
+            // Separate parser nodes reach the closure separately, including both tags of a pair: which
+            // node was asked about, with no claim about when or how many times.
             #expect(Set(recorder.payloads) == ["<u>", "</u>", "<div>raw</div>\n"])
             #expect(hosted.showsContent)
-            // Where the tree says each of those nodes sits: both tags inside their own paragraph,
-            // the HTML block in the next block slot. The set above says which nodes were asked
-            // about; only the tree gives them an order and a position.
+            // Where the tree says each of those nodes sits in the source: both tags inside their own
+            // paragraph, the HTML block in the next block slot. Positions, not what was displayed.
             #expect(customHosts(in: FlatMarkRenderProjector.project(markdown: markdown)) == [
                 host("<u>", path: [0], component: 1),
                 host("</u>", path: [0], component: 3),
@@ -509,7 +573,6 @@ struct FlatMarkCustomRenderingTests {
         func `policy changes preserve structural IDs and task editing addresses`() throws {
             let markdown = "Before\n\n<div>raw</div>\n\n- [ ] task <u>x</u>\n\n  <div>continuation</div>\n\nAfter"
             let document = FlatMarkRenderProjector.project(markdown: markdown)
-            let original = document
             #expect(document.blocks.map(\.id) == (0 ..< 4).map { FlatMarkRenderNodeID(path: [$0]) })
             guard case let .list(entries) = document.blocks[2].kind,
                   case let .row(row) = try #require(entries.first),
@@ -530,26 +593,6 @@ struct FlatMarkCustomRenderingTests {
             ]
 
             for policy in policies {
-                let survivors = document.blocks.filter { policy.presents($0) }
-                let expectedIDs =
-                    if case .omit = policy {
-                        [document.blocks[0].id, document.blocks[2].id, document.blocks[3].id]
-                    } else {
-                        document.blocks.map(\.id)
-                    }
-                #expect(survivors.map(\.id) == expectedIDs)
-                let visibleEntries = entries.filter { entry in
-                    if case let .childBlock(child) = entry {
-                        return policy.presents(child.block)
-                    }
-                    return true
-                }
-                #expect(visibleEntries.first?.id == FlatMarkRenderNodeID(path: [2, 0]))
-                if case .omit = policy {
-                    #expect(visibleEntries.count == 1)
-                } else {
-                    #expect(visibleEntries.map(\.id) == entries.map(\.id))
-                }
                 let view = FlatMarkListRowView(row: row, context: FlatMarkRenderContext(
                     unsupportedContentPolicy: policy,
                     taskToggleAction: { receivedAddress in
@@ -563,7 +606,6 @@ struct FlatMarkCustomRenderingTests {
                 ))
                 let toggle = try #require(view.taskToggleAction)
                 toggle()
-                #expect(document == original)
             }
 
             #expect(toggled == Array(

@@ -320,6 +320,26 @@ struct FlatMarkOmittedContentTests {
         // image, marker, cell, and shell cases are each stated by the direct value checks above.
         #expect(visibleDocument(omitted, policy: .omit) == visibleDocument(typed, policy: .omit))
     }
+
+    @Test
+    func `omits every omission shape at once and leaves the hand-typed document`() {
+        let omitted = FlatMarkRenderProjector.project(
+            markdown: FlatMarkOmissionSample.markdown,
+            baseURL: URL(string: "https://example.com/")
+        )
+        let typed = FlatMarkRenderProjector.project(
+            markdown: FlatMarkOmissionSample.referenceMarkdown,
+            baseURL: URL(string: "https://example.com/")
+        )
+
+        // The one source that carries every omission shape in a single document, so the survivors'
+        // order and nesting are stated once for all of them together. The mounted lane holds the
+        // renderer to the wording a reader gets; which blocks survive is stated here. The hand-typed
+        // side has to be presentable in full, or the comparison could be won by an omission that
+        // quietly drops a survivor along with the tags.
+        #expect(visibleDocument(omitted, policy: .omit) == visibleDocument(typed, policy: .omit))
+        #expect(typed.blocks.allSatisfy { omit.presents($0) })
+    }
 }
 
 // MARK: - Fixture helpers

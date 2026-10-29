@@ -240,33 +240,89 @@ struct FlatMarkImageLoadingTests {
             ))
         }
 
+        /// The control for every enlarged-text case below.
+        ///
+        /// macOS body text does not scale from `dynamicTypeSize` alone — the Recipe Lab fixture applies a
+        /// font-size override for the same reason — so a mounted case that wants bigger text has to ask
+        /// for it explicitly. This proves the override the cases below rely on really does change the
+        /// effective size: a pair of variants that came out equal is then a layout failure rather than an
+        /// override that did nothing. A font override is not system Dynamic Type or VoiceOver
+        /// verification.
         @Test
-        func `linked image flow remains finite at accessibility text sizes`() throws {
+        func `font size override changes the effective size of mounted text`() {
+            let wording = "A long introduction explains the diagram and gives enough context to wrap naturally"
+            let body = fittedSize(of: Text(wording), width: flowColumnWidth, textSize: .body)
+            let enlarged = fittedSize(of: Text(wording), width: flowColumnWidth, textSize: .enlarged)
+
+            #expect(body.width > 0)
+            #expect(body.height > 0)
+            #expect(
+                enlarged.height >= body.height * 1.5,
+                "enlarged text measured \(enlarged.height)pt against \(body.height)pt: the override did nothing"
+            )
+        }
+
+        @Test
+        func `linked image flow wraps inside its column at enlarged effective text sizes`() async throws {
             let textBeforeImage = "A long introduction explains the diagram and gives enough context to wrap naturally"
             let textAfterImage = "while the remaining explanation continues after it without becoming a narrow column."
-            let linkedContent = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
-                markdown: "\(textBeforeImage) [![Diagram](image.png)](details.html) \(textAfterImage)"
-            )))
-            let regularHeight = fittedHeight(
-                of: linkedContent,
-                width: 180,
-                dynamicTypeSize: .xSmall
+            // Resolved URLs, because an image only leaves native text once it carries a link: a relative
+            // source and destination both drop out and the paragraph silently stops being a flow at all.
+            let linkedImage = "[![Diagram](https://example.com/image.png)](https://example.com/details)"
+            let document = FlatMarkRenderProjector.project(
+                markdown: "\(textBeforeImage) \(linkedImage) \(textAfterImage)"
             )
-            let accessibilityHeight = fittedHeight(
-                of: linkedContent,
-                width: 180,
-                dynamicTypeSize: .accessibility5
-            )
+            let linkedContent = try #require(paragraphContent(in: document))
 
-            #expect(regularHeight.isFinite)
-            #expect(accessibilityHeight.isFinite)
-            #expect(accessibilityHeight >= regularHeight)
+            // Everything below measures the shared inline flow, so the fixture has to be in it.
+            #expect(FlatMarkInlineView(content: linkedContent, context: .readOnly).renderingMode == .linkedImageFlow)
+
+            let bodyHeight = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: .body).height
+            let enlargedHeight = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: .enlarged).height
+
+            // This document really does take more room once text is enlarged, so the cases below cannot
+            // pass with both variants rendered at one effective size.
+            #expect(bodyHeight > 0)
+            #expect(enlargedHeight > bodyHeight)
+
+            for textSize in [MountedTextSize.body, .enlarged] {
+                let wrapped = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: textSize)
+                let oneRow = fittedSize(of: linkedContent, width: unwrappedColumnWidth, textSize: textSize)
+
+                // Positive geometry, and at least two rows: a flow that placed the whole document on one
+                // line, or on no line at all, fails here instead of looking finite.
+                #expect(oneRow.width > 0)
+                #expect(oneRow.height > 0)
+                #expect(wrapped.width > 0)
+                #expect(
+                    wrapped.height >= oneRow.height * 2,
+                    "\(textSize.name): wrapped flow measured \(wrapped.height)pt, one row is \(oneRow.height)pt"
+                )
+
+                // Read from the view's own drawing rather than from what the layout reported, so a line
+                // that ran past the column is caught whether or not the layout admitted it.
+                let drawn = try await waitForFlowInk(of: linkedContent, textSize: textSize)
+
+                #expect(drawn.frame.width > 0)
+                #expect(drawn.frame.height > 0)
+                // The whole drawing sat inside the capture, so the edges below are the drawing's own and
+                // not the border of the region it was read back from.
+                #expect(drawn.edgeInset > drawnGeometryTolerance)
+                #expect(
+                    drawn.frame.minX >= flowCaptureInset - drawnGeometryTolerance,
+                    "\(textSize.name): flow drew from x=\(drawn.frame.minX), short of the capture inset"
+                )
+                #expect(
+                    drawn.frame.maxX <= flowCaptureInset + flowColumnWidth + drawnGeometryTolerance,
+                    "\(textSize.name): flow drew to x=\(drawn.frame.maxX), past the column's right edge"
+                )
+            }
         }
 
         @Test
         func `linked image flow preserves non-breaking spaces`() throws {
             let content = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
-                markdown: "A&nbsp;B [![x](image.png)](details.html)"
+                markdown: "A&nbsp;B [![x](https://example.com/image.png)](https://example.com/details)"
             )))
             #expect(content.plainText.contains("\u{00A0}"))
 
@@ -280,7 +336,14 @@ struct FlatMarkImageLoadingTests {
         func `large raster is aspect fitted to the proposed paragraph width`() async throws {
             let spy = LoaderSpy()
             let content = imageContent(url: URL(string: "https://example.com/image.png"))
-            let raster = NSImage(size: NSSize(width: 1000, height: 500))
+            let raster = try paintedFixtureRaster()
+            let proposedWidth: CGFloat = 200
+            // A 2:1 raster offered 200 points of width can only be drawn 200x100 while keeping its
+            // shape, and it is far wider than the offer, so fitting it is the thing under test.
+            let expectedFittedSize = CGSize(
+                width: proposedWidth,
+                height: proposedWidth * fixtureRasterSize.height / fixtureRasterSize.width
+            )
             let hostingView = NSHostingView(rootView: FlatMarkInlineView(
                 content: content,
                 context: FlatMarkRenderContext(
@@ -291,21 +354,40 @@ struct FlatMarkImageLoadingTests {
                     imageURLPolicy: .webOnly
                 )
             )
-            .frame(width: 200, alignment: .leading))
+            .frame(width: proposedWidth, alignment: .leading))
+
+            // The capture is a fixed frame larger than any correctly fitted image, and not the size
+            // the hosting view would choose for itself: a container that shrinks to its own content
+            // clips an oversized image to exactly the geometry this test is looking for.
+            hostingView.sizingOptions = []
+            hostingView.frame = CGRect(origin: .zero, size: fixtureCaptureSize)
 
             try await withTemporaryWindow(hosting: hostingView) {
                 await expectImageLoad(in: spy)
 
-                let fittedSize = hostingView.fittingSize
+                // Measured from the fixture's own drawn pixels, so these read the image itself rather
+                // than the space around it.
+                let drawn = try await waitForDrawn(.fixtureRaster, in: hostingView)
 
                 #expect(await spy.loadedURLs == [URL(string: "https://example.com/image.png")!])
-                #expect(fittedSize.width <= 200)
-                #expect(fittedSize.height <= 100)
+                #expect(drawn.frame.width > 0)
+                #expect(drawn.frame.height > 0)
+                #expect(
+                    abs(drawn.frame.width - expectedFittedSize.width) <= drawnGeometryTolerance,
+                    "fitted width measured \(drawn.frame.width)pt, expected \(expectedFittedSize.width)pt"
+                )
+                #expect(
+                    abs(drawn.frame.height - expectedFittedSize.height) <= drawnGeometryTolerance,
+                    "fitted height measured \(drawn.frame.height)pt, expected \(expectedFittedSize.height)pt"
+                )
+                // The whole raster sat inside the capture, so the edges above were the image's own
+                // and not the border of the region it was read back from.
+                #expect(drawn.edgeInset > drawnGeometryTolerance)
             }
         }
 
         @Test
-        func `ordinary image matches native wrapping across dynamic type sizes`() throws {
+        func `ordinary image matches native wrapping across effective text sizes`() throws {
             let textBeforeImage = "A long introduction wraps before the diagram"
             let textAfterImage = "and the explanation continues after it."
             let content = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
@@ -314,41 +396,73 @@ struct FlatMarkImageLoadingTests {
             let nativeInlineText = Text("\(textBeforeImage) ")
                 + Text(Image(systemName: "photo"))
                 + Text(" Diagram \(textAfterImage)")
+            let narrowWidth: CGFloat = 160
+            let wideWidth: CGFloat = 240
 
-            for dynamicTypeSize in [DynamicTypeSize.large, .accessibility3] {
-                for width: CGFloat in [160, 240] {
-                    #expect(fittedHeight(
-                        of: content,
-                        width: width,
-                        dynamicTypeSize: dynamicTypeSize
-                    ) == fittedHeight(
-                        of: nativeInlineText,
-                        width: width,
-                        dynamicTypeSize: dynamicTypeSize
-                    ))
-                }
+            // Both settings are exercised for this document: if enlarging it changed nothing, the
+            // comparisons below would only ever cover one effective size.
+            #expect(
+                fittedSize(of: content, width: narrowWidth, textSize: .enlarged).height
+                    > fittedSize(of: content, width: narrowWidth, textSize: .body).height
+            )
+
+            // With room for every glyph on one line the widths the wrapped rows are cut from have to
+            // agree as well, so a run that simply measured differently without changing the row count is
+            // still a difference.
+            #expect(
+                fittedSize(of: content, width: unwrappedColumnWidth, textSize: .body)
+                    == fittedSize(of: nativeInlineText, width: unwrappedColumnWidth, textSize: .body)
+            )
+
+            for textSize in [MountedTextSize.body, .enlarged] {
+                let narrow = fittedSize(of: content, width: narrowWidth, textSize: textSize)
+                let wide = fittedSize(of: content, width: wideWidth, textSize: textSize)
+
+                // Positive geometry, and a fixture that genuinely wraps. Two collapsed views, or two
+                // single lines, would agree with the native comparison without laying anything out.
+                #expect(narrow.width > 0)
+                #expect(narrow.height > 0)
+                #expect(wide.width > 0)
+                #expect(wide.height > 0)
+                #expect(
+                    narrow.height > wide.height,
+                    "\(textSize.name): no wrapping — \(narrow.height)pt at \(narrowWidth)pt vs \(wide.height)pt"
+                )
+
+                #expect(narrow == fittedSize(of: nativeInlineText, width: narrowWidth, textSize: textSize))
+                #expect(wide == fittedSize(of: nativeInlineText, width: wideWidth, textSize: textSize))
             }
         }
 
         @Test
-        func `ordinary image matches native hard break layout`() throws {
+        func `ordinary image matches native hard break layout across effective text sizes`() throws {
             let content = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
                 markdown: "Before  \n![Diagram](image.png)  \nAfter"
             )))
             let nativeInlineText = Text("Before\n")
                 + Text(Image(systemName: "photo"))
                 + Text(" Diagram\nAfter")
+            let columnWidth: CGFloat = 180
 
-            for dynamicTypeSize in [DynamicTypeSize.large, .accessibility3] {
-                #expect(fittedHeight(
-                    of: content,
-                    width: 180,
-                    dynamicTypeSize: dynamicTypeSize
-                ) == fittedHeight(
-                    of: nativeInlineText,
-                    width: 180,
-                    dynamicTypeSize: dynamicTypeSize
-                ))
+            #expect(
+                fittedSize(of: content, width: columnWidth, textSize: .enlarged).height
+                    > fittedSize(of: content, width: columnWidth, textSize: .body).height
+            )
+
+            for textSize in [MountedTextSize.body, .enlarged] {
+                let layout = fittedSize(of: content, width: columnWidth, textSize: textSize)
+                // One line of the same wording at the same effective size, offered more room than it needs.
+                let oneLine = fittedSize(of: Text("Before"), width: 400, textSize: textSize)
+
+                // Positive geometry, and three hard-broken lines rather than one collapsed row.
+                #expect(oneLine.width > 0)
+                #expect(oneLine.height > 0)
+                #expect(layout.width > 0)
+                #expect(
+                    layout.height >= oneLine.height * 2,
+                    "\(textSize.name): hard breaks produced \(layout.height)pt, one line is \(oneLine.height)pt"
+                )
+                #expect(layout == fittedSize(of: nativeInlineText, width: columnWidth, textSize: textSize))
             }
         }
 
@@ -483,113 +597,6 @@ struct FlatMarkImageLoadingTests {
     #endif
 }
 
-// MARK: - LoaderSpy
-
-/// Records what the host loader was asked to do, and lets a test suspend until the callback it is
-/// about to trigger has arrived.
-///
-/// The waiting is event-driven and the counting is Swift Testing's: a test arms an expectation with
-/// a ``Confirmation``, the matching callback confirms it, and the waiter returns the moment it
-/// arrives. A confirmation that never arrives is therefore reported by Swift Testing as falling
-/// short, rather than by a polling bound here.
-private actor LoaderSpy {
-    private enum Callback {
-        case load
-        case cancellation
-    }
-
-    private struct Expectation {
-        let callback: Callback
-        let confirmation: Confirmation
-    }
-
-    private(set) var loadedURLs: [URL] = []
-    private(set) var cancellationCount = 0
-    private var loadsConfirmed = 0
-    private var cancellationsConfirmed = 0
-    private var expectation: Expectation?
-    private var generation = 0
-    private var waiters: [CheckedContinuation<Void, Never>] = []
-
-    func record(_ url: URL) {
-        loadedURLs.append(url)
-        confirmRecordedCallback()
-    }
-
-    func recordCancellation() {
-        cancellationCount += 1
-        confirmRecordedCallback()
-    }
-
-    /// Arms the expectation that the loader is invoked. An invocation that already arrived is
-    /// confirmed immediately, so a test may arm after the state change that triggers it.
-    func expectLoad(confirmedBy confirmation: Confirmation) {
-        arm(callback: .load, confirmation: confirmation)
-    }
-
-    /// Arms the expectation that a cancelled image request is observed.
-    func expectCancellation(confirmedBy confirmation: Confirmation) {
-        arm(callback: .cancellation, confirmation: confirmation)
-    }
-
-    /// Suspends until the armed expectation is met, or until `deadline` passes so a callback that
-    /// never arrives is reported as the missing confirmation it is instead of hanging the suite.
-    /// Only the expectation this waiter was armed for releases it, so a deadline left over from an
-    /// earlier wait on the same spy cannot end a later one early.
-    func awaitExpectation(deadline: Duration) async {
-        guard expectation != nil else {
-            return
-        }
-
-        let armedGeneration = generation
-        await withCheckedContinuation { continuation in
-            waiters.append(continuation)
-            Task {
-                try? await Task.sleep(for: deadline)
-                if armedGeneration == generation {
-                    releaseWaiters()
-                }
-            }
-        }
-    }
-
-    private func arm(callback: Callback, confirmation: Confirmation) {
-        generation += 1
-        expectation = Expectation(callback: callback, confirmation: confirmation)
-        confirmRecordedCallback()
-    }
-
-    /// Attributes a callback only to an expectation about that kind of callback, and only once, so a
-    /// callback recorded while nothing was armed cannot satisfy a later expectation.
-    private func confirmRecordedCallback() {
-        let unconfirmedLoads = loadedURLs.count - loadsConfirmed
-        let unconfirmedCancellations = cancellationCount - cancellationsConfirmed
-        loadsConfirmed = loadedURLs.count
-        cancellationsConfirmed = cancellationCount
-
-        guard let expectation else {
-            return
-        }
-
-        let unconfirmed = expectation.callback == .load ? unconfirmedLoads : unconfirmedCancellations
-        guard unconfirmed > 0 else {
-            return
-        }
-
-        self.expectation = nil
-        expectation.confirmation.confirm()
-        releaseWaiters()
-    }
-
-    private func releaseWaiters() {
-        let pending = waiters
-        waiters.removeAll()
-        for waiter in pending {
-            waiter.resume()
-        }
-    }
-}
-
 // MARK: - ImageLoaderTestError
 
 private enum ImageLoaderTestError: Error {
@@ -620,29 +627,33 @@ private actor SuspensionGate {
 }
 
 #if os(macOS)
+    /// The size a view takes for itself at one effective text size when offered a column.
+    ///
+    /// Both dimensions come from the same proposal, so a comparison against a hand-written native `Text`
+    /// is not just an agreement about height: a run that placed its widest line somewhere else differs
+    /// even when it happens to need the same number of rows.
     @MainActor
-    private func fittedHeight(
-        of content: FlatMarkRenderInlineContent,
+    private func fittedSize<V: View>(
+        of view: V,
         width: CGFloat,
-        dynamicTypeSize: DynamicTypeSize = .accessibility3
-    ) -> CGFloat {
-        fittedHeight(of: FlatMarkInlineView(
-            content: content,
-            context: .readOnly
-        ), width: width, dynamicTypeSize: dynamicTypeSize)
+        textSize: MountedTextSize
+    ) -> CGSize {
+        NSHostingController(rootView: view
+            .environment(\.dynamicTypeSize, textSize.dynamicTypeSize)
+            .font(.system(size: textSize.fontSize)))
+        .sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
     }
 
     @MainActor
-    private func fittedHeight<V: View>(
-        of view: V,
+    private func fittedSize(
+        of content: FlatMarkRenderInlineContent,
         width: CGFloat,
-        dynamicTypeSize: DynamicTypeSize = .accessibility3
-    ) -> CGFloat {
-        let hostingView = NSHostingView(rootView: view
-            .environment(\.dynamicTypeSize, dynamicTypeSize)
-            .frame(width: width, alignment: .leading))
-
-        return hostingView.fittingSize.height
+        textSize: MountedTextSize
+    ) -> CGSize {
+        fittedSize(of: FlatMarkInlineView(
+            content: content,
+            context: .readOnly
+        ), width: width, textSize: textSize)
     }
 
     @MainActor
@@ -661,10 +672,10 @@ private actor SuspensionGate {
     }
 
     @MainActor
-    private func withTemporaryWindow<Content: View>(
+    private func withTemporaryWindow<Content: View, Result>(
         hosting hostingView: NSHostingView<Content>,
-        operation: () async throws -> Void
-    ) async rethrows {
+        operation: () async throws -> Result
+    ) async rethrows -> Result {
         let window = NSWindow(
             contentRect: hostingView.frame,
             styleMask: [.borderless],
@@ -676,8 +687,9 @@ private actor SuspensionGate {
         window.contentView = hostingView
 
         do {
-            try await operation()
+            let result = try await operation()
             await tearDown(window)
+            return result
         } catch {
             await tearDown(window)
             throw error
@@ -751,10 +763,13 @@ private actor SuspensionGate {
         return bitmap.representation(using: .png, properties: [:])
     }
 
-    /// Waits for one further host loader invocation, then lets SwiftUI render what it returned.
+    /// Consumes one host loader invocation, whenever it arrived, then lets SwiftUI render what it
+    /// returned.
     ///
     /// Swift Testing owns the count: the loader confirms through ``LoaderSpy``, so a load that never
-    /// arrives is reported against this expectation rather than against a polling bound.
+    /// arrives is reported against this expectation rather than against a polling bound. The spy
+    /// retains an invocation that arrived while nothing was armed, so triggering the load and then
+    /// waiting for it is as valid as the other way round.
     @MainActor
     private func expectImageLoad(in spy: LoaderSpy) async {
         await confirmation("the host loader is invoked", expectedCount: 1) { loaded in
@@ -765,7 +780,8 @@ private actor SuspensionGate {
         await settleRendering()
     }
 
-    /// Waits for the mounted view's image request to be reported cancelled, then settles rendering.
+    /// Consumes one reported cancellation of the mounted view's image request, whenever it arrived,
+    /// then settles rendering.
     @MainActor
     private func expectImageLoadCancellation(in spy: LoaderSpy) async {
         await confirmation("the image request is cancelled", expectedCount: 1) { cancelled in
@@ -784,6 +800,282 @@ private actor SuspensionGate {
             await Task.yield()
         }
         try? await Task.sleep(for: .milliseconds(20))
+    }
+
+    // MARK: - MountedTextSize
+
+    /// An effective mounted text size.
+    ///
+    /// macOS does not scale body text from `dynamicTypeSize` alone — the Recipe Lab fixture applies a
+    /// font-size override for the same reason — so a layout case that wants bigger text has to ask for
+    /// it. The Dynamic Type environment value is carried because the fixture carries one; the font size
+    /// is what changes the glyphs. Neither is system Dynamic Type or VoiceOver verification.
+    private struct MountedTextSize {
+        let name: String
+        let dynamicTypeSize: DynamicTypeSize
+        let fontSize: CGFloat
+
+        static var body: MountedTextSize {
+            MountedTextSize(name: "body", dynamicTypeSize: .large, fontSize: 13)
+        }
+
+        static var enlarged: MountedTextSize {
+            MountedTextSize(name: "enlarged", dynamicTypeSize: .accessibility3, fontSize: 28)
+        }
+    }
+
+    // MARK: - Drawn content observation
+
+    /// Exactly 2:1, and many times wider than the width it is fitted into.
+    private let fixtureRasterSize = NSSize(width: 1000, height: 500)
+
+    /// The raster capture region: larger than any correctly fitted image, so an oversized draw shows up
+    /// as oversized instead of being clipped into the size the test is looking for.
+    private let fixtureCaptureSize = CGSize(width: 320, height: 240)
+
+    /// The column the flow cases offer their document.
+    private let flowColumnWidth: CGFloat = 180
+
+    /// A width no tested inline content needs to wrap at, for measuring one row or one line of the same
+    /// document.
+    private let unwrappedColumnWidth: CGFloat = 4000
+
+    /// The flow capture region: wider and taller than any correctly wrapped flow at the tested sizes, so
+    /// a line that ran past the column reads as ink reaching the capture edge instead of being clipped
+    /// into looking wrapped.
+    private let flowInkCaptureSize = CGSize(width: 320, height: 700)
+
+    /// The gap between the capture's edge and the column, so ink flush with the capture edge always means
+    /// the drawing was clipped rather than that the column simply starts where the capture starts.
+    private let flowCaptureInset: CGFloat = 20
+
+    /// A captured pixel belongs to the fixture when green dominates it. Green is the middle byte of a
+    /// 32-bit pixel in either byte order, and nothing else this view can draw — grayscale text and
+    /// placeholder symbols, a tinted link — is green-dominant.
+    private let fixtureChannelThreshold: UInt8 = 128
+
+    /// How many settle passes to allow for drawn output to reach the screen before concluding it never
+    /// drew.
+    private let drawnWaitAttempts = 50
+
+    /// The allowance for geometry read out of pixels: a capture is only as fine as a device pixel,
+    /// which is a whole point at a 1x backing scale, and the outermost drawn pixels blend with the
+    /// transparent capture, so a measured edge can sit up to a point early or late.
+    private let drawnGeometryTolerance: CGFloat = 2
+
+    /// Which drawn pixels a measurement should count.
+    private enum DrawnContent: CustomStringConvertible {
+        /// The green fixture raster, so a placeholder or a line of text cannot be read as the image.
+        case fixtureRaster
+
+        /// Every pixel with coverage at all: text, symbols, and links.
+        case ink
+
+        var description: String {
+            switch self {
+            case .fixtureRaster:
+                "the fixture raster"
+            case .ink:
+                "drawn ink"
+            }
+        }
+
+        func contains(channels: (red: UInt8, green: UInt8, blue: UInt8), alpha: UInt8) -> Bool {
+            switch self {
+            case .fixtureRaster:
+                channels.red <= fixtureChannelThreshold
+                    && channels.green > fixtureChannelThreshold
+                    && channels.blue <= fixtureChannelThreshold
+            case .ink:
+                alpha > 0
+            }
+        }
+    }
+
+    /// Where a mounted view's own drawing landed, measured from its pixels.
+    private struct DrawnRegion {
+        /// The drawn pixels, in points within the capture.
+        let frame: CGRect
+        /// The gap, in points, from the drawn pixels to the nearest edge of the capture. Zero means
+        /// the capture clipped the drawing, so `frame` is a floor rather than a measurement.
+        let edgeInset: CGFloat
+    }
+
+    // MARK: - MountedDrawingObservationError
+
+    private enum MountedDrawingObservationError: Error {
+        /// The capture lane gave nothing readable, so no claim about drawn output is available.
+        case captureUnavailable(bounds: CGRect, pixelsWide: Int, pixelsHigh: Int)
+
+        /// The capture lane worked throughout and the view kept rendering, but what the test came for
+        /// never appeared in it.
+        case contentNotDrawn(DrawnContent, attempts: Int)
+    }
+
+    /// A real raster, painted rather than only sized: an `NSImage(size:)` with no representation
+    /// reports a size while drawing nothing, which is what let a collapsed image pass for a fitted one.
+    private func paintedFixtureRaster() throws -> NSImage {
+        let bitmap = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(fixtureRasterSize.width),
+            pixelsHigh: Int(fixtureRasterSize.height),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ))
+        let bytes = try #require(bitmap.bitmapData)
+        var row = [UInt8](repeating: 0, count: bitmap.bytesPerRow)
+        for column in 0 ..< bitmap.pixelsWide {
+            let pixel = column * bitmap.samplesPerPixel
+            row[pixel] = 0
+            row[pixel + 1] = 255
+            row[pixel + 2] = 0
+            row[pixel + 3] = 255
+        }
+
+        row.withUnsafeBufferPointer { rowBytes in
+            for line in 0 ..< bitmap.pixelsHigh {
+                memcpy(bytes + line * bitmap.bytesPerRow, rowBytes.baseAddress!, bitmap.bytesPerRow)
+            }
+        }
+
+        let raster = NSImage(size: fixtureRasterSize)
+        raster.addRepresentation(bitmap)
+        return raster
+    }
+
+    /// Polls the mounted view for its own drawing of `content`, because a loader callback only says an
+    /// image was handed to SwiftUI, not that the result was committed and drawn.
+    ///
+    /// The observation is the drawing itself, so a capture lane that gives nothing, a view that draws
+    /// everything except what is under test, and a view that never settles are three separate failures
+    /// rather than a geometry check that was never given anything to measure. The bound keeps output
+    /// that never draws from hanging the suite.
+    @MainActor
+    private func waitForDrawn<V: View>(
+        _ content: DrawnContent,
+        in hostingView: NSHostingView<V>
+    ) async throws -> DrawnRegion {
+        var attempt = 0
+        while attempt < drawnWaitAttempts {
+            attempt += 1
+            if let drawn = try drawnRegion(of: hostingView, containing: content) {
+                return drawn
+            }
+
+            await settleRendering()
+        }
+
+        throw MountedDrawingObservationError.contentNotDrawn(content, attempts: attempt)
+    }
+
+    /// Mounts an inline flow at ``flowColumnWidth`` inside the wider ``flowInkCaptureSize`` and returns
+    /// where the view's own drawing landed.
+    ///
+    /// The capture is a fixed frame rather than the size the hosting view would choose for itself: a
+    /// container that shrinks to its own content clips a line that ran past the column into exactly the
+    /// shape a test looking for overflow would read as correct.
+    @MainActor
+    private func waitForFlowInk(
+        of content: FlatMarkRenderInlineContent,
+        textSize: MountedTextSize
+    ) async throws -> DrawnRegion {
+        let hostingView = NSHostingView(rootView: FlatMarkInlineView(
+            content: content,
+            context: .readOnly
+        )
+        .frame(width: flowColumnWidth, alignment: .leading)
+        .padding(flowCaptureInset)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .environment(\.dynamicTypeSize, textSize.dynamicTypeSize)
+        .font(.system(size: textSize.fontSize)))
+        hostingView.sizingOptions = []
+        hostingView.frame = CGRect(origin: .zero, size: flowInkCaptureSize)
+
+        return try await withTemporaryWindow(hosting: hostingView) {
+            try await waitForDrawn(.ink, in: hostingView)
+        }
+    }
+
+    /// Reads the mounted view's drawing back, returning where the pixels of `content` landed, or `nil`
+    /// when a working capture holds none of them.
+    @MainActor
+    private func drawnRegion<V: View>(
+        of hostingView: NSHostingView<V>,
+        containing content: DrawnContent
+    ) throws -> DrawnRegion? {
+        hostingView.layoutSubtreeIfNeeded()
+        hostingView.displayIfNeeded()
+
+        let bounds = hostingView.bounds
+        let bitmap = hostingView.bitmapImageRepForCachingDisplay(in: bounds)
+        guard bounds.width > 0, bounds.height > 0, let bitmap else {
+            throw MountedDrawingObservationError.captureUnavailable(
+                bounds: bounds,
+                pixelsWide: bitmap?.pixelsWide ?? 0,
+                pixelsHigh: bitmap?.pixelsHigh ?? 0
+            )
+        }
+
+        hostingView.cacheDisplay(in: bounds, to: bitmap)
+
+        let bytes = bitmap.bitmapData
+        guard bitmap.pixelsWide > 0, bitmap.pixelsHigh > 0,
+              bitmap.samplesPerPixel == 4, bitmap.bitsPerSample == 8, !bitmap.isPlanar,
+              let bytes
+        else {
+            throw MountedDrawingObservationError.captureUnavailable(
+                bounds: bounds,
+                pixelsWide: bitmap.pixelsWide,
+                pixelsHigh: bitmap.pixelsHigh
+            )
+        }
+
+        var minX = bitmap.pixelsWide
+        var minY = bitmap.pixelsHigh
+        var maxX = -1
+        var maxY = -1
+        for line in 0 ..< bitmap.pixelsHigh {
+            let rowBytes = line * bitmap.bytesPerRow
+            for column in 0 ..< bitmap.pixelsWide {
+                let pixel = rowBytes + column * bitmap.samplesPerPixel
+                guard content.contains(
+                    channels: (bytes[pixel], bytes[pixel + 1], bytes[pixel + 2]),
+                    alpha: bytes[pixel + 3]
+                ) else {
+                    continue
+                }
+
+                minX = min(minX, column)
+                minY = min(minY, line)
+                maxX = max(maxX, column)
+                maxY = max(maxY, line)
+            }
+        }
+
+        guard minX <= maxX, minY <= maxY else {
+            return nil
+        }
+
+        let pointsPerDevicePixel = bounds.width / CGFloat(bitmap.pixelsWide)
+        let frame = CGRect(
+            x: CGFloat(minX) * pointsPerDevicePixel,
+            y: CGFloat(minY) * pointsPerDevicePixel,
+            width: CGFloat(maxX - minX + 1) * pointsPerDevicePixel,
+            height: CGFloat(maxY - minY + 1) * pointsPerDevicePixel
+        )
+        let edgeInset = min(
+            CGFloat(minX),
+            CGFloat(minY),
+            CGFloat(bitmap.pixelsWide - 1 - maxX),
+            CGFloat(bitmap.pixelsHigh - 1 - maxY)
+        ) * pointsPerDevicePixel
+
+        return DrawnRegion(frame: frame, edgeInset: edgeInset)
     }
 #endif
 

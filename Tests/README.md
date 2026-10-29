@@ -23,21 +23,47 @@ and navigation. They do not replace visual, gesture, or live accessibility check
 - **Native content:** `MountedView.visibleText` / `visibleAttributedText` export native selection
   through public `NSServicesMenuRequestor` APIs into a temporary pasteboard. Assertions cover
   wording and exported bold, italic, strikethrough, and link attributes. The general pasteboard
-  is not used. Missing selection/export capability fails rather than returning empty content.
+  is not used. A region displaying no wording at all — an emptied row, item, or cell — reads as
+  blank; a region that takes space and still cannot export fails rather than returning empty
+  content. `visibleText(showing:)` waits for wording to appear; `visibleText(matching:)` waits for
+  the exact wording a reader gets, so a mounted view that keeps its earlier answer after a state
+  change fails. `FlatMarkOmissionSample.swift` pairs one Markdown source with the wording each
+  built-in policy is expected to display, so the mounted and projection checks read one document.
 - **Interaction:** isolated AppKit event-loop hosts activate links and task markers and inspect
   callbacks. Navigation hosts use hidden windows, local events, and a controlled opener: no global
   input, Accessibility permission, browser, or external handler is required. Reports and timeouts
   prevent treating process exit alone as successful activation.
+- **Loader callbacks:** `LoaderSpy` retains every recorded loader callback until an expectation of
+  that kind consumes it, so a test may arm before or after the operation that triggers the loader.
+  One callback satisfies exactly one expectation, and a wait that ends at its deadline leaves the
+  callback missing to be reported by the unmet confirmation rather than by a polling bound. Checks
+  of that waiting contract live in `LoaderSpyTests` and are not evidence about the renderer.
+- **Drawn image geometry:** the aspect-fitting check mounts a painted solid-color raster, waits for
+  its own pixels to appear in the mounted view's drawing, and measures their bounding box in points
+  inside a capture deliberately larger than any correct result. Missing or collapsed output, a wrong
+  aspect ratio, and a measurement clipped into looking correct therefore all fail; an `NSImage(size:)`
+  that only reports a size cannot pass. This is a bounded pixel readback of one fixture, not a
+  screenshot review: it establishes that the loaded image drew at the fitted size, not its appearance,
+  on-screen clipping, or placement.
+- **Effective text size:** mounted layout cases vary an explicit font-size override, because macOS body
+  text does not scale from `dynamicTypeSize` alone (the Recipe Lab fixture does the same). A control
+  case asserts the override really changes rendered size, and every case requires positive geometry and
+  strictly larger output once enlarged, so two variants that rendered identically cannot pass. A font
+  override is not system Dynamic Type, VoiceOver, or readability verification.
+- **Drawn flow placement:** the linked-image flow case mounts the shared inline flow in a capture wider
+  than its column and measures where the view's own ink landed, so a flow that drew nothing, drew one
+  unbroken line, or drew past the column fails. The case also asserts the fixture really is in that
+  flow, since an image whose link did not resolve falls back to native text unnoticed.
 
 Native-content inspection requires selectable views and is qualified on the current toolchain only;
 see the floor lane for minimum-version coverage. SwiftUI descendant capabilities/order are not a stable
 inspection contract; requalify after OS/toolchain changes. Accessibility text is a separate representation and is not a substitute for
 visible-content inspection.
 
-These tests do **not** prove glyph visibility, clipping, layout gaps, exact on-screen fonts, minimum
+These tests do **not** prove glyph visibility, layout gaps, exact on-screen fonts, minimum
 hit-target size, selection gestures, external URL-opening success, or iOS interaction. A nonzero
-mounted size proves neither readability nor correct geometry. The inline layout width invariant
-has no automated hosting-independent guard.
+mounted size proves neither readability nor correct geometry. Only the linked-image flow above has an
+automated hosting-independent width guard; table, quote, and cell overflow remain manual checks.
 
 ## Recipe Lab
 

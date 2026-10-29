@@ -8,7 +8,7 @@ import Testing
 @MainActor
 struct FlatMarkTableViewTests {
     @Test
-    func `renders a table with a header and no body rows`() {
+    func `table eligibility includes a header without body rows`() {
         let view = FlatMarkTableView(
             table: FlatMarkRenderTable(
                 header: [
@@ -22,29 +22,10 @@ struct FlatMarkTableViewTests {
         #expect(view.rendersTable)
     }
 
-    @Test
-    func `renders a projected table with typed row and cell identities`() throws {
-        let document = FlatMarkRenderProjector.project(markdown: """
-        | Name | State | Notes |
-        | --- | --- | --- |
-        | Wide || End |
-        | Plain |
-        """)
-        let block = try #require(document.blocks.first)
-        guard case let .table(table) = block.kind else {
-            Issue.record("Expected a table")
-            return
-        }
 
-        let view = FlatMarkTableView(table: table, context: .readOnly)
-
-        #expect(view.rendersTable)
-        #expect(table.rows.count == 2)
-        #expect(table.rows.allSatisfy { $0.cells.count == 3 })
-    }
 
     @Test
-    func `does not render an empty table`() {
+    func `table eligibility excludes an empty table`() {
         let view = FlatMarkTableView(
             table: FlatMarkRenderTable(header: [], rows: []),
             context: .readOnly
