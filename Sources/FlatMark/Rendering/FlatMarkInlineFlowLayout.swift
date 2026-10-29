@@ -30,11 +30,11 @@ struct FlatMarkInlineFlowLayout: Layout {
 
     func placeSubviews(
         in bounds: CGRect,
-        proposal _: ProposedViewSize,
+        proposal: ProposedViewSize,
         subviews: Subviews,
         cache _: inout ()
     ) {
-        let rows = rows(for: subviews, width: bounds.width)
+        let rows = rows(for: subviews, width: proposal.width ?? bounds.width)
         var y = bounds.minY
 
         for row in rows {
