@@ -27,19 +27,18 @@ all Apple devices. See the [iPhone XR report](iPhone-XR.md) for device execution
 
 ## Run
 
-Use the [repository toolchain](../../docs/BUILD_AND_TEST.md#toolchain) and a Release build:
+Use a toolchain meeting the [package requirements](../README.md#requirements) and a Release build from the repository root:
 
 ```sh
-mobilebuildmcp swift-package run --package-path FlatMark \
-  --executable-name FlatMarkConstructionBenchmark --configuration release --timeout 240
+swift build --product FlatMarkConstructionBenchmark --configuration release
 ```
 
 After building, run the executable three times sequentially and save stdout:
 
 ```sh
-FlatMark/.build/release/FlatMarkConstructionBenchmark > /tmp/flatmark-run1.csv
-FlatMark/.build/release/FlatMarkConstructionBenchmark > /tmp/flatmark-run2.csv
-FlatMark/.build/release/FlatMarkConstructionBenchmark > /tmp/flatmark-run3.csv
+.build/release/FlatMarkConstructionBenchmark > /tmp/flatmark-run1.csv
+.build/release/FlatMarkConstructionBenchmark > /tmp/flatmark-run2.csv
+.build/release/FlatMarkConstructionBenchmark > /tmp/flatmark-run3.csv
 ```
 
 Do not overlap runs. Keep power, thermal conditions, and background work comparable. If a launcher
@@ -97,7 +96,7 @@ represent a measured distribution of user documents.
 Recorded 2026-10-28: Apple M3 Pro, arm64, 36 GiB RAM; macOS 27.0.1 (26A434); Xcode 27.0 RC
 (27A266a), Apple Swift 6.4 (`swiftlang-6.4.0.34.1`); SwiftPM Release with default optimization.
 Source base revision: `Construction/Baselines/revision.txt`. The measured working tree includes
-the benchmark implementation. Dependency resolution is recorded in `FlatMark/Package.resolved`.
+the benchmark implementation. Dependency resolution is recorded in `Package.resolved`.
 
 Three sequential standalone processes produced `Construction/Baselines/m3-pro-run{1,2,3}.csv`:
 

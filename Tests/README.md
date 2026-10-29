@@ -5,10 +5,10 @@
 
 ## Automated tests
 
-Run from the repository root using the [build and test policy](../../docs/BUILD_AND_TEST.md#packages):
+Run from the package repository root with a toolchain meeting the [requirements](../README.md#requirements):
 
 ```sh
-mobilebuildmcp swift-package test --package-path FlatMark
+swift test
 ```
 
 Model-level tests cover projection, source-preserving task updates, and unsupported-content policy.

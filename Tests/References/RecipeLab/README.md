@@ -13,11 +13,11 @@ automated pixel baselines.
 From the repository root, with a booted iPhone simulator or an active desktop session:
 
 ```sh
-bash scripts/capture-recipe-lab.sh macos FlatMark/Tests/References/RecipeLab
-bash scripts/capture-recipe-lab.sh ios FlatMark/Tests/References/RecipeLab
+bash scripts/capture-recipe-lab.sh macos Tests/References/RecipeLab
+bash scripts/capture-recipe-lab.sh ios Tests/References/RecipeLab
 ```
 
-Use the [pinned toolchain](../../../../docs/BUILD_AND_TEST.md#toolchain). The script launches a
+Use the [package requirements](../../../README.md#requirements). The script launches a
 fresh process per preset, waits for the local image, and captures the initial viewport. Lower content
 requires separate scrolling and directed checks. Environment files record the OS/toolchain and
 simulator. Captures contain platform chrome and clocks; do not treat them as deterministic pixels.

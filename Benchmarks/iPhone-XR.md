@@ -50,7 +50,7 @@ desktop numbers.
 
 ## Reproduce on a device
 
-Use the [pinned toolchain](../../docs/BUILD_AND_TEST.md#toolchain), a connected development-enabled
+Use the [package requirements](../README.md#requirements), a connected development-enabled
 iPhone, and a valid signing team. The host is temporary and separate from the application under test.
 
 1. Run `mobilebuildmcp device list` and set `DEVICE_ID` to the intended phone. Set `TEAM_ID` to
