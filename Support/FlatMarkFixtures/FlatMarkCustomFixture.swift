@@ -21,7 +21,7 @@ public enum FlatMarkCustomPolicyKind: String, CaseIterable, Identifiable, Hashab
 
 // MARK: - FlatMarkCustomFixture
 
-/// Backend-free playground, shared by the automated suite and `FlatMarkFixtureHost`: a single page
+/// Backend-free playground, shared by the automated suite and `FlatMarkDemo`: a single page
 /// showing the shared recipe with exploration controls above it.
 /// Present `FlatMarkCustomFixture(model:)` for iOS/macOS observation; run the host with
 /// `scripts/run-fixture-host.sh`.
@@ -220,7 +220,7 @@ public final class FlatMarkCustomFixtureModel {
         self.markdown = markdown
         document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL, detectMentions: true)
         let imageCalls = imageCalls
-        let imageURL = Bundle.module.url(forResource: "focaccia", withExtension: "jpeg")
+        let imageURL = FlatMarkFixtureResources.focacciaURL
         let expectedImageURL = Self.baseURL?.appending(path: "focaccia.jpeg")
         loader = FlatMarkImageLoader(configurationID: UUID()) { url in
             await imageCalls.record(url)

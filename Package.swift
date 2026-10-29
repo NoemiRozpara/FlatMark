@@ -49,11 +49,6 @@ let package = Package(
             dependencies: ["FlatMark"],
             path: "Tests/FlatMarkNavigationTestHost"
         ),
-        .executableTarget(
-            name: "FlatMarkFixtureHost",
-            dependencies: ["FlatMark", "FlatMarkFixtures"],
-            path: "Tests/FlatMarkFixtureHost"
-        ),
         .testTarget(
             name: "FlatMarkTests",
             dependencies: [

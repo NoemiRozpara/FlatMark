@@ -46,7 +46,9 @@ mentions, links, a local illustration, tables, code, nested content, and unsuppo
 Source: [FlatMarkCustomFixture.swift](../Support/FlatMarkFixtures/FlatMarkCustomFixture.swift) and
 [FlatMarkRecipeSample.swift](../Support/FlatMarkFixtures/FlatMarkRecipeSample.swift).
 
-With an iPhone simulator booted, run:
+Open [the demo Xcode project](../Demo/FlatMarkDemo.xcodeproj) and choose its iOS or macOS
+scheme (see [demo setup](../Demo/README.md)). It references these shared sources directly.
+Alternatively, with an iPhone simulator booted for iOS, run:
 
 ```sh
 scripts/run-fixture-host.sh ios

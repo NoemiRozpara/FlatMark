@@ -3,13 +3,21 @@
 A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS 14+,
 with optional interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftlang/swift-markdown).
 
-[Markdown support](SUPPORT.md) · [Testing and playground](Tests/README.md) · [Benchmarks](Benchmarks/README.md)
+[Markdown support](SUPPORT.md) · [Demo](Demo/README.md) · [Testing and playground](Tests/README.md) · [Benchmarks](Benchmarks/README.md)
 
 ## Requirements
 
 - Xcode 26.0+ / Swift 6.2
 - iOS 17 / macOS 14
 - [swift-markdown](https://github.com/swiftlang/swift-markdown) 0.8.x
+
+## Demo
+
+After cloning the repository, open [Demo/FlatMarkDemo.xcodeproj](Demo/FlatMarkDemo.xcodeproj),
+select **FlatMarkDemo-iOS** (an iOS simulator) or **FlatMarkDemo-macOS** (My Mac), and press Run.
+
+See [demo setup](Demo/README.md) for capture presets and device-signing instructions.
+The demo and shared fixtures are not built or embedded when consuming the `FlatMark` package product.
 
 ## Usage
 

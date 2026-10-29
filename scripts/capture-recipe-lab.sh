@@ -27,11 +27,11 @@ for capture in daylight midnight generous rightToLeft hostMarkers readOnly liter
     sleep 2
     xcrun simctl io booted screenshot "$OUTPUT/ios-$capture.png"
   else
-    pkill -f '^/private/tmp/FlatMarkFixtureHost-macos.app/FlatMarkFixtureHost' || true
-    open -n /tmp/FlatMarkFixtureHost-macos.app --args --capture "$capture"
+    pkill -x FlatMarkDemo || true
+    open -n "$ROOT/.build/demo/Build/Products/Debug/FlatMarkDemo.app" --args --capture "$capture"
     sleep 2
     rect="$(osascript <<'APPLESCRIPT'
-tell application "System Events" to tell process "FlatMarkFixtureHost"
+tell application "System Events" to tell process "FlatMarkDemo"
     set frontmost to true
     set position of front window to {20, 40}
     set size of front window to {850, 1040}
