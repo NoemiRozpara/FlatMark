@@ -31,6 +31,13 @@ let package = Package(
                 .product(name: "Markdown", package: "swift-markdown"),
             ]
         ),
+        // Shared fixture data for package tests and test hosts; not part of any product.
+        .target(
+            name: "FlatMarkFixtures",
+            dependencies: ["FlatMark"],
+            path: "Support/FlatMarkFixtures",
+            resources: [.copy("focaccia.jpeg")]
+        ),
         .executableTarget(
             name: "FlatMarkConstructionBenchmark",
             dependencies: ["FlatMark"],
@@ -41,12 +48,6 @@ let package = Package(
             name: "FlatMarkNavigationTestHost",
             dependencies: ["FlatMark"],
             path: "Tests/FlatMarkNavigationTestHost"
-        ),
-        .target(
-            name: "FlatMarkFixtures",
-            dependencies: ["FlatMark"],
-            path: "Tests/FlatMarkFixtures",
-            resources: [.copy("focaccia.jpeg")]
         ),
         .executableTarget(
             name: "FlatMarkFixtureHost",

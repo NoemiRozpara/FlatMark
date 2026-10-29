@@ -43,8 +43,8 @@ has no automated hosting-independent guard.
 
 The backend-free host renders one focaccia recipe shared with the mounted suite. It includes tasks,
 mentions, links, a local illustration, tables, code, nested content, and unsupported HTML.
-Source: [FlatMarkCustomFixture.swift](FlatMarkFixtures/FlatMarkCustomFixture.swift) and
-[FlatMarkRecipeSample.swift](FlatMarkFixtures/FlatMarkRecipeSample.swift).
+Source: [FlatMarkCustomFixture.swift](../Support/FlatMarkFixtures/FlatMarkCustomFixture.swift) and
+[FlatMarkRecipeSample.swift](../Support/FlatMarkFixtures/FlatMarkRecipeSample.swift).
 
 With an iPhone simulator booted, run:
 
