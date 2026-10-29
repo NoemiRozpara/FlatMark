@@ -220,8 +220,8 @@ public final class FlatMarkCustomFixtureModel {
         self.markdown = markdown
         document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL, detectMentions: true)
         let imageCalls = imageCalls
-        let imageURL = Bundle.module.url(forResource: "focaccia", withExtension: "png")
-        let expectedImageURL = Self.baseURL?.appending(path: "focaccia.png")
+        let imageURL = Bundle.module.url(forResource: "focaccia", withExtension: "jpeg")
+        let expectedImageURL = Self.baseURL?.appending(path: "focaccia.jpeg")
         loader = FlatMarkImageLoader(configurationID: UUID()) { url in
             await imageCalls.record(url)
             guard url == expectedImageURL, let imageURL else {

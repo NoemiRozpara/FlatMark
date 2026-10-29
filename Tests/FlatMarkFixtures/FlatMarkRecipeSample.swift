@@ -7,7 +7,7 @@ public enum FlatMarkRecipeSample {
     A crisp golden edge, a soft middle, and something worth sharing with @jane.doe and *@other*.
     ~~@third~~ will join next time; @ja*ne* is bringing olives.
 
-    [![Freshly baked focaccia — open the herb note](focaccia.png)](herbs)
+    [![Freshly baked focaccia — open the herb note](focaccia.jpeg)](herbs)
 
     <div>Print this recipe · Subscribe to the newsletter</div>
 
