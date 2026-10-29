@@ -179,7 +179,7 @@ struct FlatMarkImageLoadingTests {
             hostingView.frame = CGRect(x: 0, y: 0, width: 320, height: 80)
             try await withTemporaryWindow(hosting: hostingView) {
                 if usesLoader {
-                    await waitForLoadCount(1, in: spy)
+                    await expectImageLoad(in: spy)
                 } else {
                     await settleRendering()
                 }
@@ -294,7 +294,7 @@ struct FlatMarkImageLoadingTests {
             .frame(width: 200, alignment: .leading))
 
             try await withTemporaryWindow(hosting: hostingView) {
-                await waitForLoadCount(1, in: spy)
+                await expectImageLoad(in: spy)
 
                 let fittedSize = hostingView.fittingSize
 
@@ -377,7 +377,7 @@ struct FlatMarkImageLoadingTests {
                 #expect(await spy.loadedURLs.isEmpty)
 
                 model.loaderConfigurationID = firstConfigurationID
-                await waitForLoadCount(1, in: spy)
+                await expectImageLoad(in: spy)
                 let firstLoadedImage = try #require(renderedPNG(of: hostingView))
 
                 model.unrelatedState.toggle()
@@ -385,7 +385,7 @@ struct FlatMarkImageLoadingTests {
                 #expect(await spy.loadedURLs.count == 1)
 
                 model.loaderConfigurationID = UUID()
-                await waitForLoadCount(2, in: spy)
+                await expectImageLoad(in: spy)
                 let secondLoadedImage = try #require(renderedPNG(of: hostingView))
 
                 model.loaderConfigurationID = nil
@@ -421,7 +421,7 @@ struct FlatMarkImageLoadingTests {
             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
 
             try await withTemporaryWindow(hosting: hostingView) {
-                await waitForLoadCount(1, in: spy)
+                await expectImageLoad(in: spy)
                 let loadingImage = try #require(renderedPNG(of: hostingView))
 
                 await gate.release()
@@ -469,14 +469,14 @@ struct FlatMarkImageLoadingTests {
             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
 
             try await withTemporaryWindow(hosting: hostingView) {
-                await waitForLoadCount(1, in: spy)
+                await expectImageLoad(in: spy)
 
                 hostingView.rootView = FlatMarkInlineView(
                     content: content,
                     context: .readOnly
                 )
 
-                await waitForCancellation(in: spy)
+                await expectImageLoadCancellation(in: spy)
                 #expect(await spy.cancellationCount == 1)
             }
         }
@@ -485,16 +485,108 @@ struct FlatMarkImageLoadingTests {
 
 // MARK: - LoaderSpy
 
+/// Records what the host loader was asked to do, and lets a test suspend until the callback it is
+/// about to trigger has arrived.
+///
+/// The waiting is event-driven and the counting is Swift Testing's: a test arms an expectation with
+/// a ``Confirmation``, the matching callback confirms it, and the waiter returns the moment it
+/// arrives. A confirmation that never arrives is therefore reported by Swift Testing as falling
+/// short, rather than by a polling bound here.
 private actor LoaderSpy {
+    private enum Callback {
+        case load
+        case cancellation
+    }
+
+    private struct Expectation {
+        let callback: Callback
+        let confirmation: Confirmation
+    }
+
     private(set) var loadedURLs: [URL] = []
     private(set) var cancellationCount = 0
+    private var loadsConfirmed = 0
+    private var cancellationsConfirmed = 0
+    private var expectation: Expectation?
+    private var generation = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
 
     func record(_ url: URL) {
         loadedURLs.append(url)
+        confirmRecordedCallback()
     }
 
     func recordCancellation() {
         cancellationCount += 1
+        confirmRecordedCallback()
+    }
+
+    /// Arms the expectation that the loader is invoked. An invocation that already arrived is
+    /// confirmed immediately, so a test may arm after the state change that triggers it.
+    func expectLoad(confirmedBy confirmation: Confirmation) {
+        arm(callback: .load, confirmation: confirmation)
+    }
+
+    /// Arms the expectation that a cancelled image request is observed.
+    func expectCancellation(confirmedBy confirmation: Confirmation) {
+        arm(callback: .cancellation, confirmation: confirmation)
+    }
+
+    /// Suspends until the armed expectation is met, or until `deadline` passes so a callback that
+    /// never arrives is reported as the missing confirmation it is instead of hanging the suite.
+    /// Only the expectation this waiter was armed for releases it, so a deadline left over from an
+    /// earlier wait on the same spy cannot end a later one early.
+    func awaitExpectation(deadline: Duration) async {
+        guard expectation != nil else {
+            return
+        }
+
+        let armedGeneration = generation
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+            Task {
+                try? await Task.sleep(for: deadline)
+                if armedGeneration == generation {
+                    releaseWaiters()
+                }
+            }
+        }
+    }
+
+    private func arm(callback: Callback, confirmation: Confirmation) {
+        generation += 1
+        expectation = Expectation(callback: callback, confirmation: confirmation)
+        confirmRecordedCallback()
+    }
+
+    /// Attributes a callback only to an expectation about that kind of callback, and only once, so a
+    /// callback recorded while nothing was armed cannot satisfy a later expectation.
+    private func confirmRecordedCallback() {
+        let unconfirmedLoads = loadedURLs.count - loadsConfirmed
+        let unconfirmedCancellations = cancellationCount - cancellationsConfirmed
+        loadsConfirmed = loadedURLs.count
+        cancellationsConfirmed = cancellationCount
+
+        guard let expectation else {
+            return
+        }
+
+        let unconfirmed = expectation.callback == .load ? unconfirmedLoads : unconfirmedCancellations
+        guard unconfirmed > 0 else {
+            return
+        }
+
+        self.expectation = nil
+        expectation.confirmation.confirm()
+        releaseWaiters()
+    }
+
+    private func releaseWaiters() {
+        let pending = waiters
+        waiters.removeAll()
+        for waiter in pending {
+            waiter.resume()
+        }
     }
 }
 
@@ -659,34 +751,33 @@ private actor SuspensionGate {
         return bitmap.representation(using: .png, properties: [:])
     }
 
+    /// Waits for one further host loader invocation, then lets SwiftUI render what it returned.
+    ///
+    /// Swift Testing owns the count: the loader confirms through ``LoaderSpy``, so a load that never
+    /// arrives is reported against this expectation rather than against a polling bound.
     @MainActor
-    private func waitForLoadCount(_ expectedCount: Int, in spy: LoaderSpy) async {
-        for _ in 0 ..< 100 {
-            if await spy.loadedURLs.count == expectedCount {
-                await settleRendering()
-                return
-            }
-
-            try? await Task.sleep(for: .milliseconds(10))
+    private func expectImageLoad(in spy: LoaderSpy) async {
+        await confirmation("the host loader is invoked", expectedCount: 1) { loaded in
+            await spy.expectLoad(confirmedBy: loaded)
+            await spy.awaitExpectation(deadline: .seconds(2))
         }
 
-        Issue.record("Expected \(expectedCount) image loads")
+        await settleRendering()
     }
 
+    /// Waits for the mounted view's image request to be reported cancelled, then settles rendering.
     @MainActor
-    private func waitForCancellation(in spy: LoaderSpy) async {
-        for _ in 0 ..< 100 {
-            if await spy.cancellationCount > 0 {
-                await settleRendering()
-                return
-            }
-
-            try? await Task.sleep(for: .milliseconds(10))
+    private func expectImageLoadCancellation(in spy: LoaderSpy) async {
+        await confirmation("the image request is cancelled", expectedCount: 1) { cancelled in
+            await spy.expectCancellation(confirmedBy: cancelled)
+            await spy.awaitExpectation(deadline: .seconds(2))
         }
 
-        Issue.record("Expected the image load to be cancelled")
+        await settleRendering()
     }
 
+    /// Gives SwiftUI the run-loop turns a state change needs before a capture reflects it. Nothing in
+    /// Swift Testing observes a render pass, so this stays a settle rather than a callback expectation.
     @MainActor
     private func settleRendering() async {
         for _ in 0 ..< 3 {
