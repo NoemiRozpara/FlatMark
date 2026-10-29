@@ -251,7 +251,7 @@ struct FlatMarkInlineView: View {
             }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var accessibleContent: some View {
         if renderingMode == .customInlineFlow {
             // Native children expose supported text/links, images, and host controls once.
@@ -270,7 +270,7 @@ struct FlatMarkInlineView: View {
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var renderedContent: some View {
         switch renderingMode {
         case let .standaloneLinkedImage(destination):
@@ -336,7 +336,7 @@ struct FlatMarkInlineView: View {
         return elements
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private func inlineView(for element: InlineElement) -> some View {
         switch element.content {
         case let .text(text):
@@ -372,7 +372,7 @@ struct FlatMarkInlineView: View {
         }
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private func imageView(for image: FlatMarkRenderImage, at index: Int) -> some View {
         switch imagePhases[index] ?? .placeholder {
         case let .loaded(loadedImage):
@@ -485,6 +485,7 @@ struct FlatMarkInlineView: View {
         Text(Image(systemName: systemName)) + Text(" \(label)")
     }
 
+    @MainActor
     private func loadImages() async {
         let imageLoader = context.imageLoader
         imagePhases = Dictionary(uniqueKeysWithValues: imageRequests.map { imageRequest in

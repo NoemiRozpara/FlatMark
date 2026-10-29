@@ -5,6 +5,12 @@ with optional interactive task lists. Parsing uses [swift-markdown](https://gith
 
 [Markdown support](SUPPORT.md) · [Testing and playground](Tests/README.md) · [Benchmarks](Benchmarks/README.md)
 
+## Requirements
+
+- Xcode 26.0+ / Swift 6.2
+- iOS 17 / macOS 14
+- [swift-markdown](https://github.com/swiftlang/swift-markdown) 0.8.x
+
 ## Usage
 
 Add the FlatMark package to the project and import the library:

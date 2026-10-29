@@ -1,4 +1,4 @@
-// swift-tools-version: 6.4
+// swift-tools-version: 6.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -29,9 +29,6 @@ let package = Package(
             name: "FlatMark",
             dependencies: [
                 .product(name: "Markdown", package: "swift-markdown"),
-            ],
-            swiftSettings: [
-                .enableUpcomingFeature("ApproachableConcurrency"),
             ]
         ),
         .executableTarget(
@@ -49,10 +46,7 @@ let package = Package(
             name: "FlatMarkFixtures",
             dependencies: ["FlatMark"],
             path: "Tests/FlatMarkFixtures",
-            resources: [.copy("focaccia.png")],
-            swiftSettings: [
-                .enableUpcomingFeature("ApproachableConcurrency"),
-            ]
+            resources: [.copy("focaccia.png")]
         ),
         .executableTarget(
             name: "FlatMarkFixtureHost",
@@ -65,10 +59,8 @@ let package = Package(
                 "FlatMark",
                 "FlatMarkFixtures",
                 .target(name: "FlatMarkNavigationTestHost", condition: .when(platforms: [.macOS])),
-            ],
-            swiftSettings: [
-                .enableUpcomingFeature("ApproachableConcurrency"),
             ]
         ),
-    ]
+    ],
+    swiftLanguageModes: [.v6]
 )

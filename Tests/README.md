@@ -29,9 +29,9 @@ and navigation. They do not replace visual, gesture, or live accessibility check
   input, Accessibility permission, browser, or external handler is required. Reports and timeouts
   prevent treating process exit alone as successful activation.
 
-Native-content inspection requires selectable views and was qualified on macOS 27.0.1 with Xcode
-27 RC. SwiftUI descendant capabilities/order are not a stable inspection contract; requalify after
-OS/toolchain changes. Accessibility text is a separate representation and is not a substitute for
+Native-content inspection requires selectable views and is qualified on the current toolchain only;
+see the floor lane for minimum-version coverage. SwiftUI descendant capabilities/order are not a stable
+inspection contract; requalify after OS/toolchain changes. Accessibility text is a separate representation and is not a substitute for
 visible-content inspection.
 
 These tests do **not** prove glyph visibility, clipping, layout gaps, exact on-screen fonts, minimum

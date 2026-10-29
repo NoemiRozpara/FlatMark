@@ -131,7 +131,7 @@ struct FlatMarkListRowView: View {
         )
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private var leadingElement: some View {
         if case let .task(isChecked, _) = row.marker {
             if let taskToggleAction {
@@ -166,7 +166,7 @@ struct FlatMarkListRowView: View {
         FlatMarkInlineView(content: row.content, context: context)
     }
 
-    @ViewBuilder
+    @ContentBuilder
     private func marker() -> some View {
         switch row.marker {
         case .unordered:

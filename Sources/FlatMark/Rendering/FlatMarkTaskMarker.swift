@@ -13,13 +13,13 @@ public struct FlatMarkTaskMarker {
 
     /// Draws all task markers, including read-only and nested tasks, using their checked state.
     public static func custom<Marker: View>(
-        @ViewBuilder _ render: @escaping (Bool) -> Marker
+        @ContentBuilder _ render: @escaping (Bool) -> Marker
     ) -> Self {
         Self(render: { AnyView(render($0)) })
     }
 
     @MainActor
-    @ViewBuilder
+    @ContentBuilder
     func view(isChecked: Bool) -> some View {
         if let render {
             render(isChecked)
