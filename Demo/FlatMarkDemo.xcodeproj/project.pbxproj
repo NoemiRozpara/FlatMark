@@ -27,6 +27,7 @@
 		55CF9449A4762A092F44C06F /* FlatMarkSnapshotAssertions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FBD97471AF398B212EB8F40 /* FlatMarkSnapshotAssertions.swift */; };
 		5F8F39CC53DE31AC17017E2C /* FlatMarkLinkedImageSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 255326C1A94FAA0C4FB64F0C /* FlatMarkLinkedImageSnapshotTests.swift */; };
 		6A24026891F737FF23DB6F17 /* FlatMarkFixtureTaskMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE380168301B81FF92E9A6AF /* FlatMarkFixtureTaskMark.swift */; };
+		6E6CDCF309DA6BD48B413DAF /* FlatMarkUnsupportedPolicySnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E754FA69AB92BF7FBB3A1E0 /* FlatMarkUnsupportedPolicySnapshotTests.swift */; };
 		71FD5D5CF208F22A76C38477 /* FlatMarkFixtureTaskMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE380168301B81FF92E9A6AF /* FlatMarkFixtureTaskMark.swift */; };
 		744DCB1BED393B786BC575C3 /* FlatMark in Frameworks */ = {isa = PBXBuildFile; productRef = 5B8A100F6C612D1E36BE71F2 /* FlatMark */; };
 		7FB6BE9045150C39C4FC16A3 /* FlatMarkTaskMarkerSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B0529B92F350DEC0836C37 /* FlatMarkTaskMarkerSnapshotTests.swift */; };
@@ -47,6 +48,7 @@
 		D175D5B6951C46EC8386D8B0 /* FlatMarkInlineFlowSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B2EB7C1554C8F775D12DE5 /* FlatMarkInlineFlowSnapshotTests.swift */; };
 		D70A5485F4C03E4981B1DDCD /* focaccia.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = E34C99B7CF2B8D6507698075 /* focaccia.jpeg */; };
 		E6DC9F35DBA75A68D29CE8CC /* FlatMark in Frameworks */ = {isa = PBXBuildFile; productRef = E9970D752CB4689D3687C688 /* FlatMark */; };
+		E88F8E09F2D863FAF2583EAE /* FlatMarkUnsupportedPolicySnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E754FA69AB92BF7FBB3A1E0 /* FlatMarkUnsupportedPolicySnapshotTests.swift */; };
 		ECAA07B0A57A745085BAAF12 /* FlatMarkDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 628688A5C4083370829CBEA1 /* FlatMarkDemoApp.swift */; };
 		EFDCD670DAF6F8891E89F98F /* FlatMarkTableSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4557ADA70C429B33D7E4DAA /* FlatMarkTableSnapshotTests.swift */; };
 		F00155A133FCF0E301AD7089 /* FlatMarkCustomFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C6A2E14190EF8402506F1D7 /* FlatMarkCustomFixture.swift */; };
@@ -74,6 +76,7 @@
 		0170CEC6265991B3BED44212 /* FlatMarkRecipeCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkRecipeCapture.swift; sourceTree = "<group>"; };
 		01B0529B92F350DEC0836C37 /* FlatMarkTaskMarkerSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkTaskMarkerSnapshotTests.swift; sourceTree = "<group>"; };
 		03857BD86DD87EDFB9829022 /* FlatMarkRecordedImageLoads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkRecordedImageLoads.swift; sourceTree = "<group>"; };
+		0E754FA69AB92BF7FBB3A1E0 /* FlatMarkUnsupportedPolicySnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkUnsupportedPolicySnapshotTests.swift; sourceTree = "<group>"; };
 		1C6A2E14190EF8402506F1D7 /* FlatMarkCustomFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkCustomFixture.swift; sourceTree = "<group>"; };
 		1EC6BEE155209D6FDF3CB649 /* FlatMarkImagePhaseSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkImagePhaseSnapshotTests.swift; sourceTree = "<group>"; };
 		1F8DB4A3F8DD51B28719C3DA /* FlatMark */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FlatMark; path = ..; sourceTree = SOURCE_ROOT; };
@@ -167,6 +170,7 @@
 				72967D8E62FF4958B16C0369 /* FlatMarkSnapshotEnvironment.swift */,
 				A4557ADA70C429B33D7E4DAA /* FlatMarkTableSnapshotTests.swift */,
 				01B0529B92F350DEC0836C37 /* FlatMarkTaskMarkerSnapshotTests.swift */,
+				0E754FA69AB92BF7FBB3A1E0 /* FlatMarkUnsupportedPolicySnapshotTests.swift */,
 			);
 			name = Snapshots;
 			path = ../Tests/FlatMarkTests/Snapshots;
@@ -365,6 +369,7 @@
 				3640F6023CAE25271820E5DE /* FlatMarkSnapshotEnvironment.swift in Sources */,
 				EFDCD670DAF6F8891E89F98F /* FlatMarkTableSnapshotTests.swift in Sources */,
 				3FEDDCA77C62B64C7BFF76E5 /* FlatMarkTaskMarkerSnapshotTests.swift in Sources */,
+				6E6CDCF309DA6BD48B413DAF /* FlatMarkUnsupportedPolicySnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -412,6 +417,7 @@
 				44355408A5F87D13CB1DF61D /* FlatMarkSnapshotEnvironment.swift in Sources */,
 				BABE16870F518F27EEC9CC8B /* FlatMarkTableSnapshotTests.swift in Sources */,
 				7FB6BE9045150C39C4FC16A3 /* FlatMarkTaskMarkerSnapshotTests.swift in Sources */,
+				E88F8E09F2D863FAF2583EAE /* FlatMarkUnsupportedPolicySnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -843,6 +843,94 @@ screencapture -x /tmp/flatmark-ticket07/mac-demo.png
 Snapshots do not establish hit-target size, keyboard activation, VoiceOver focus
 order, edit prevention, minimum-OS behavior, or general running-app behavior.
 
+### Unsupported-policy qualification (ticket 08)
+
+`FlatMarkUnsupportedPolicySnapshotTests` owns eight cases and eight references per
+platform in `UnsupportedPolicies/{macOS,iOS}`. Public views exercise literal,
+custom, and omit policies; empty custom output; and ambient enabled/disabled
+host controls. A set-based assertion requires the empty host to receive exact
+opening, closing, and whole-block payloads. Re-evaluation counts are not asserted.
+Existing payload, independent-action, enabled-environment, and no-HTML-fetch
+coverage remains unchanged.
+
+Qualified with Xcode 27 RC / Swift 6.4, macOS 27.0.1 on the 2x display, and
+booted iPhone 18 Pro on iOS 27.0 (674C04A9-8792-4995-A6A9-66F80E5F96AA).
+Captures use a 400pt column, 80pt inset, 640×550pt bounds, 2x, light, en_US,
+LTR, body text (13pt macOS / 17pt iOS overrides), and intrinsic vertical sizing.
+No production code or capture behavior changed. Project regeneration registers
+the suite in both snapshot targets; the only shared-support edit adds its approved
+namespace enum case.
+
+#### Visual review
+
+The implementation worker opened every recorded PNG with `read` at readable
+scale. The table names both platform PNGs by test stem; every file has suffix
+`.document-400col-80inset-640x550-2x-light-en_US-ltr-body.png`.
+
+| Stem (macOS and iOS) | Observed checks |
+| --- | --- |
+| `literal` | Inert inline and whole-block HTML source visible; bold, italic neighbor, blue link, before/after wording intact. |
+| `custom` | Indigo OPEN precedes middle/label, orange CLOSE follows each; one BLOCK drawing replaces the whole block. White monospaced host styling remains distinct from blue link text. Bold and italic neighbors survive. |
+| `omit` | Tags and whole block absent; supported bold/italic and blue link wording retained. |
+| `emptyLiteral` | `a<u></u>b`, HTML-only paragraph, and whole-block source all visible. |
+| `emptyCustom` | Contiguous `ab`, no fallback, synthetic wording, or minimum host box; empty HTML-only paragraph retains a parent gap before the after paragraph. |
+| `emptyOmit` | Contiguous `ab`; the HTML-only paragraph is recursively removed, so the after paragraph is closer than in empty custom. |
+| `enabledHost` | Two white-on-indigo ENABLED controls occupy separate inline positions amid bold supported text. |
+| `disabledHost` | Both controls read DISABLED with gray presentation; surrounding supported wording remains. |
+
+All sixteen PNGs have clear outside margins and complete wording. No clipping
+or known rendering defect was accepted. The initial fixture did not include the
+HTML-only paragraph; it was added before final recording to distinguish retained
+parent spacing from recursive omission. A whole-block EmptyView alone collapses
+in these hosts; the contract does not require it to leave a gap.
+
+#### Commands and outcomes
+
+Runs were serial, from the repository root. Logs, source copy, manifests, and
+xcresults remain under `/tmp/flatmark-ticket08/`. These command patterns describe
+all phases (each phase ran separately, with review/edits between phases):
+
+```sh
+(cd Demo && xcodegen generate)
+# platform=macOS: dest=mac; platform=iOS: dest=booted
+# Explicit initial recording used mac-record / ios-record result stems.
+# Final recording after the HTML-only paragraph was added:
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform-Record --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkUnsupportedPolicySnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket08/$platform-record-final.xcresult
+# phase=verify, fallback, positions; normal schemes only:
+find Tests/References/Snapshots -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-ticket08/$platform-$phase-before.sha256
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkUnsupportedPolicySnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket08/$platform-$phase.xcresult
+find Tests/References/Snapshots -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-ticket08/$platform-$phase-after.sha256
+diff -u /tmp/flatmark-ticket08/$platform-$phase-{before,after}.sha256
+# final: same manifest guard, no --only-testing (all eight namespaces):
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --non-interactive --result-bundle /tmp/flatmark-ticket08/$platform-final.xcresult
+shasum -a 256 -c /tmp/flatmark-ticket08/existing.sha256
+cmp /tmp/flatmark-ticket08/accepted.swift Tests/FlatMarkTests/Snapshots/FlatMarkUnsupportedPolicySnapshotTests.swift
+swift test
+git diff --check
+```
+
+Both initial and final recordings reported eight expected recording assertions
+per platform, with no capture failures. Separate `verify` runs passed eight each.
+VERIFY-only fallback probes replaced EmptyView with `Text("FALLBACK WORDING")`:
+only `emptyCustom` mismatched on each platform (seven passed). Restoring EmptyView
+and exchanging OPEN/CLOSE labels caused only `custom` to mismatch (seven passed).
+Both probes exited 3 for real image mismatches, not recording assertions. Source
+restoration matched the saved copy byte-for-byte. Final full normal schemes passed
+49 tests per platform: eight new and 41 across the seven existing namespaces.
+
+Before/after manifests for every verify/probe/final run matched exactly. All 102
+existing reference hashes and sixteen new reference hashes stayed unchanged.
+Normal schemes never wrote references. Missing-reference behavior relies on the
+unchanged ticket 01 support contract; this ticket did not repeat that probe.
+Full `swift test` passed 218 tests in 28 suites with one existing intentional
+LoaderSpyTests known issue and no unexpected failures. `git diff --check` passed.
+
+These are mounted appearance and repeatability checks, not running-demo or
+callback observations. No new iOS action activation, live VoiceOver, keyboard,
+selection, minimum-OS, or general running-app behavior was verified. Exact
+payload and independent activation claims remain with existing behavioral tests;
+full package testing runs their macOS lane, not iOS interaction.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.

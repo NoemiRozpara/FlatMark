@@ -22,6 +22,7 @@ enum FlatMarkSnapshotSuite: String {
     case tables = "Tables"
     case imagePhases = "ImagePhases"
     case taskMarkers = "TaskMarkers"
+    case unsupportedPolicies = "UnsupportedPolicies"
 }
 
 // MARK: - FlatMarkSnapshotMode
