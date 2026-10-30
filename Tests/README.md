@@ -684,6 +684,165 @@ not prove cancellation behavior, accessibility labelling, URL policy, live
 VoiceOver, interaction, system Dynamic Type, or general running-app behavior.
 Those claims stay with the existing test families and manual checks.
 
+### Task-marker qualification (ticket 07)
+
+`FlatMarkTaskMarkerSnapshotTests` owns nine public-view cases and eighteen PNGs
+in `TaskMarkers/{macOS,iOS}`. Swift Testing serializes mounted cases. Shared
+support performs exact comparison with no pixel tolerances. No production,
+fixture, interaction, or source-preservation test changed.
+
+Qualified with Xcode 27.0 (27A266a), Swift 6.4, macOS 27.0.1 (26A434) on the
+2x display, and iPhone 18 Pro on iOS 27.0. Body captures offer a 280pt column
+inside 700×650pt bounds with 150pt insets. Enlarged captures are 700×1500pt.
+All use 2x, light, en_US, LTR, and intrinsic vertical document sizing.
+iOS enlarged uses real `.accessibility3`; macOS uses a 28pt absolute font
+override, not system Dynamic Type. Explicit `.body` marker fonts remain small
+on macOS while the label enlarges; marker baselines still meet the first line.
+
+The shared `FlatMarkFixtureTaskMark` is not reachable from these targets:
+`Demo/project.yml` compiles only the Snapshots folder into each snapshot target.
+The demo compiles fixture sources directly; it does not export a fixture module.
+The local passive custom drawing uses purple filled checkmark circles / empty
+circle outlines, instead of the default green checked squares / gray square
+outlines. It adds no actions, gestures, or accessibility semantics.
+
+#### Baseline review
+
+The implementation worker opened **each of the eighteen PNGs with `read`**.
+Each row names two individual PNGs, one in each platform directory. The filename
+suffix records the environment above; every capture has clear image-edge margins.
+All four states (checked/unchecked parent and checked/unchecked nested) remain
+visible. The long unchecked nested label wraps below its first line without
+moving its marker down. Nesting shifts the children inward in these LTR cases.
+
+| PNG test stem | macOS review | iOS review |
+| --- | --- | --- |
+| `defaultInteractive` | Green filled checked squares and gray empty squares; first-line alignment, three-line child, indentation, margins intact. Accepted. | Same states/alignment; three-line child and indentation intact. Accepted. |
+| `defaultReadOnly` | All squares retained; same appearance as interactive; baseline/wrap/margins intact. Accepted. | Same checks and appearance as interactive. Accepted. |
+| `defaultDisabled` | All squares retained, visibly paler; text unchanged; baseline/wrap/indent/margins intact. Accepted. | All squares retained and paler; baseline/wrap/indent/margins intact. Accepted. |
+| `customInteractive` | Purple filled checked circles and empty outlines; baseline/wrap/indent/margins intact. Accepted. | Same distinct circles and states; baseline/wrap/indent/margins intact. Accepted. |
+| `customReadOnly` | All circles retained; same appearance as interactive; baseline/wrap/indent/margins intact. Accepted. | Same checks and appearance as interactive. Accepted. |
+| `customDisabled` | All circles retained but paler purple; baseline/wrap/indent/margins intact. Accepted. | All circles retained but paler purple; baseline/wrap/indent/margins intact. Accepted. |
+| `customRetainedDocument` | Intended purple drawings, identical to source-initializer custom capture; baseline/wrap/indent/margins intact. Accepted. | Same initializer equivalence and visible checks. Accepted. |
+| `enlargedDefault` | Small body squares beside larger labels; markers stay on first baseline, complete five-line child and inward indentation; clear margins. Accepted. | Squares scale with Dynamic Type; parent/child labels wrap, complete eight-line long child, first-line markers and indentation retained. Accepted. |
+| `enlargedCustom` | Small body purple circles beside larger labels; correct states, complete five-line child, first-line markers, inward indent and clear margins. Accepted. | Purple circles scale; correct states, complete eight-line long child, first-line markers, inward indent and clear margins. Accepted. |
+
+Disabled appearance is an observation of the native plain-button environment,
+not a new styling contract or proof of edit prevention. Read-only does not need
+a distinct style. No special disabled styling was invented in the custom drawing.
+`cmp` found source and retained custom PNGs byte-identical on each platform.
+Default/custom interactive PNGs have equal 1400×1300 dimensions but different
+bytes (first difference at byte 2941 on macOS, 604 on iOS). Visual review confirms
+square/green-gray versus circle/purple; the difference is not merely metadata.
+
+#### RTL diagnostic — blocked directional indentation
+
+No RTL defect was blessed as a reference. A temporary `rtlInvestigation()` test
+captured the exact suite Markdown, read-only default markers, with a red 1pt
+border around the offered 280pt frame. It compared LTR/RTL environments with
+1200×800pt bounds, 400pt inset, body text, light, en_US, requested 2x scale.
+It exported directly after `flatMarkSnapshotImage`, without recording assertions.
+Both normal schemes passed ten tests (nine accepted cases plus diagnostic).
+The temporary test was removed; its source remains locally in
+`/tmp/flatmark-ticket07/rtl-investigation.swift`.
+
+All four diagnostic PNGs were opened with `read` and retained in
+`AI-docs/prds/ui-snapshot-testing/evidence/` as
+`defect-task-list-{leftToRight,rightToLeft}-{macOS,iOS}.png`.
+**These are diagnostic evidence, not baselines.** macOS direct export is
+1200×800 pixels (1x); iOS is 2400×1600 (2x). They establish geometry only.
+All wording and all four square states are intact, first-line markers are visible,
+and no ink touches the capture edges. This compact fixture does not reproduce
+ticket 04's out-of-column continuation drawing. It exposes a different problem:
+LTR child markers move right (inward), but RTL child markers also move right
+(outward, toward the red right boundary), instead of left/inward. This happens
+on both platforms. RTL directional indentation remains blocked and needs a
+**separate bounded production fix** before accepting RTL task references.
+
+#### Runs, regression guard, and mutation probes
+
+All capture commands ran serially from the repository root. Logs, xcresults,
+source copies, and SHA-256 manifests remain local under `/tmp/flatmark-ticket07/`.
+Explicit recordings selected nine tests per platform and failed only with nine
+expected recording assertions; no capture failures. Separate normal `verify`
+and restored `final` runs each passed nine tests on each platform.
+
+Before any recording, `existing-before.sha256` recorded all 84 existing PNGs.
+The six existing suite guards passed on each platform: LinkedImage 2, InlineFlow 5,
+OmissionSpacing 3, NestedContainer 5, Table 7, ImagePhase 10 tests.
+`shasum -a 256 -c` kept all 84 byte-identical. All eighteen task PNG hashes stayed
+unchanged through verification, diagnostics, mutations, restoration, and full tests.
+
+VERIFY-only probes had the same results on both platforms:
+
+| Probe | Temporary change | Mismatched references | Passed references |
+| --- | --- | --- | --- |
+| `state` | Flip checked parent from `[x]` to `[ ]` | All nine | None |
+| `custom` | Replace purple circles with orange diamonds | customInteractive, customReadOnly, customDisabled, customRetainedDocument, enlargedCustom | defaultInteractive, defaultReadOnly, defaultDisabled, enlargedDefault |
+| `indent` | Add two Markdown spaces before checked nested task, making it a grandchild | All nine (all include nesting) | None |
+
+Each probe exited 3 for genuine comparison mismatches, not recording assertions.
+Each previous change was removed before the next probe. `cmp` confirmed final
+suite source matched `/tmp/flatmark-ticket07/accepted.swift` byte-for-byte.
+No probe used a recording scheme.
+
+Exact command patterns (each phase ran separately, with review or fixture edits
+between phases; `platform=macOS` uses `dest=mac`, `platform=iOS` uses
+`dest=674C04A9-8792-4995-A6A9-66F80E5F96AA`):
+
+```sh
+(cd Demo && xcodegen generate)
+sweetpad devices
+sw_vers
+swift --version
+xcodebuild -version
+find Tests/References/Snapshots -name '*.png' -exec shasum -a 256 {} \; | sort > /tmp/flatmark-ticket07/existing-before.sha256
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS-Record --on mac --only-testing FlatMarkSnapshots-macOS/FlatMarkTaskMarkerSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket07/mac-record.xcresult
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS-Record --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --only-testing FlatMarkSnapshots-iOS/FlatMarkTaskMarkerSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket07/ios-record.xcresult
+# phase=verify, rtl, state, custom, indent, final; both platforms, one at a time:
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkTaskMarkerSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket07/$platform-$phase.xcresult
+# suite=LinkedImage, InlineFlow, OmissionSpacing, NestedContainer, Table, ImagePhase:
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMark${suite}SnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket07/$platform-guard-$suite.xcresult
+find Tests/References/Snapshots/TaskMarkers -name '*.png' -exec shasum -a 256 {} \; | sort > /tmp/flatmark-ticket07/accepted.sha256
+shasum -a 256 -c /tmp/flatmark-ticket07/existing-before.sha256
+shasum -a 256 -c /tmp/flatmark-ticket07/accepted.sha256
+swift test --list-tests
+swift test --filter FlatMarkTaskMarkerTests
+swift test --filter FlatMarkTaskMarkerToggle
+swift test --filter FlatMarkListRowViewTests
+swift test --filter FlatMarkCustomUnsupportedContentTests
+swift test --filter FlatMarkOmissionLiveUpdateTests
+swift test
+git status --short
+git diff --check
+```
+
+The listed package filters passed respectively 2 tests (6 argument cases),
+11 tests in 4 suites, 4 tests, 20 tests in 2 suites, and 2 tests.
+Full `swift test` passed 210 tests in 27 suites, with the existing intentional
+LoaderSpyTests known issue and no unexpected failures. Existing marker/editing
+and source-byte coverage remains unedited. Demo project regeneration included
+the new suite; no target configuration or dependencies changed.
+
+**Shared running-demo marker observation: NOT PERFORMED on either platform.**
+Both demo schemes built and launched with the `hostMarkers` preset through
+SweetPad. The simulator screenshot showed the top Recipe Lab controls and
+recipe introduction, not tasks. The desktop screenshot showed the macOS demo
+at the same introduction, partly behind the simulator. The bounded attempt did
+not navigate to task content or operate marker variant controls. Thus launch
+and initial-viewport observation succeeded, but marker observation remains
+unverified rather than inferred from mounted captures. Local screenshots and
+launch logs are under `/tmp/flatmark-ticket07/`.
+
+```sh
+sweetpad run --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-macOS --on mac --arg --capture --arg hostMarkers --detach --non-interactive
+sweetpad run --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-iOS --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --arg --capture --arg hostMarkers --detach --non-interactive
+xcrun simctl io 674C04A9-8792-4995-A6A9-66F80E5F96AA screenshot /tmp/flatmark-ticket07/ios-demo.png
+screencapture -x /tmp/flatmark-ticket07/mac-demo.png
+```
+Snapshots do not establish hit-target size, keyboard activation, VoiceOver focus
+order, edit prevention, minimum-OS behavior, or general running-app behavior.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.
