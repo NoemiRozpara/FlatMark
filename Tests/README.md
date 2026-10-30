@@ -91,6 +91,62 @@ SweetPad CLI qualification in the same environment: both normal schemes passed
 (two tests each). Both `-Record` schemes reached explicit recording assertions and
 wrote byte-identical references. Separate normal-scheme reruns passed afterward.
 
+### Inline-flow qualification (ticket 02)
+
+`FlatMarkInlineFlowSnapshotTests` owns ten references: narrow, wide, enlarged, RTL,
+and consecutive-break captures on each platform. All use public `FlatMarkView` and
+local fixture Markdown. Absolute image/link URLs resolve a linked placeholder;
+no image loader or external navigation is used.
+
+Qualified with Xcode 27.0 (27A266a), Swift 6.4, macOS 27.0.1 on a 2x display,
+and the iPhone 18 Pro simulator on iOS 27.0. iOS enlarged text uses
+`.accessibility3`; macOS uses a 28pt effective font override, not system Dynamic Type.
+
+Commands below ran from the repository root through SweetPad. Results and logs
+were retained locally under `/tmp/flatmark-ticket02/` (not repository artifacts).
+
+```sh
+# Explicit recording: each run selected five tests and reported five expected
+# recording assertions, with no native capture failures.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS-Record --on mac --only-testing FlatMarkSnapshots-macOS/FlatMarkInlineFlowSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket02/mac-record.xcresult
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS-Record --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --only-testing FlatMarkSnapshots-iOS/FlatMarkInlineFlowSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket02/ios-record.xcresult
+
+# Separate non-recording runs: seven passed per platform (five inline-flow,
+# two existing linked-image tests).
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-ticket02/mac-verify.xcresult
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --non-interactive --result-bundle /tmp/flatmark-ticket02/ios-verify.xcresult
+```
+
+Discover your own simulator with `sweetpad devices`; the identifier above records
+the actual run, not a required destination.
+
+Visual review covered all ten references. Narrow and wide captures wrap differently;
+the indigo 44×30pt replacement changes row baselines; supported bold/link text and
+separated hard breaks remain visible. Enlarged and RTL captures retain their content
+and clear outside margins. No visible overflow or clipping was found.
+
+**Known renderer defect retained at the user's request:** consecutive hard breaks in
+mixed flow do not preserve a blank row. The dedicated fixture contains both the
+linked image and custom replacement, so it enters `FlatMarkInlineFlowLayout`.
+`consecutiveBreaksRetainCurrentRendering` records that current output, not a claim
+that its break semantics are correct. A later renderer fix must deliberately update
+these two references. The older text-only images under
+`AI-docs/prds/ui-snapshot-testing/evidence/` do not establish mixed-flow behavior.
+
+Mutation check: temporarily replaced `beforeText` with
+`MUTATION CHECK changes wrapping before the diagram inside the narrow reading column`.
+Ran each normal scheme with the same suite-only filter used above and result bundles
+`mac-mutation.xcresult` / `ios-mutation.xcresult`. Each run reported four genuine
+snapshot mismatches and one passing consecutive-break case. Restored the fixture,
+then reran both full normal schemes with result bundles `mac-final.xcresult` /
+`ios-final.xcresult`: seven passed per platform. SHA-256 hashes of all ten inline-flow
+references were identical before verification and after the mutation/restoration runs.
+Existing numeric drawn-width and non-breaking-space tests were not changed or retired;
+those rendering tests were not rerun in this focused snapshot check.
+
+These are mounted-rendering snapshot checks, not running-demo interaction,
+VoiceOver, selection-gesture, or minimum-OS qualification.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.

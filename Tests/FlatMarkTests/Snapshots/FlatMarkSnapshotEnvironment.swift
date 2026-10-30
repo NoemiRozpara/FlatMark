@@ -58,7 +58,7 @@ struct FlatMarkSnapshotEnvironment: Equatable, Sendable {
         \(Int(captureSize.width))x\(Int(captureSize.height))pt@\(Int(pixelScale))x, \
         \(Int(columnWidth))pt column with \(Int(contentInset))pt inset, \(appearance.rawValue), \
         locale \(localeIdentifier), \(layoutDirection.fileComponent), \(textSize.name) text \
-        (\(textSize.fontSize)pt, dynamic type \(textSize.dynamicTypeSize))
+        (\(textSize.effectiveSizeDescription))
         """
     }
 
@@ -69,16 +69,37 @@ struct FlatMarkSnapshotEnvironment: Equatable, Sendable {
     /// test looking for overflow would read as correct.
     @MainActor
     func pinnedContent<V: View>(_ view: V) -> some View {
-        view
-            .environment(\.locale, Locale(identifier: localeIdentifier))
-            .environment(\.layoutDirection, layoutDirection == .rightToLeft ? .rightToLeft : .leftToRight)
-            .environment(\.colorScheme, appearance == .dark ? .dark : .light)
-            .environment(\.dynamicTypeSize, textSize.dynamicTypeSize)
-            .font(.system(size: textSize.fontSize))
-            .frame(width: columnWidth, alignment: .leading)
-            .padding(contentInset)
-            .frame(width: captureSize.width, height: captureSize.height, alignment: .topLeading)
-            .background(appearance == .dark ? Color.black : Color.white)
+        applyEffectiveTextSize(
+            view
+                .environment(\.locale, Locale(identifier: localeIdentifier))
+                .environment(\.layoutDirection, layoutDirection == .rightToLeft ? .rightToLeft : .leftToRight)
+                .environment(\.colorScheme, appearance == .dark ? .dark : .light)
+                .environment(\.dynamicTypeSize, textSize.dynamicTypeSize)
+        )
+        .frame(width: columnWidth, alignment: .leading)
+        .padding(contentInset)
+        .frame(width: captureSize.width, height: captureSize.height, alignment: .topLeading)
+        .background(appearance == .dark ? Color.black : Color.white)
+    }
+
+    /// Pins the environment's effective text size without pinning it where that would hide Dynamic Type.
+    ///
+    /// macOS body text does not scale from `dynamicTypeSize` alone, so macOS always pins `fontSize`
+    /// absolutely and that size is only an effective text size, not system Dynamic Type. On iOS a case
+    /// that sets `usesDynamicTypeOniOS` keeps the inherited semantic font and lets `dynamicTypeSize`
+    /// drive the glyphs, so iOS enlarged text runs the real Dynamic Type path; a case that keeps the
+    /// absolute size (the body control) reproduces the platform body rendering it was recorded against.
+    @ViewBuilder
+    private func applyEffectiveTextSize<V: View>(_ view: V) -> some View {
+        #if os(macOS)
+            view.font(.system(size: textSize.fontSize))
+        #else
+            if textSize.usesDynamicTypeOniOS {
+                view
+            } else {
+                view.font(.system(size: textSize.fontSize))
+            }
+        #endif
     }
 }
 
@@ -122,6 +143,27 @@ extension FlatMarkSnapshotEnvironment {
         let name: String
         let dynamicTypeSize: DynamicTypeSize
         let fontSize: CGFloat
+        /// Whether iOS drives the glyphs from `dynamicTypeSize` instead of pinning `fontSize`.
+        ///
+        /// When true the capture keeps the inherited semantic font, so the case exercises the real
+        /// Dynamic Type path on iOS. When false iOS pins `fontSize` absolutely, which reproduces the
+        /// platform body rendering a reference was recorded against. macOS ignores this and always
+        /// pins `fontSize`, because body text there does not scale from `dynamicTypeSize`.
+        let usesDynamicTypeOniOS: Bool
+
+        /// How the effective size is actually produced, worded so a failure never calls a macOS
+        /// absolute override a Dynamic Type result.
+        var effectiveSizeDescription: String {
+            #if os(macOS)
+                "\(Int(fontSize))pt font override, dynamic type \(dynamicTypeSize)"
+            #else
+                if usesDynamicTypeOniOS {
+                    "real Dynamic Type \(dynamicTypeSize)"
+                } else {
+                    "\(Int(fontSize))pt font override, dynamic type \(dynamicTypeSize)"
+                }
+            #endif
+        }
     }
 }
 
@@ -129,14 +171,20 @@ extension FlatMarkSnapshotEnvironment.TextSize {
     /// The platform's own body text: 13pt on macOS and 17pt on iOS, at standard Dynamic Type.
     static var body: FlatMarkSnapshotEnvironment.TextSize {
         #if os(macOS)
-            FlatMarkSnapshotEnvironment.TextSize(name: "body", dynamicTypeSize: .large, fontSize: 13)
+            FlatMarkSnapshotEnvironment.TextSize(
+                name: "body", dynamicTypeSize: .large, fontSize: 13, usesDynamicTypeOniOS: false
+            )
         #else
-            FlatMarkSnapshotEnvironment.TextSize(name: "body", dynamicTypeSize: .large, fontSize: 17)
+            FlatMarkSnapshotEnvironment.TextSize(
+                name: "body", dynamicTypeSize: .large, fontSize: 17, usesDynamicTypeOniOS: false
+            )
         #endif
     }
 
     /// A deliberately large effective size for wrapping and overflow cases.
     static var enlarged: FlatMarkSnapshotEnvironment.TextSize {
-        FlatMarkSnapshotEnvironment.TextSize(name: "enlarged", dynamicTypeSize: .accessibility3, fontSize: 28)
+        FlatMarkSnapshotEnvironment.TextSize(
+            name: "enlarged", dynamicTypeSize: .accessibility3, fontSize: 28, usesDynamicTypeOniOS: true
+        )
     }
 }
