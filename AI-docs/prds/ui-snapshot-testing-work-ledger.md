@@ -25,7 +25,7 @@ Initial working tree: clean.
 | 10a | Accepted; committed | coding assistant + reviewer + orchestrator | Fixture sources and raster reach both snapshot targets via one identical import; both lanes 62/62, both demos build, `swift test` 231/30, 144 hashes unchanged. See ticket 10a below. |
 | 10b | Accepted; committed | coding assistant + reviewer + orchestrator | Blocker 4 resolved: macOS captures pinned to sRGB; 72 macOS baselines re-recorded, reviewed, verified twice. iOS 72 references byte-identical. See ticket 10b below. |
 | 11 | Accepted; committed | coding assistant + reviewer + orchestrator | 32 references (16/platform); one retained host captures literal→custom→label→omit→restored-literal; no-reload proof (1 request vs fresh-mount 1→2); delayed-completion probe. See ticket 11 below. |
-| 12 | Not started | Unassigned | Free to start. |
+| 12 | Accepted; committed | coding assistant + reviewer + orchestrator | 12 references (6/platform): light/dark typography, enabled/disabled mentions, narrow + enlarged. Inline-code-is-monospaced (no background) confirmed as current contract, not a defect. See ticket 12 below. |
 | 13 | Not started | Unassigned | Free to start. |
 | 14 | Not started | Unassigned | Depends on accepted tickets 01–13. |
 
@@ -447,3 +447,28 @@ only. The orchestrator independently re-ran both lanes (67/67) and `swift test` 
 known issue), and confirmed the 144 prior references unchanged. `git diff --check` passed. Minimum-OS,
 dark/RTL/enlarged transitions, VoiceOver, gestures, task activation, general cancellation, and running-demo
 behavior remain unverified. No production changes and no commits were made by the worker.
+
+## Ticket 12
+
+Added `FlatMarkTypographySnapshotTests` with six cases and 12 references (6 per platform) in a new
+`.typography` namespace: a light and a dark typography sampler (headings 1–6, bold/italic/strike, inline
+monospaced code, fenced code, thematic break, hard + soft breaks), a focused mentions-enabled vs
+mentions-disabled comparison (`@ja*ne*`, whole-token emphasis/strike, email, code, link label), and narrow +
+enlarged wrapping variants.
+
+**Orchestrator ruling (misread, not a blocker):** the worker first stopped believing the ticket required an
+inline-code BACKGROUND. Inspection confirmed `FlatMarkInlineAttributedStringProjector.visitInlineCode` sets
+only `inlinePresentationIntent = .code`, so inline code is monospaced with no background — the renderer's
+long-standing intended contract, not a clipping defect. The plan forbids production fixes and inventing style
+contracts here, so the ticket captures the honest current output. AC "dark exposes code backgrounds" is met by
+the fenced-code background + secondary styling being visible.
+
+Independent review opened all 12 references and accepted with no critical or warning items; it confirmed
+headings 1–3 differ and 4–6 share styling, mentions add styling without link attributes, dark shows the fenced
+background, and narrow/enlarged wrap without edge clipping. Per-platform: recording produced six expected
+recording assertions each; two consecutive non-recording lanes passed 73/73; heading, inline-code, and mention
+mutations each produced genuine mismatches and were restored. The orchestrator independently re-ran both lanes
+(73/73) and `swift test` (242 tests in 32 suites, one known issue) and confirmed every non-Typography reference
+byte-identical. `git diff --check` passed. Existing mention/attributed tests are untouched. Minimum-OS, system
+Dynamic Type, VoiceOver, contrast/WCAG conformance, and running-demo behavior remain unverified. No production
+changes and no commits were made by the worker.

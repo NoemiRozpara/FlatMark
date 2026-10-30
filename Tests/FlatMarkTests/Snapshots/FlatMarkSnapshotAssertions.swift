@@ -26,6 +26,7 @@ enum FlatMarkSnapshotSuite: String {
     case unsupportedPolicies = "UnsupportedPolicies"
     case emptyStructures = "EmptyStructures"
     case nativePlaceholderFlow = "NativePlaceholderFlow"
+    case typography = "Typography"
 }
 
 // MARK: - FlatMarkSnapshotMode

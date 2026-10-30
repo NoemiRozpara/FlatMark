@@ -94,6 +94,51 @@ SweetPad CLI qualification in the same environment: both normal schemes passed
 (two tests each). Both `-Record` schemes reached explicit recording assertions and
 wrote byte-identical references. Separate normal-scheme reruns passed afterward.
 
+### Typography qualification (ticket 12)
+
+`FlatMarkTypographySnapshotTests` owns six references per platform under
+`References/Snapshots/Typography/{macOS,iOS}`: light/dark samplers, identical
+mention Markdown with detection enabled/disabled, narrow wrapping, and enlarged
+wrapping. Existing exact mention and attributed-string tests are unchanged.
+
+All twelve PNGs were opened individually with the image reader. Headings 1–3
+have distinct sizes; 4–6 share headline styling. Bold, italic, strikethrough,
+monospaced inline code, fenced code, divider, and hard/soft breaks are visible.
+Enabled mentions gain bold styling, including split emphasis and whole-token
+emphasis/strike. Email, code, and link-label exclusions remain visually distinct
+and unchanged between detection settings. Narrow and enlarged text wraps without
+edge clipping. iOS enlarged fenced code wraps and hyphenates the long identifier.
+
+Inline code renders monospaced via `inlinePresentationIntent = .code` with no
+background. This is the reviewed renderer contract, not a defect. Fenced code
+shows a secondary background; dark shows that background and secondary styling.
+The divider and dark fenced background are faint but visible. This review makes
+no WCAG or contrast-conformance claim. A distinct inline-code background would
+need a separate bounded production change, outside this ticket.
+
+Qualification used the existing Xcode 27.0 / macOS 27.0.1 capture environment and
+iPhone 18 Pro iOS 27.0 simulator. This round ran `cd Demo && xcodegen generate`
+(exit 0), then the namespace-only `FlatMarkSnapshots-macOS-Record` and
+`FlatMarkSnapshots-iOS-Record` schemes with
+`--only-testing FlatMarkSnapshots-<platform>/FlatMarkTypographySnapshotTests`.
+Both recordings exited 3 with six expected recording assertions, not capture
+failures. Two consecutive full non-recording runs of each corresponding scheme
+all exited 0. The destination was `mac` or simulator
+`674C04A9-8792-4995-A6A9-66F80E5F96AA`; all runs used `--non-interactive`.
+Logs and result bundles are under `/tmp/flatmark-12/` (`mac-record`, `ios-record`,
+`mac-verify1`, `mac-verify2`, `ios-verify1`, `ios-verify2`).
+
+Three temporary fixture mutations ran the selected macOS suite in verify mode.
+Changing heading one from level 1 to 2 and removing the sampler inline-code span
+each caused genuine comparison mismatches in `lightSampler` and `darkSampler`.
+Disabling detection in `mentionsEnabled` mismatched only that reference.
+Each probe exited 3; all mutations were restored without recording.
+`swift test` then exited 0: 242 tests in 32 suites, one known issue, no failures.
+SHA-256 comparison against `references-before.txt` confirmed every reference
+outside Typography stayed unchanged. All references also matched the post-record
+hash list after verification and mutation probes. `git diff --check` passed.
+No production or shared capture/environment code changed.
+
 ### Live policy-transition qualification (ticket 11)
 
 `FlatMarkPolicyTransitionSnapshotTests` owns sixteen PNGs per platform under

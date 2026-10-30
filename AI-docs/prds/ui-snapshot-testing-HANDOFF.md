@@ -6,7 +6,7 @@ Resume point only. Authority stays in [the plan](ui-snapshot-testing.md),
 
 ## State
 
-- Branch `snapshot-tests`. Tickets 01–10, 10a, 10b, and 11 accepted and committed.
+- Branch `snapshot-tests`. Tickets 01–10, 10a, 10b, 11, and 12 accepted and committed.
 - **Ticket 10b landed:** the macOS capture path is pinned to `NSColorSpace.sRGB`; all 72 macOS references
   were re-recorded (now `sRGB IEC61966-2.1`), reviewed, and pass two consecutive non-recording macOS runs
   (62/62) and `swift test` (231 tests in 30 suites, one known issue). iOS references unchanged. Blocker 4
@@ -20,7 +20,11 @@ Resume point only. Authority stays in [the plan](ui-snapshot-testing.md),
 - Ticket 11 (live policy transitions) landed: 32 references in a new `.policyTransitions` namespace, on an
   orchestrator-added shared `FlatMarkRetainedSnapshotHost` (one mount, repeatable `capture()`/`close()`).
   No-reload proven by constant request count vs the fresh-mount 1→2 contrast. 144 prior refs unchanged.
-- Tickets 12, 13, 14 not started. 12 and 13 are independent suites; 14 depends on all of 01–13.
+- Ticket 12 (typography + mentions) landed: 12 references in a new `.typography` namespace (light/dark
+  sampler, enabled/disabled mentions, narrow/enlarged). Inline code is monospaced with no background — the
+  current renderer contract, not a defect (orchestrator ruled; the worker had misread the AC).
+- Ticket 13 (shared recipe sections) not started; it uses the shared recipe now reachable via ticket 10a.
+- Ticket 14 (Wave C integration) depends on all of 01–13.
 
 ## Issue
 
@@ -34,8 +38,7 @@ checkout with ticket 10a reverted, so ticket 10a is not the cause. Details: Bloc
 
 ## Pick
 
-**Next: ticket 12** (typography and mentions), then 13, then 14 (Wave C integration). All prerequisites are
-met; 12 and 13 are unblocked.
+**Next: ticket 13** (shared recipe sections), then 14 (Wave C integration and retirement).
 
 The shared capture support now includes `FlatMarkRetainedSnapshotHost` (added for ticket 11). Treat it as
 frozen shared support; later tickets may USE it but need orchestrator approval to change it. Never re-record
