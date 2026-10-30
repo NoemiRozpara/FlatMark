@@ -71,6 +71,9 @@ fixtures, including these no-loader placeholders. Async fixtures must resolve
 their state before capture; this helper does not infer readiness from pixels or
 loader callbacks. Native capture failure throws. Empty or incomplete content is
 caught by image comparison and baseline review, not a second custom validator.
+An optional `prepareMountedView` hook runs after mounting and immediately before
+native bitmap capture. Table tests use it to position the horizontal viewport;
+callers that omit it get no extra await or layout pass.
 Serialize mounted snapshot cases (`@Suite(.serialized)`) and do not run multiple
 recording processes against the same namespace.
 
@@ -409,6 +412,119 @@ remain unchanged. `git diff --check` passed; the unrelated untracked work ledger
 remains. These mounted snapshots do not qualify running-demo interaction (not
 exercised), live VoiceOver, gestures, selection, minimum OS versions, RTL lists,
 or vertically constrained quote hosts.
+
+### Table qualification (ticket 05)
+
+`FlatMarkTableSnapshotTests` owns fourteen references in `Tables`: wide long cells,
+narrow leading/trailing viewports, enlarged long cells, a public header-only GFM
+table, an empty internal table between paragraphs, and a visible public table
+between the same paragraphs, on each platform. The empty fixture inserts a
+`FlatMarkRenderTable(header: [], rows: [])` into a projected document. It is an
+internal fixture, not a claim that public Markdown parses into an empty table.
+Existing eligibility, parser span, blank-cell, and uneven-cell tests remain unchanged.
+
+Qualified with Swift 6.4, Xcode 27.0, macOS 27.0.1 on the 2x display, and iPhone
+18 Pro on iOS 27.0. iOS enlarged text uses `.accessibility3`; macOS uses a 28pt
+font override, not system Dynamic Type. Fixed captures provide 100pt outside
+insets and intrinsic vertical document sizing. The initial 1400pt enlarged iOS
+capture was too short and was rejected. The final enlarged capture is 1900pt
+high on both platforms; every final cell bottom and the bottom rule are visible.
+No production defect was established or accepted as a reference.
+
+The suite-local native scroll-view lookup selects the horizontal overflowing
+scroll view. Leading is exactly 0pt. Trailing is exactly 400pt on each platform:
+four fixed 160pt columns give 640pt of content, minus the 240pt viewport.
+The hook computes the target offset from mounted document/content width minus
+viewport width, sets it without animation, lays out/displays, then yields once.
+After that final yield it reads the achieved native offset back
+(`contentView.bounds.origin.x` on macOS, `contentOffset.x` on iOS) and requires an
+exact match with 0/400pt, together with the 640pt content and 240pt viewport
+geometry. A missing scroll view or a mismatch fails and reports the case, the
+intended and achieved offset, and both widths. That read-back proves the native
+position at the sampled instant, not completed drawing; pixel review establishes
+which content drew. The default capture path has no added awaits or layout passes.
+
+Commands ran serially from the repository root. Logs, rejected initial output,
+hashes, and xcresults remain local under `/tmp/flatmark-ticket05/`.
+
+```sh
+(cd Demo && xcodegen generate)
+
+# Each phase ran separately, with review or fixture edits between phases.
+# Initial mac-record failed compilation; mac-record2 and ios-record recorded
+# seven expected assertions each. final-record corrected capture height only.
+for phase in final-record verify-Table short-cell fill-blank empty-mutation restored offset-final; do
+  for platform in macOS iOS; do
+    dest=mac
+    [ "$platform" = iOS ] && dest=674C04A9-8792-4995-A6A9-66F80E5F96AA
+    scheme=FlatMarkSnapshots-$platform
+    [ "$phase" = final-record ] && scheme=$scheme-Record
+    sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme "$scheme" --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkTableSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket05/$platform-$phase.xcresult
+  done
+ done
+
+# Regression guard: all four existing suites, separate filtered verify runs.
+for platform in macOS iOS; do
+  dest=mac
+  [ "$platform" = iOS ] && dest=674C04A9-8792-4995-A6A9-66F80E5F96AA
+  for suite in LinkedImage InlineFlow OmissionSpacing NestedContainer; do
+    sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMark${suite}SnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket05/$platform-verify-$suite.xcresult
+  done
+ done
+
+shasum -a 256 -c /tmp/flatmark-ticket05/existing-before.sha256
+find Tests/References/Snapshots/Tables -name '*.png' -exec shasum -a 256 {} \; | sort > /tmp/flatmark-ticket05/tables-after.sha256
+diff -u /tmp/flatmark-ticket05/tables-before.sha256 /tmp/flatmark-ticket05/tables-after.sha256
+swift test
+git status --short
+git diff --check
+```
+
+Every final reference was opened with the image reader. The following rows each
+cover two PNGs (one per platform), named by their test stem:
+
+| PNG test stem | macOS review | iOS review |
+| --- | --- | --- |
+| `wideLongCells` | Four headers, both long endings, blank cells, formatting, and complete outer/row rules visible; clear margins. Accepted. | Same checks with more wrapping; no hidden bottom glyphs. Accepted. |
+| `narrowLeading` | Complete first column and left/top/bottom boundaries; partial second column at viewport edge, as expected. Outside margins clear. Accepted. | Same checks; FIRST END visible above the row boundary. Accepted. |
+| `narrowTrailing` | Complete last column, LAST END, last body cell, right/top/bottom boundaries; partial third column at viewport edge. Accepted. | Same checks; no missing final glyphs or bottom rule. Accepted. |
+| `enlargedLongCells` | Two complete visible columns, FIRST END and formatted second-row content intact; full bottom rule and margins. Accepted. | Larger Dynamic Type wraps and hyphenates; FIRST END and code ending intact; bottom rule and generous bottom margin visible. Accepted. |
+| `headerOnly` | Both headers and all four outer boundaries visible; clear margins. Accepted. | Both headers and complete boundary visible; clear margins. Accepted. |
+| `emptyInternalTableBetweenNeighbors` | Both paragraphs intact with ordinary neighbor spacing; no table ink or extra slot. Accepted. | Same checks; no unexpected gap or rule. Accepted. |
+| `visiblePublicTableBetweenNeighbors` | Same paragraphs surround a visible one-cell header table; boundary complete. Accepted. | Same checks; both neighbor gaps and complete boundary visible. Accepted. |
+
+Final explicit recording reported seven expected recording assertions per
+platform, with no native capture/readiness failure. Separate `verify-Table` runs
+passed seven tests each. Existing LinkedImage (2), InlineFlow (5), OmissionSpacing
+(3), and NestedContainer (5) verify tests all passed on each platform. All 36
+existing reference hashes stayed byte-identical. All fourteen new reference
+hashes stayed unchanged through verify, mutations, restoration, and final runs.
+
+VERIFY-only mutation probes produced these results on **each** platform:
+
+| Probe | Mismatched references | Passed references |
+| --- | --- | --- |
+| Shorten both long end-column body cells to FIRST END / LAST END, reducing row height | wide, narrow leading, narrow trailing, enlarged | header-only, empty internal, visible control |
+| Restore long cells; fill the authored first-column blank with FILLED BLANK | wide, narrow leading, enlarged | narrow trailing, header-only, empty internal, visible control |
+| Restore blank; replace empty internal table with a one-cell MUTATED TABLE header | empty internal | all six other references |
+
+Each mutation was removed before the next probe. The full fixture was restored
+byte-for-byte before `restored`; seven tests passed per platform. `offset-final`
+then added the explicit 0/400pt expectations and again passed seven per platform.
+No mutation used recording. `swift test` passed 191 tests in 25 suites, with one
+intentional LoaderSpyTests known issue and no unexpected failures.
+
+**Running-app scroll check: NOT PERFORMED on either platform.** Both existing
+demo schemes built and launched through `sweetpad run --detach --non-interactive`
+with the same project/destinations. iOS runtime UI inspection exposed only the
+outer document scroll area, Settings, and Markdown source. A Settings tap reported
+success but the next UI inspection still showed the same targets; no table
+horizontal scroll gesture or trailing-cell observation was obtained within the
+bounded attempt. No macOS gesture-driven observation was obtained; the available
+UI automation lane was simulator-based. Launch success and deterministic
+snapshot offsets do not verify actual gesture reachability. That ticket criterion
+remains unverified. Minimum-OS behavior, VoiceOver, selection, and vertically
+constrained hosts are also outside this qualification.
 
 ### Observation boundaries
 

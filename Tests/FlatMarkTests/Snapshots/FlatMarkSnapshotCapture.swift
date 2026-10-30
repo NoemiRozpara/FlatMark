@@ -3,9 +3,11 @@ import SwiftUI
 #if os(macOS)
     import AppKit
     typealias FlatMarkSnapshotImage = NSImage
+    typealias FlatMarkSnapshotNativeView = NSView
 #elseif os(iOS)
     import UIKit
     typealias FlatMarkSnapshotImage = UIImage
+    typealias FlatMarkSnapshotNativeView = UIView
 #endif
 
 enum FlatMarkSnapshotCaptureError: Error {
@@ -14,10 +16,13 @@ enum FlatMarkSnapshotCaptureError: Error {
 
 /// Captures a mounted, synchronous fixture after three layout passes.
 /// Async fixtures must resolve their state before calling this helper.
+/// `prepareMountedView` prepares an already-mounted native view for deterministic scroll positioning.
+/// It is not a readiness signal: changing native state does not prove content drew or gestures work.
 @MainActor
 func flatMarkSnapshotImage<V: View>(
     of view: V,
-    environment: FlatMarkSnapshotEnvironment
+    environment: FlatMarkSnapshotEnvironment,
+    prepareMountedView: (@MainActor (FlatMarkSnapshotNativeView) async -> Void)? = nil
 ) async throws -> FlatMarkSnapshotImage {
     #if os(macOS)
         _ = NSApplication.shared
@@ -43,6 +48,9 @@ func flatMarkSnapshotImage<V: View>(
             await Task.yield()
             hosting.layoutSubtreeIfNeeded()
             hosting.displayIfNeeded()
+        }
+        if let prepareMountedView {
+            await prepareMountedView(hosting)
         }
         guard let bitmap = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else {
             throw FlatMarkSnapshotCaptureError.unavailable
@@ -72,6 +80,9 @@ func flatMarkSnapshotImage<V: View>(
             await Task.yield()
             window.layoutIfNeeded()
             hosting.view.layoutIfNeeded()
+        }
+        if let prepareMountedView {
+            await prepareMountedView(hosting.view)
         }
         let format = UIGraphicsImageRendererFormat()
         format.scale = environment.pixelScale
