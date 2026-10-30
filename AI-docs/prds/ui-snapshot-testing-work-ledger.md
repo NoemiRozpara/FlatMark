@@ -26,7 +26,7 @@ Initial working tree: clean.
 | 10b | Accepted; committed | coding assistant + reviewer + orchestrator | Blocker 4 resolved: macOS captures pinned to sRGB; 72 macOS baselines re-recorded, reviewed, verified twice. iOS 72 references byte-identical. See ticket 10b below. |
 | 11 | Accepted; committed | coding assistant + reviewer + orchestrator | 32 references (16/platform); one retained host captures literal→custom→label→omit→restored-literal; no-reload proof (1 request vs fresh-mount 1→2); delayed-completion probe. See ticket 11 below. |
 | 12 | Accepted; committed | coding assistant + reviewer + orchestrator | 12 references (6/platform): light/dark typography, enabled/disabled mentions, narrow + enlarged. Inline-code-is-monospaced (no background) confirmed as current contract, not a defect. See ticket 12 below. |
-| 13 | Not started | Unassigned | Free to start. |
+| 13 | Accepted; committed | coding assistant + reviewer + orchestrator | 18 references (9/platform): upper/lower recipe sections (title+image, tasks/quotes, table/code, lower notes) via public `FlatMarkView` + suite-local controlled loader; raster-draw proven vs a `leaf.fill` control; no shared-fixture change. See ticket 13 below. |
 | 14 | Not started | Unassigned | Depends on accepted tickets 01–13. |
 
 ## Ticket 01
@@ -472,3 +472,34 @@ mutations each produced genuine mismatches and were restored. The orchestrator i
 byte-identical. `git diff --check` passed. Existing mention/attributed tests are untouched. Minimum-OS, system
 Dynamic Type, VoiceOver, contrast/WCAG conformance, and running-demo behavior remain unverified. No production
 changes and no commits were made by the worker.
+
+## Ticket 13
+
+Added `FlatMarkRecipeIntegrationSnapshotTests` with 18 references (9 per platform) in a new `.recipe`
+namespace: `primary` and `dark` each contribute four fixed crops (upper title+image, tasks/quotes, table/code,
+lower notes) taken from one full-layout loaded capture, plus an enlarged upper variant.
+
+**Orchestrator ruling (blocker resolved without touching shared fixtures):** the renderer-only shared fixture
+`FlatMarkCustomDocumentFixture` has a fixed `public let` loader that records the URL before decoding, so it
+cannot supply a load-completion predicate. The worker stopped and reported it. Following the plan's "use real
+public views and controlled host loaders for phase/transition coverage" and the ticket 06 precedent, the
+orchestrator ruled: build the recipe with the public `FlatMarkView(markdown: FlatMarkRecipeSample.markdown, ...)`
+initializer and a suite-local controlled loader. Shared fixtures and production stayed unchanged; the shared
+recipe markdown is reused (not copied).
+
+Readiness mirrors ticket 06 (loader completion + bounded geometry quiescence, not request count). The real
+raster draw is proven by a **fallback contrast**: the loaded upper crop must differ from an identically
+configured always-`leaf.fill` control render, with `#expect(delivery.requests == 1)` per loader. Policy is set
+explicitly to `.literal` after inspecting `FlatMarkRecipeCapture.apply(to:)`. Independent review opened all 18
+references, confirmed the focaccia photo (not a leaf glyph), visible tasks/quotes/table/code, lower notes and
+final code block, dark code backgrounds, enlarged text, and no controls/chrome, and accepted with no critical
+items.
+
+Per-platform: recording produced nine expected recording assertions each; two consecutive non-recording lanes
+passed 76/76; the raster/fallback contrast passed and a test-side markdown mutation mismatched the upper
+references then restored. The orchestrator independently re-ran both lanes (76/76) and `swift test` (245 tests
+in 33 suites, one known issue) and confirmed every non-Recipe reference byte-identical. `git diff --check`
+passed. RTL is deliberately excluded (known-defect area). Enlarged coverage is upper-only (selected variant).
+The iOS running-app lower-scroll was observed (six swipes, screenshot inspected); **macOS running-app
+lower-scroll was NOT PERFORMED**. Minimum-OS, gestures, activation, live accessibility, and contrast/WCAG remain
+unverified. No production changes and no commits were made by the worker.

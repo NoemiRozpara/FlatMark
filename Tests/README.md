@@ -94,6 +94,91 @@ SweetPad CLI qualification in the same environment: both normal schemes passed
 (two tests each). Both `-Record` schemes reached explicit recording assertions and
 wrote byte-identical references. Separate normal-scheme reruns passed afterward.
 
+### Recipe integration qualification (ticket 13)
+
+`FlatMarkRecipeIntegrationSnapshotTests` owns nine PNGs per platform under
+`References/Snapshots/Recipe/{macOS,iOS}`. Three tests cover primary light,
+dark, and enlarged rendering of the unchanged `FlatMarkRecipeSample.markdown`.
+The public `FlatMarkView` initializer sets `.literal`, mention detection on,
+default task markers, passive tasks, and a handled no-op link action explicitly.
+Inspection of `FlatMarkRecipeCapture.apply(to:)` confirmed daylight, midnight,
+and generous select `.literal`; only omission selects `.omit`. Preset names and
+the older manual-capture guide do not define these tests' settings.
+
+Primary and dark each mount the whole document once at 640×2400pt, with a
+560pt column and 40pt inset. Four fixed top-origin crops of that single loaded
+capture cover `upperTitleImage`, `tasksQuotes`, `tableCode`, and `lowerNotes`.
+Crop (y, height) in points: macOS (0, 600), (600, 470), (1070, 425),
+(1495, 425); iOS (0, 650), (650, 540), (1190, 505), (1695, 550).
+The suite checks that the entire document fits before cropping. All captures
+use 2x, `en_US`, LTR, and the existing environment's platform body text sizes.
+Dark uses the environment's black background and dark appearance.
+
+The enlarged representative uses `TextSize.enlarged` (28pt macOS override;
+iOS accessibility3 Dynamic Type), a 1120pt column, and a 1200×1100pt viewport.
+It mounts the full recipe in a vertical ScrollView with hidden indicators and
+asserts the achieved native vertical offset is zero. Its upper crop is 750pt
+high on macOS and 900pt on iOS. This uses the sanctioned scroll-framing
+alternative: UIKit's shared capture helper returned `.unavailable` for tall
+3200pt and enlarged 4500pt windows. The final enlarged capture does not claim
+a full-document bitmap or lower enlarged coverage. Primary and dark retain
+full-layout section coverage. No shared capture support or fixtures changed.
+RTL remains excluded rather than blessing the known-defect area.
+
+The suite-local controlled loader serves the bundled focaccia raster only for
+`https://example.com/focaccia.jpeg`. Each capture waits for loader completion,
+then five identical mounted-geometry samples within 100 attempts at 20ms.
+Each test also mounts an identical leaf.fill-loader control, waits by the same
+rule, and asserts its upper section differs from the raster section. Both
+loaders receive exactly one request. These assertions passed for all three
+configurations on both platforms. Completion alone is not drawing evidence;
+contrast plus reviewed photo pixels establish the loaded output.
+
+All eighteen final PNGs were opened with the image reader. Each upper section
+shows a recognizable focaccia photo, not a leaf glyph. Primary/dark show nested
+checked and unchecked tasks, quote bars, all table rows, fenced hydration code,
+and the complete lower notes through `@jane: save a slice`. Dark code backgrounds
+remain visible; enlarged upper text and photo are legible. Crop boundaries do
+not cut glyphs. Literal HTML is intentional. No settings, counters, activity
+strip, clocks, navigation chrome, or source controls enter the references.
+These checks do not establish gestures, link activation, or VoiceOver behavior.
+
+Commands used `sweetpad test --project Demo/FlatMarkDemo.xcodeproj`,
+`--non-interactive`, and destination `mac` or
+`674C04A9-8792-4995-A6A9-66F80E5F96AA` (iPhone 18 Pro, iOS 27.0),
+with Xcode 27 RC / Swift 6.4 and macOS 27.0.1:
+
+- `cd Demo && xcodegen generate`: exit 0; generated project includes the suite
+  in both snapshot targets. Both targets compiled in the recording lanes.
+- `--scheme FlatMarkSnapshots-<platform>-Record --only-testing
+  FlatMarkSnapshots-<platform>/FlatMarkRecipeIntegrationSnapshotTests`:
+  final recordings exited 3 on each platform with nine expected recording
+  assertions, not readiness/capture failures. Earlier framing probes were
+  discarded before the final references were recorded.
+- Two consecutive full runs of `--scheme FlatMarkSnapshots-<platform>`:
+  all four commands exited 0, each with 76 tests and no failures.
+- Temporary test-only Markdown mutation `Sunday focaccia` → `Monday focaccia`:
+  namespace-only normal lanes exited 3 on both platforms, with genuine image
+  mismatches in all three upper references. The shared source stayed untouched;
+  the test mutation was restored. Restored namespace lanes exited 0, three
+  tests each. No probe used recording.
+- `swift test`: initial compilation exposed a missing conditional fixture-module
+  import. After adding it, exit 0: 245 tests in 33 suites, one known issue,
+  no failures.
+- SHA-256 checks against `/tmp/flatmark-13/references-before.txt` and the final
+  post-record Recipe list passed. Every pre-existing reference is byte-identical,
+  and verification/probes did not change the new references. `git diff --check`
+  passed. Logs are under `/tmp/flatmark-13/`.
+
+Running-app check: launched the iOS demo with `--capture daylight` using
+MobileBuildMCP, performed six upward swipes in the recipe scroll view, and opened
+the resulting screenshot. Lower notes, nested quote/task content, ordered notes,
+contact text, and final code block were visible. The live capture includes host
+chrome and is not a baseline. macOS demo launch succeeded, but lower scrolling
+and screenshot inspection were **NOT PERFORMED** on macOS. Minimum-OS,
+minimum-toolchain, live accessibility, and lower enlarged rendering remain
+unverified.
+
 ### Typography qualification (ticket 12)
 
 `FlatMarkTypographySnapshotTests` owns six references per platform under

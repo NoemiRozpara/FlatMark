@@ -6,7 +6,7 @@ Resume point only. Authority stays in [the plan](ui-snapshot-testing.md),
 
 ## State
 
-- Branch `snapshot-tests`. Tickets 01–10, 10a, 10b, 11, and 12 accepted and committed.
+- Branch `snapshot-tests`. Tickets 01–10, 10a, 10b, 11, 12, and 13 accepted and committed.
 - **Ticket 10b landed:** the macOS capture path is pinned to `NSColorSpace.sRGB`; all 72 macOS references
   were re-recorded (now `sRGB IEC61966-2.1`), reviewed, and pass two consecutive non-recording macOS runs
   (62/62) and `swift test` (231 tests in 30 suites, one known issue). iOS references unchanged. Blocker 4
@@ -23,8 +23,11 @@ Resume point only. Authority stays in [the plan](ui-snapshot-testing.md),
 - Ticket 12 (typography + mentions) landed: 12 references in a new `.typography` namespace (light/dark
   sampler, enabled/disabled mentions, narrow/enlarged). Inline code is monospaced with no background — the
   current renderer contract, not a defect (orchestrator ruled; the worker had misread the AC).
-- Ticket 13 (shared recipe sections) not started; it uses the shared recipe now reachable via ticket 10a.
-- Ticket 14 (Wave C integration) depends on all of 01–13.
+- Ticket 13 (shared recipe sections) landed: 18 references in a new `.recipe` namespace (primary/dark four-
+  section crops + enlarged upper), via the public `FlatMarkView` with a suite-local controlled loader and a
+  `leaf.fill` fallback contrast. Shared fixtures/production unchanged. macOS running-app lower-scroll NOT
+  PERFORMED (unverified).
+- Ticket 14 (Wave C integration + retirement) not started; depends on all of 01–13 (all now accepted).
 
 ## Issue
 
@@ -38,11 +41,13 @@ checkout with ticket 10a reverted, so ticket 10a is not the cause. Details: Bloc
 
 ## Pick
 
-**Next: ticket 13** (shared recipe sections), then 14 (Wave C integration and retirement).
+**Next: ticket 14** (Wave C integration and retirement) — the final ticket. It is the only owner of edits to
+existing test suites (retiring weak proxies), shared documentation changes, and dead-helper deletion. It needs
+all of 01–13 accepted (done).
 
-The shared capture support now includes `FlatMarkRetainedSnapshotHost` (added for ticket 11). Treat it as
-frozen shared support; later tickets may USE it but need orchestrator approval to change it. Never re-record
-to make a mismatch pass.
+The shared capture support now includes `FlatMarkRetainedSnapshotHost` (ticket 11). Treat shared support
+(capture/environment/assertions) as frozen except where ticket 14 legitimately needs to remove now-dead
+helpers it owns. Never re-record to make a mismatch pass.
 
 Ticket 10b owns `Tests/FlatMarkTests/Snapshots/FlatMarkSnapshotCapture.swift` and the macOS reference
 namespaces — an explicit orchestrator reassignment, following the ticket 05 precedent. It does not own
