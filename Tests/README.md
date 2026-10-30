@@ -230,6 +230,186 @@ live policy transitions, VoiceOver, gestures, selection, constrained-host quote
 sizing, minimum-OS support, or running-demo behavior. Discover a local simulator
 with `sweetpad devices`; the identifier above records this run only.
 
+### Nested-container qualification (ticket 04)
+
+`FlatMarkNestedContainerSnapshotTests` owns ten PNGs in `NestedContainers`:
+narrow/wide nested quotes, narrow/wide mixed lists, and an enlarged list on each
+platform. Public `FlatMarkView` renders local Markdown and a synchronous indigo
+44×30pt inline replacement. No loader or navigation is involved.
+
+Qualified with Xcode 27.0 / Swift 6.4, macOS 27.0.1 on a 2x display, and iPhone
+18 Pro on iOS 27.0. Enlarged text uses `.accessibility3` on iOS and a 28pt font
+override on macOS, not macOS system Dynamic Type. All captures have a fixed size
+larger than their content. Intrinsic vertical sizing keeps flexible quote rules
+from consuming the offered capture height; constrained-host sizing is excluded.
+
+Exact commands ran from the repository root, serially. Logs, rejected initial
+captures, hashes, and xcresults remain local under `/tmp/flatmark-ticket04/`.
+
+```sh
+(cd Demo && xcodegen generate)
+
+# Initial recording used the smaller-margin fixture and an RTL list variant.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS-Record --on mac --only-testing FlatMarkSnapshots-macOS/FlatMarkNestedContainerSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket04/mac-record.xcresult
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS-Record --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --only-testing FlatMarkSnapshots-iOS/FlatMarkNestedContainerSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket04/ios-record.xcresult
+
+# Run each phase separately; pause for review, hashing, or mutation between phases.
+for phase in margin-record verify mutation final; do
+  for platform in macOS iOS; do
+    dest=mac
+    [ "$platform" = iOS ] && dest=674C04A9-8792-4995-A6A9-66F80E5F96AA
+    scheme=FlatMarkSnapshots-$platform
+    [ "$phase" = margin-record ] && scheme=$scheme-Record
+    sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme "$scheme" --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkNestedContainerSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket04/$platform-$phase.xcresult
+  done
+done
+
+# Before verify, then again after final (substitute after.sha256):
+find Tests/References/Snapshots/NestedContainers -name '*.png' -exec shasum -a 256 {} \; | sort > /tmp/flatmark-ticket04/before.sha256
+diff -u /tmp/flatmark-ticket04/before.sha256 /tmp/flatmark-ticket04/after.sha256
+swift test
+git status --short
+git diff --check
+```
+
+Initial macOS review rejected a narrow list background reaching the capture edge
+and an RTL capture losing text at the left edge. Those images are not accepted
+references. The final fixture provides 100pt insets and wider capture bounds,
+and selects the permitted enlarged variant instead of RTL. The bounded RTL
+investigation below demonstrates list overflow; it is not an accepted baseline.
+Constrained-host overflow remains unqualified. Rejected initial images remain in
+`initial-unaccepted/` outside the repository. The final references preserve
+FlatMark's flattened list layout.
+
+The implementation worker opened every final PNG with the image reader:
+
+| PNG test stem | macOS review | iOS review |
+| --- | --- | --- |
+| `narrowNestedQuote` | All numbered lines, inner/outer endings, replacement and after paragraph visible; rules end with content; clear margins. Accepted. | Same checks; more wrapping, no lost lines or clipping. Accepted. |
+| `wideNestedQuote` | Wider wrapping; all quote wording and both rules complete; clear margins. Accepted. | Wider wrapping; complete numbered lines and endings; rules not stretched; clear margins. Accepted. |
+| `narrowListContinuations` | Three nesting levels visible; paragraph, quote and code follow final child and align with parent content; next parent and after text intact; clear margins. Accepted. | Same order/alignment; all wrapped wording and code visible; clear margins. Accepted. |
+| `wideListContinuations` | Less wrapping; continuation origins align with parent content; quote rule and code complete; clear margins. Accepted. | Same order/alignment; both code lines and after paragraph visible; clear margins. Accepted. |
+| `enlargedListContinuations` | Larger text wraps; nested indentation visible; continuations align with parent, not child; rule ends with quote; clear margins. Accepted. | Real enlarged Dynamic Type; deeper rows and wrapped code intact; continuation order/alignment retained; clear margins. Accepted. |
+
+Both final recording runs selected five tests and reported five expected recording
+assertions, with no native capture failures. Separate `verify` runs passed five
+tests per platform. Mutation removed `Line four must remain visible too.` and its
+hard break from the quote. Both normal schemes reported two genuine image
+mismatches and three passing list tests. Restored the line before `final`; five
+tests passed per platform. All ten reference SHA-256 hashes stayed unchanged
+through verification, mutation, and restoration.
+
+#### Bounded RTL investigation and list mutation probes
+
+The generous-bounds captures demonstrate **renderer list overflow**, not merely
+capture placement. A red 1pt border marks the offered 240pt document frame.
+Both RTL captures show the paragraph and quote text, and the code-block
+background, outside its left edge. All wording reappears intact with 400pt outside padding and no ink
+touches an image edge. Enlarging the capture recovers ink; it does not make that
+ink fit the offered column. The before/after paragraphs stay inside the border.
+The LTR controls also overflow, to the right, but lose no wording with these
+bounds. Thus a clean inline-flow capture does not establish list correctness.
+This establishes an out-of-column drawing defect, not its precise internal
+alignment-guide cause. No hosting-view intrinsic-width measurement was taken.
+
+Durable evidence, visually inspected on both platforms, is in
+`AI-docs/prds/ui-snapshot-testing/evidence/`:
+
+- `defect-rtl-list-rtl-macOS.png` and `defect-rtl-list-rtl-iOS.png`:
+  complete RTL mixed list with visible left overflow.
+- `defect-rtl-list-ltr-macOS.png` and `defect-rtl-list-ltr-iOS.png`:
+  identical LTR controls with visible right overflow.
+
+Blocked criterion: RTL list content and continuations must fit the offered
+reading column without clipping. A **separate bounded production fix is
+required**. No production code changed, no RTL baseline was added, and none of
+these diagnostic images is an accepted reference. Nesting-depth scaling and
+isolated continuation-type causes remain unmeasured.
+
+Exact diagnostic Markdown (three spaces for parent continuations, five before
+the grandchild marker):
+
+````markdown
+Before the mixed list.
+
+1. Parent opening wraps with enough wording to expose the content alignment.
+   - Child bullet wraps across the narrow reading column.
+     1. Grandchild numbered row.
+   - Final child bullet.
+
+   Parent continuation follows all child rows and wraps onto another line.
+
+   > Parent quote follows the continuation paragraph and keeps its own rule.
+
+   ```swift
+   let ready = true
+   render(ready)
+   ```
+
+2. Next parent row ends the list.
+
+After the mixed list.
+````
+
+A temporary `rtlInvestigation()` test captured this exact source in both
+`.leftToRight` and `.rightToLeft`. It used `FlatMarkView(markdown: Self.list)`
+with `.fixedSize(horizontal: false, vertical: true)`, then
+`.frame(width: 240, alignment: .leading).border(.red, width: 1)`.
+It called `flatMarkSnapshotImage` directly, not snapshot recording/comparison,
+and exported PNG data. Shared capture support was unchanged. Environment:
+1240×2100pt capture, 240pt column, 400pt inset, requested pixel scale 2,
+light, `en_US`, body (`.large`, 13pt macOS / 17pt iOS font override).
+The native macOS diagnostic export is 1240×2100 pixels (1x); the iOS export
+is 2480×4200 pixels (2x). These diagnostics establish geometry, not new
+scale-qualified baselines. The temporary test was removed after export.
+
+Two separate VERIFY-only list probes then ran:
+
+| Phase | Temporary change | Observed result on each platform |
+| --- | --- | --- |
+| `list-order` | Move the parent paragraph continuation before `- Final child bullet.`, with blank lines around the paragraph. | `narrowListContinuations`, `wideListContinuations`, and `enlargedListContinuations` mismatched; both quote tests passed. |
+| `list-indent` | Restore order, then add two spaces to the parent paragraph continuation (three to five Markdown spaces), nesting it under the final child. | The same three list references mismatched; both quote tests passed. |
+| `corrections-final` | Restore the original fixture byte-for-byte. | Five tests passed on each platform. |
+
+Exact commands for the correction runs (each phase ran separately, one capture
+process at a time; no Record scheme was used):
+
+```sh
+shasum -a 256 Tests/References/Snapshots/NestedContainers/*/*.png > /tmp/flatmark-ticket04/corrections-before.sha256
+for phase in rtl-investigation list-order list-indent corrections-final; do
+  for platform in macOS iOS; do
+    dest=mac
+    [ "$platform" = iOS ] && dest=674C04A9-8792-4995-A6A9-66F80E5F96AA
+    sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkNestedContainerSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket04/$platform-$phase.xcresult
+  done
+ done
+shasum -a 256 Tests/References/Snapshots/NestedContainers/*/*.png > /tmp/flatmark-ticket04/corrections-after.sha256
+diff -u /tmp/flatmark-ticket04/corrections-before.sha256 /tmp/flatmark-ticket04/corrections-after.sha256
+```
+
+`rtl-investigation` passed six tests per platform (the five accepted tests plus
+the temporary diagnostic). Each mutation reported two passes and three genuine
+image mismatches. Restoration passed five per platform. SHA-256 comparison
+returned no differences: all ten accepted PNGs remained byte-identical. The
+fixture file also matched its pre-investigation copy after restoration.
+
+Historical source was **not recovered with enough evidence to identify the exact
+failing fixture**. Searches covered `git log --all` (quote/truncation messages and
+wording changes), `Tests/README.md`, Recipe Lab guide history and fixture history,
+`AI-docs/prds/ui-snapshot-testing/evidence/`, and `Tests/References/RecipeLab/`.
+History mentions truncation of “kneading” and later rewritten wording, but does
+not tie an exact original source and host configuration to the failure. The
+current evidence directory contains consecutive-break images, not that quote.
+These tests use a new long multiline regression fixture. They do not establish
+that the historical macOS defect is fixed.
+
+`swift test` passed 184 tests in 24 suites with one intentional known issue in
+LoaderSpyTests and no unexpected failures. Existing projector and rendering tests
+remain unchanged. `git diff --check` passed; the unrelated untracked work ledger
+remains. These mounted snapshots do not qualify running-demo interaction (not
+exercised), live VoiceOver, gestures, selection, minimum OS versions, RTL lists,
+or vertically constrained quote hosts.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.
