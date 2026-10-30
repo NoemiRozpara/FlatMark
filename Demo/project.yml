@@ -6,6 +6,9 @@ options:
 packages:
   FlatMark:
     path: ..
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing.git
+    from: 1.19.6
 settings:
   base:
     SWIFT_VERSION: '6.0'
@@ -28,6 +31,34 @@ targetTemplates:
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_CFBundleDisplayName: FlatMark Demo
 targets:
+  FlatMarkSnapshots-iOS:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ../Tests/FlatMarkTests/Snapshots
+    dependencies:
+      - target: FlatMarkDemo-iOS
+      - package: FlatMark
+        product: FlatMark
+      - package: SnapshotTesting
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.flatmark.snapshots
+  FlatMarkSnapshots-macOS:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: ../Tests/FlatMarkTests/Snapshots
+    dependencies:
+      - target: FlatMarkDemo-macOS
+      - package: FlatMark
+        product: FlatMark
+      - package: SnapshotTesting
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.flatmark.snapshots.macos
+        TEST_HOST: ''
+        BUNDLE_LOADER: ''
   FlatMarkDemo-iOS:
     templates: [Demo]
     platform: iOS
@@ -43,6 +74,47 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.flatmark.FlatMarkFixtureHost.macos
 schemes:
+  FlatMarkSnapshots-iOS:
+    build:
+      targets:
+        FlatMarkDemo-iOS: all
+        FlatMarkSnapshots-iOS: [test]
+    test:
+      targets:
+        - FlatMarkSnapshots-iOS
+      gatherCoverageData: false
+      environmentVariables:
+        FLATMARK_SNAPSHOT_RECORD: never
+  FlatMarkSnapshots-iOS-Record:
+    build:
+      targets:
+        FlatMarkDemo-iOS: all
+        FlatMarkSnapshots-iOS: [test]
+    test:
+      targets:
+        - FlatMarkSnapshots-iOS
+      environmentVariables:
+        FLATMARK_SNAPSHOT_RECORD: all
+  FlatMarkSnapshots-macOS:
+    build:
+      targets:
+        FlatMarkDemo-macOS: all
+        FlatMarkSnapshots-macOS: [test]
+    test:
+      targets:
+        - FlatMarkSnapshots-macOS
+      environmentVariables:
+        FLATMARK_SNAPSHOT_RECORD: never
+  FlatMarkSnapshots-macOS-Record:
+    build:
+      targets:
+        FlatMarkDemo-macOS: all
+        FlatMarkSnapshots-macOS: [test]
+    test:
+      targets:
+        - FlatMarkSnapshots-macOS
+      environmentVariables:
+        FLATMARK_SNAPSHOT_RECORD: all
   FlatMarkDemo-iOS:
     build:
       targets:

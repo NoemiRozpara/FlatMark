@@ -21,6 +21,11 @@ let package = Package(
             url: "https://github.com/swiftlang/swift-markdown.git",
             .upToNextMinor(from: "0.8.0")
         ),
+        // Test-only: reviewed image baselines, pixel comparison, and diff artifacts.
+        .package(
+            url: "https://github.com/pointfreeco/swift-snapshot-testing.git",
+            .upToNextMinor(from: "1.19.6")
+        ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -55,6 +60,7 @@ let package = Package(
                 "FlatMark",
                 "FlatMarkFixtures",
                 .target(name: "FlatMarkNavigationTestHost", condition: .when(platforms: [.macOS])),
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ]
         ),
     ],

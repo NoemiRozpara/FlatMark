@@ -15,6 +15,82 @@ Model-level tests cover projection, source-preserving task updates, and unsuppor
 macOS-mounted tests exercise selectable native content, host replacements, tasks, image loading,
 and navigation. They do not replace visual, gesture, or live accessibility checks.
 
+### Snapshot baselines
+
+SnapshotTesting 1.19.6 compares exact images. Support stays in
+`Tests/FlatMarkTests/Snapshots`; it is not part of the library product.
+
+Use the [SweetPad CLI](https://sweetpad.hyzyla.dev/docs/cli/getting-started/)
+from the repository root. Neither `swift test` nor Xcode MCP is needed for these
+snapshot commands. Swift Testing remains the test framework.
+
+```sh
+# Discover destinations. Replace booted with a simulator name or UDID if needed.
+sweetpad devices
+
+# Verify committed references.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --on booted
+
+# Record deliberately. These commands report assertion failures by design.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS-Record --on mac
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS-Record --on booted
+```
+
+The normal schemes explicitly set `FLATMARK_SNAPSHOT_RECORD=never`; the `-Record`
+schemes set it to `all`. No shell environment setup is needed. After reviewing
+recorded images, run the normal schemes again. SweetPad prints the retained
+xcresult path; use `--result-bundle <unique-path>` to keep multiple runs separately.
+Use `--non-interactive` for automation. These shared schemes also work in the
+SweetPad VS Code Testing panel.
+
+The iOS target uses the existing demo as its test host. The macOS target runs
+without an app test host so AppKit snapshot setup owns application initialization.
+`Demo/project.yml` owns both targets and all four schemes. After editing it,
+regenerate with `cd Demo && xcodegen generate`.
+SnapshotTesting reports reference/actual/diff paths on mismatches; runner logs
+and xcresult bundles retain failure diagnostics. Missing references report the
+expected path and fail. Do not record a mismatch just to make it pass.
+
+References live in `Tests/References/Snapshots/<suite>/<platform>/`.
+Each suite owns one namespace (`LinkedImage` initially); later suites add their
+own enum case in `FlatMarkSnapshotSuite` with shared-support owner approval.
+File names include the test, case, column, inset, capture size, scale, appearance,
+locale, direction, and text setting. `FlatMarkSnapshotEnvironment.standard` uses
+320×300pt, a 240pt column, 20pt inset, 2x, light appearance, `en_US`, LTR, standard
+Dynamic Type, and a 13pt macOS / 17pt iOS font. The background is white.
+The macOS lane requires a 2x hosting display. Use the same OS/toolchain/display
+settings when verifying; changing them requires deliberate baseline review.
+
+Later suites call `flatMarkSnapshotImage(of:environment:)`, then
+`assertFlatMarkSnapshot(_:suite:named:environment:)`. Capture mounts native
+hosting views and performs three yield/layout passes, with no polling, sleeps,
+pixel classification, or fixture-specific drawing checks. UIKit also waits for
+screen updates when drawing. This bounded preparation supports synchronous
+fixtures, including these no-loader placeholders. Async fixtures must resolve
+their state before capture; this helper does not infer readiness from pixels or
+loader callbacks. Native capture failure throws. Empty or incomplete content is
+caught by image comparison and baseline review, not a second custom validator.
+Serialize mounted snapshot cases (`@Suite(.serialized)`) and do not run multiple
+recording processes against the same namespace.
+
+Review every recorded image before a separate verify run. Check text, placeholder,
+link treatment, margins, and clipping. Keep only intended PNGs. Confirm verification
+leaves reference hashes unchanged. These images do not verify activation, gestures,
+or VoiceOver.
+
+Initial qualification: Xcode 27 RC, Swift 6.4, macOS 27.0.1; iPhone 18 Pro simulator
+on iOS 27.0. Both linked/unlinked images were recorded and visually inspected on
+both platforms: surrounding text is visible, linked placeholders are blue, unlinked
+placeholders use the text color, and content has clear margins. Separate verify
+runs passed two tests per platform. Deliberately changed text failed comparison;
+removing a reference failed without recreating it on both platforms. Minimum-OS
+compatibility and forced native capture failure remain unverified.
+
+SweetPad CLI qualification in the same environment: both normal schemes passed
+(two tests each). Both `-Record` schemes reached explicit recording assertions and
+wrote byte-identical references. Separate normal-scheme reruns passed afterward.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.
