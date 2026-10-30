@@ -62,6 +62,42 @@ tickets"). None of them stops the remaining tickets. See
   project. Exposing `FlatMarkFixtures` as a package product instead would change `Package.swift`, a public
   build surface, and needs agreement first.
 
+## Blocker 4 — macOS captures inherit the main display's ICC profile, so the macOS lane is hardware-bound (blocks the macOS half of every remaining ticket)
+
+- Found by the orchestrator while qualifying ticket 10a, on a clean checkout of `53f543a` with no
+  ticket-10a changes applied. It is therefore not caused by ticket 10a.
+- Symptom: 27 of the 72 committed macOS references fail byte comparison, and the same 27 fail in the
+  `swift test` package lane. The iOS lane passes 62/62 in the same session on the same machine.
+- Measured, not assumed:
+  - All 72 committed macOS references embed one 3372-byte ICC profile, reported by `sips` as
+    `profile: LG ULTRAFINE`. All 72 iOS references embed a separate 536-byte profile and are unaffected.
+  - Every capture produced now embeds a different 4076-byte profile, reported as `Display P3`.
+  - `system_profiler SPDisplaysDataType` now lists only the built-in Liquid Retina XDR display as main.
+    The LG UltraFine used during recording is no longer connected.
+  - `flatMarkSnapshotImage` builds its bitmap with `bitmapImageRepForCachingDisplay` and `cacheDisplay`,
+    so the bitmap takes the current main display's pixel format and color profile. Nothing in the shared
+    capture layer pins a color space.
+  - Difference is color-only and sub-visible: per case, 68 to 20 000 of up to 384 000 pixels differ, with
+    a maximum rendered-channel delta of 1 to 4 and a maximum stored-sample delta of 32. Differences sit on
+    colored content only (checkboxes, accent-tinted links, purple custom markers, rasters, custom host
+    views). Pure black-on-white text cases in `OmissionSpacing`, `Tables`, and `NativePlaceholderFlow`
+    still pass byte-exact. The failures are deterministic: three consecutive runs produced identical bytes.
+- Effect on the plan: this breaks the acceptance gate for every remaining ticket. Each one requires a full
+  non-recording run that passes on both platforms, and the macOS half cannot pass right now, on a clean
+  tree or with any ticket applied. It also makes new baselines inconsistent: a reference recorded now is
+  tagged `Display P3` and will fail again the moment the recording display is reconnected.
+- Why the orchestrator did not resolve it: every available fix changes either the user's machine or the
+  accepted baseline corpus, and both need agreement.
+  1. Reconnect the display used during recording. Zero repository change, restores the lane today, leaves
+     the harness hardware-bound and unqualified for any other Mac or CI machine.
+  2. Pin a color space in the shared capture helper, then deliberately re-record and re-review all 72
+     macOS baselines. This is the durable fix and the one the plan's AC-02 spirit points to, but it rewrites
+     accepted references across all ten namespaces and edits ticket-01 shared support outside a ticket's
+     ownership. The plan forbids re-recording to make a mismatch pass, so this needs an explicit decision.
+  3. Add a narrow reviewed pixel tolerance. Keeps every byte of the corpus, weakens all 72 macOS
+     comparisons, and the plan says to avoid unreviewed broad tolerances.
+- Until this is settled, ticket 10a holds at: iOS verified, macOS unverified, nothing committed.
+
 ## Not blockers, but permanently unverified by these tickets
 
 Reported as unverified, never as passed. Each is an evidence-boundary limit, not a defect.

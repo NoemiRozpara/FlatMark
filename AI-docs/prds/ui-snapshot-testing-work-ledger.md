@@ -20,11 +20,11 @@ Initial working tree: clean.
 | 08 | Accepted; committed | coding assistant + reviewer + orchestrator | 16 references; both falsification probes failed as expected. See ticket 08 below. |
 | 09 | Accepted; committed | coding assistant + reviewer + orchestrator | 10 references; numbering probe failed as expected; no new defect. See ticket 09 below. |
 | 10 | Accepted after 2 review rounds; committed | coding assistant + reviewer + orchestrator | Hard-break fixtures were mutation-insensitive at 3 macOS settings; repaired. See ticket 10 below. |
-| 10a | Pending; **enqueue before 11 and 13** | Unassigned | Blocker 3: shared fixtures unreachable from both snapshot targets. See ticket 10a below. |
-| 11 | Pending | Unassigned | Blocked by ticket 10a. Needs `FlatMarkCustomFixtureModel` / `FlatMarkCustomDocumentFixture`. |
-| 12 | Pending | Unassigned | Depend on accepted preceding tickets; not blocked by 10a. |
-| 13 | Pending | Unassigned | Blocked by ticket 10a. Needs `FlatMarkRecipeSample` and the bundled raster. |
-| 14 | Pending | Unassigned | Depends on accepted tickets 01–13. |
+| 10a | Implemented, **not accepted**; loop stopped | coding assistant + orchestrator | Fixture sources and raster now reach both snapshot targets; iOS verified 62/62, both demos build, 144 hashes unchanged. macOS gate blocked by Blocker 4. See ticket 10a below. |
+| 11 | Not started | Unassigned | Blocked by ticket 10a acceptance and Blocker 4. |
+| 12 | Not started | Unassigned | Blocked by Blocker 4 (the macOS lane cannot pass). |
+| 13 | Not started | Unassigned | Blocked by ticket 10a acceptance and Blocker 4. |
+| 14 | Not started | Unassigned | Depends on accepted tickets 01–13 and Blocker 4. |
 
 ## Ticket 01
 
@@ -315,3 +315,27 @@ reference hash guard, and `git diff --check`. Report each as compilation, automa
 **Decision the worker must make and justify.** Adding `../Support/FlatMarkFixtures` to both snapshot
 targets' `sources` needs no manifest change. Exposing `FlatMarkFixtures` as a package product instead
 changes `Package.swift`, which is a public build-surface change: report that option rather than making it.
+
+### Ticket 10a result (implemented, awaiting the Blocker 4 decision)
+
+Two rounds. Round 1 added the two `Demo/project.yml` source entries, proved all three fixture types compile
+into both snapshot targets through one identical import, and stopped honestly when the raster resolved to nil
+on macOS and from the demo app on iOS. Round 2, after the orchestrator reassigned bounded ownership of
+`Support/FlatMarkFixtures/FlatMarkFixtureResources.swift`, made the non-SwiftPM path prefer the bundle of a
+private class token before `Bundle.main`, and kept `Bundle.module` for SwiftPM. The probe then resolved
+`focaccia.jpeg` from each platform's own `.xctest` bundle:
+
+- macOS: `…/Debug/FlatMarkSnapshots-macOS.xctest/Contents/Resources/focaccia.jpeg`
+- iOS: `…/FlatMarkDemo.app/PlugIns/FlatMarkSnapshots-iOS.xctest/focaccia.jpeg`
+
+The probe source was deleted and the project regenerated. `Package.swift`, production sources, existing
+snapshot suites, the demo sources, and all 144 accepted references are unchanged.
+
+Verified with the changes in the tree: iOS non-recording lane 62/62 passed (the orchestrator re-ran it); both
+demo schemes built; all 144 reference hashes matched the accepted manifest; `git diff --check` passed.
+
+Not accepted, because two criteria are unmet and the orchestrator could not attribute them to this ticket:
+the macOS non-recording lane fails 27 of 62, and `swift test` reports the same 27 mismatches. The
+orchestrator reproduced both on a clean checkout of `53f543a` with the ticket reverted, so they come from
+[Blocker 4](../../blockers-extract-local-playback.md), not from ticket 10a. Demo runtime raster resolution is
+build-only evidence, not a running-app observation. The worker made no commits.
