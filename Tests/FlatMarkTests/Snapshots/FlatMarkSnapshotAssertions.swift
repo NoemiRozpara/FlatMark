@@ -24,6 +24,7 @@ enum FlatMarkSnapshotSuite: String {
     case taskMarkers = "TaskMarkers"
     case unsupportedPolicies = "UnsupportedPolicies"
     case emptyStructures = "EmptyStructures"
+    case nativePlaceholderFlow = "NativePlaceholderFlow"
 }
 
 // MARK: - FlatMarkSnapshotMode

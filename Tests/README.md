@@ -1003,6 +1003,141 @@ mounted appearance and repeatability checks, not live callback, running-demo,
 VoiceOver, keyboard, selection, minimum-OS, or general overflow qualification.
 No new iOS activation or macOS system Dynamic Type observation was performed.
 
+### Native-placeholder qualification (ticket 10)
+
+`FlatMarkNativePlaceholderFlowSnapshotTests` adds eight public-view cases and
+sixteen PNGs in `NativePlaceholderFlow/{macOS,iOS}`. Each fixture runs at 160pt
+and 320pt columns, with standard and enlarged text: four wrapping cases and four
+hard-break cases. Swift Testing serializes the suite. The unlinked relative image
+and absent loader/custom policy keep `renderingMode` in `inlineText`: no linked
+image or custom-flow branch applies, and no loaded phase can arise. Inspection
+traced `inlineText` through `labeledImageText` (photo symbol plus alt label).
+The two existing native fitted-size proxy tests remain unchanged.
+
+Qualified with Xcode 27 RC / Swift 6.4, macOS 27.0.1 on the 2x display, and
+booted iPhone 18 Pro on iOS 27.0. All captures are fixed 520×1500pt, 80pt inset,
+2x, light, en_US, LTR, with intrinsic vertical document sizing. macOS standard
+uses a 13pt absolute font override; enlarged uses 28pt, not system Dynamic Type.
+iOS standard uses a 17pt override at `.large`; enlarged removes the absolute
+font override and uses real `.accessibility3` Dynamic Type.
+
+The implementation worker opened every recorded PNG with `read` at readable
+scale. These stems identify all eight files in **each** platform directory:
+
+| Stems | Review on both platforms |
+| --- | --- |
+| `narrowStandardWrapping`, `wideStandardWrapping` | Photo symbol, complete Diagram label, introduction, and final “after it.” visible; narrower column wraps more. |
+| `narrowEnlargedWrapping`, `wideEnlargedWrapping` | Visibly larger glyphs and more rows; all wording and symbol intact. Native wrapping can separate symbol and label across rows. |
+| `narrowStandardHardBreaks`, `wideStandardHardBreaks` | Short “A” line above photo symbol and D label; “A diagram explanation continues to its final words.” starts below; all wording intact. |
+| `narrowEnlargedHardBreaks`, `wideEnlargedHardBreaks` | Same three-part break structure at larger effective text; symbol and D stay together; complete trailing sentence. |
+
+All sixteen references have clear outside margins, nonempty drawn wording and
+symbols, and no clipping. No defect baseline was accepted. All PNGs have identical
+1040×3000 pixel dimensions; SHA-256 comparison found eight distinct hashes per
+platform. Thus narrow/wide and standard/enlarged differences are not explained
+by different canvas sizes. Exact comparison to these reviewed nonempty references
+rejects collapsed output; this suite does not compare two potentially empty views.
+
+Commands ran serially from the repository root. Logs, xcresults, source copy, and
+before/after manifests remain locally under `/tmp/flatmark-ticket10/`:
+
+```sh
+(cd Demo && xcodegen generate)
+find Tests/References/Snapshots -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-ticket10/existing.sha256
+# platform=macOS: dest=mac; platform=iOS: dest=booted
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform-Record --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkNativePlaceholderFlowSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket10/$platform-record.xcresult
+# phase=verify, break-probe, label-probe; each phase ran separately after edits/review:
+find Tests/References/Snapshots -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-ticket10/$platform-$phase-before.sha256
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkNativePlaceholderFlowSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket10/$platform-$phase.xcresult
+find Tests/References/Snapshots -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-ticket10/$platform-$phase-after.sha256
+diff -u /tmp/flatmark-ticket10/$platform-$phase-{before,after}.sha256
+# final uses the same manifest guard, without --only-testing:
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --non-interactive --result-bundle /tmp/flatmark-ticket10/$platform-final.xcresult
+shasum -a 256 -c /tmp/flatmark-ticket10/existing.sha256
+cmp /tmp/flatmark-ticket10/accepted.swift Tests/FlatMarkTests/Snapshots/FlatMarkNativePlaceholderFlowSnapshotTests.swift
+swift test
+git diff --check
+```
+
+Explicit recordings each selected eight tests and reported eight expected recording
+assertions, with no native capture failures. Separate normal verify runs passed
+eight per platform. VERIFY-only `break-probe` replaced the first hard break with
+a space: macOS wide enlarged mismatched (seven passed); all four iOS hard-break
+cases mismatched (four passed). At the other macOS settings natural wrapping
+masked the removed break. After restoring that break, `label-probe` changed both
+fixtures' alt label to Changed label: eight genuine mismatches per platform.
+Both probes exited 3, not recording assertions. Restored source matched the saved
+copy byte-for-byte. Full normal final runs passed 62 tests per platform: eight
+new and 54 across all nine existing namespaces. Every before/after verification
+manifest matched; all 128 existing and sixteen new reference hashes stayed
+unchanged. No probe used recording or updated references.
+
+Full `swift test` passed 231 tests in 30 suites, with one existing intentional
+LoaderSpyTests known issue and no unexpected failures. `git diff --check` passed.
+Round 1 did not qualify independent sensitivity to both authored hard breaks. The round-2 evidence below supersedes its hard-break probe and acceptance conclusion. These mounted images
+do not establish selection gestures, semantic selectability, VoiceOver, keyboard,
+minimum-OS behavior, running-demo behavior, or macOS system Dynamic Type.
+Existing link, alt-policy, whitespace, and semantic tests remain intact.
+
+#### Round 2: independent hard-break qualification
+
+The repaired hard-break fixture is:
+
+```markdown
+A\
+![D](image.png)\
+A diagram explanation continues to its final words.
+```
+
+Short boundary wording leaves room for content to join when either break is removed.
+The wrapping fixture, native no-loader `inlineText` path, and fixed 520×1500pt
+capture remain unchanged. Only the eight `HardBreaks` references were re-recorded.
+The worker opened each changed PNG with `read`: the first A, photo symbol, D,
+second A, and complete final sentence are visible, with both authored boundaries
+and ample outside margins. No clipping or defect baseline was accepted.
+
+Evidence and the executable command wrapper are in
+`/tmp/flatmark-ticket10/round2/` (`run.sh`, `accepted.swift`, platform-phase logs,
+unique xcresults, and full before/after SHA-256 manifests). Commands used the
+same lanes above. Recording selected each `HardBreaks()` method explicitly;
+verify and probes selected the whole suite; final runs were unfiltered.
+An initial recording filter without `()` selected zero tests and changed nothing;
+it is not verification evidence. Corrected explicit recordings each selected four
+tests and produced four expected recording assertions (exit 3), not comparison
+failures.
+
+Each probe replaced only one authored break with a space. The other break remained
+intact. All entries below are genuine non-recording reference mismatches (exit 3):
+
+| Reference stem | macOS before removal | macOS after removal | iOS before removal | iOS after removal |
+| --- | --- | --- | --- | --- |
+| `narrowStandardHardBreaks` | mismatch | mismatch | mismatch | mismatch |
+| `wideStandardHardBreaks` | mismatch | mismatch | mismatch | mismatch |
+| `narrowEnlargedHardBreaks` | mismatch | mismatch | mismatch | mismatch |
+| `wideEnlargedHardBreaks` | mismatch | mismatch | mismatch | mismatch |
+
+These are the corresponding `document-…png` references in
+`Tests/References/Snapshots/NativePlaceholderFlow/<platform>/`. Each of the four
+probe runs had four genuine mismatches and four wrapping passes. No probe recorded
+or changed references. Restored source matches `round2/accepted.swift` byte-for-byte.
+Separate restored non-recording verify runs passed eight tests on each platform.
+Subsequent full unfiltered lanes passed 62 tests each. All before/after manifests
+for probes, verifies, and final runs matched exactly. The original 128 references
+remain byte-identical, as do the eight wrapping references from round 1. The final
+sixteen hashes are retained in `round2/final-native.sha256`; each platform still
+has eight distinct references on the same 1040×3000 pixel canvas.
+
+Full round-2 `swift test` passed 231 tests in 30 suites with one existing intentional
+LoaderSpyTests known issue and no unexpected failures. Its reference manifests
+also matched. `git diff --check` passed.
+
+**Acceptance:** PASS for independent drawn sensitivity to each authored break at
+all four captured settings on both platforms, complete visible placeholder content,
+and the reviewed fixed-canvas appearance at those settings. This is not a claim
+that all possible appearance or interaction criteria pass. Selection gestures,
+semantic selectability, VoiceOver, keyboard, minimum-OS behavior, running-demo
+behavior, and macOS system Dynamic Type remain unverified by these captures.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.
