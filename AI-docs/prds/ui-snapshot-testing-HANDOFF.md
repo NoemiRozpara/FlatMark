@@ -6,14 +6,17 @@ Resume point only. Authority stays in [the plan](ui-snapshot-testing.md),
 
 ## State
 
-- Branch `snapshot-tests`, HEAD `fa7b884`. Tickets 01–10 accepted and committed: 144 references
-  (72 macOS, 72 iOS).
-- Ticket 10a is implemented but **not accepted** and uncommitted. It compiles `../Support/FlatMarkFixtures`
-  into both snapshot targets (`Demo/project.yml`, project regenerated) and makes
-  `FlatMarkFixtureResources` prefer the bundle of a private class token over `Bundle.main`, so
-  `focaccia.jpeg` resolves from each platform's own `.xctest` bundle. iOS verified 62/62, both demos
-  build, all 144 hashes unchanged.
-- Tickets 11, 12, 13, 14 not started. All four need a passing macOS snapshot run.
+- Branch `snapshot-tests`. Tickets 01–10 **and 10b** accepted and committed.
+- **Ticket 10b landed:** the macOS capture path is pinned to `NSColorSpace.sRGB`; all 72 macOS references
+  were re-recorded (now `sRGB IEC61966-2.1`), reviewed, and pass two consecutive non-recording macOS runs
+  (62/62) and `swift test` (231 tests in 30 suites, one known issue). iOS references unchanged. Blocker 4
+  is resolved (see the blockers file). The macOS lane now passes on this Mac.
+- Ticket 10a (shared-fixture reachability) is next: implemented and verified on iOS (62/62) but held only
+  because the macOS lane could not pass. That gate is now unblocked by 10b. Its changes were stashed as
+  `flatmark-ticket-10a-wip` before the 10b run; restore them (`git stash pop`), re-run the full
+  non-recording lanes and gates, then accept and commit.
+- Tickets 11, 12, 13, 14 not started. All four need the passing macOS run (now available); 11 and 13 also
+  need ticket 10a accepted (shared-fixture reachability).
 
 ## Issue
 
@@ -27,10 +30,11 @@ checkout with ticket 10a reverted, so ticket 10a is not the cause. Details: Bloc
 
 ## Pick
 
-User chose **option 2**: pin an explicit hardware-independent color space in the macOS capture path, then
-deliberately re-record and re-review the 72 macOS baselines. Authorized as **ticket 10b**, which must land
-before 10a is accepted and before 11–14. Rejected and not to be retried: reconnecting the display only, and
-a pixel tolerance.
+**Next: finish and accept ticket 10a** (restore its stash, re-verify the now-working macOS lane, review,
+commit). Then 11, 12, 13, 14 in order.
+
+Ticket 10b is done and committed (sRGB pin + 72 macOS re-records). Do not re-pin or re-record macOS
+baselines unless a new hardware/plan issue appears; never re-record to make a mismatch pass.
 
 Ticket 10b owns `Tests/FlatMarkTests/Snapshots/FlatMarkSnapshotCapture.swift` and the macOS reference
 namespaces — an explicit orchestrator reassignment, following the ticket 05 precedent. It does not own

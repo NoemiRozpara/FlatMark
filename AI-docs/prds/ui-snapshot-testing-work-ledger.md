@@ -23,11 +23,11 @@ Initial working tree: clean.
 | 09 | Accepted; committed | coding assistant + reviewer + orchestrator | 10 references; numbering probe failed as expected; no new defect. See ticket 09 below. |
 | 10 | Accepted after 2 review rounds; committed | coding assistant + reviewer + orchestrator | Hard-break fixtures were mutation-insensitive at 3 macOS settings; repaired. See ticket 10 below. |
 | 10a | Implemented, **not accepted**; held for 10b | coding assistant + orchestrator | Fixture sources and raster now reach both snapshot targets; iOS verified 62/62, both demos build, 144 hashes unchanged. macOS gate held for Blocker 4. See ticket 10a below. |
-| 10b | Not started; **enqueue first** | Unassigned | Blocker 4: user chose to pin the capture color space and re-record the 72 macOS baselines. See ticket 10b below and the handoff note. |
-| 11 | Not started | Unassigned | Blocked by ticket 10a acceptance and ticket 10b. |
-| 12 | Not started | Unassigned | Blocked by ticket 10b (the macOS lane cannot pass until it lands). |
-| 13 | Not started | Unassigned | Blocked by ticket 10a acceptance and ticket 10b. |
-| 14 | Not started | Unassigned | Depends on accepted tickets 01–13 and ticket 10b. |
+| 10b | Accepted; committed | coding assistant + reviewer + orchestrator | Blocker 4 resolved: macOS captures pinned to sRGB; 72 macOS baselines re-recorded, reviewed, verified twice. iOS 72 references byte-identical. See ticket 10b below. |
+| 11 | Not started | Unassigned | Blocked by ticket 10a acceptance. |
+| 12 | Not started | Unassigned | Blocked by ticket 10a acceptance. |
+| 13 | Not started | Unassigned | Blocked by ticket 10a acceptance. |
+| 14 | Not started | Unassigned | Depends on accepted tickets 01–13. |
 
 ## Ticket 01
 
@@ -380,3 +380,30 @@ automated test, or build only.
 
 **Known limit to keep reporting.** Only this Mac has run the macOS lane. A pin makes output
 hardware-independent by construction; that remains unverified on a second machine.
+
+### Ticket 10b result (accepted; committed)
+
+One round. The macOS branch of `flatMarkSnapshotImage` now converts the flattened native bitmap to
+`NSColorSpace.sRGB` and returns an `NSImage` backed by that explicit bitmap representation. The three
+layout passes, the optional `prepareMountedView` hook, the background flatten, and the
+`FlatMarkSnapshotCaptureError.unavailable` path are unchanged; a nil CGImage or failed conversion also
+throws `.unavailable`. Comparison stays byte-exact: `assertFlatMarkSnapshot` still uses precision `1`
+with no tolerance, and the iOS branch is untouched.
+
+All 72 macOS references were re-recorded through `FlatMarkSnapshots-macOS-Record`, visually reviewed
+through per-suite contact sheets, and now embed one `sRGB IEC61966-2.1` profile (`sips`), replacing the
+old `LG ULTRAFINE` profile. Two consecutive non-recording macOS runs passed 62/62 with unchanged hashes;
+the orchestrator independently re-ran the non-recording macOS lane (62/62) and `swift test` (231 tests in
+30 suites, one known issue, no snapshot failures). A content mutation produced genuine SnapshotTesting
+comparison failures on the linked-image cases and was restored without recording. The 72 iOS references
+stayed byte-identical to the accepted iOS baseline (`diff` clean). Both demo schemes built (build only).
+Blocker 1 evidence survives (NestedContainers list content still draws outside the offered column) and
+no RTL task-marker baseline was added. `git diff --check` passed.
+
+Independent acceptance review returned ACCEPT with no critical or warning items; it opened the colored
+link, purple custom marker, raster, table-rule, and both NestedContainers overflow references and
+confirmed content is intact and the overflow defect is still faithfully captured.
+
+Unverified: cross-display (second Mac) execution, forced capture/conversion failure, minimum-OS, running
+app, VoiceOver, and gestures. The macOS lane has still only ever run on this one Mac; the sRGB pin makes
+output hardware-independent by construction, unverified on other hardware.

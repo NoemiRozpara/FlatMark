@@ -94,6 +94,78 @@ SweetPad CLI qualification in the same environment: both normal schemes passed
 (two tests each). Both `-Record` schemes reached explicit recording assertions and
 wrote byte-identical references. Separate normal-scheme reruns passed afterward.
 
+### macOS color-space qualification (ticket 10b)
+
+The macOS capture helper converts the flattened native bitmap to named
+`NSColorSpace.sRGB` (embedded profile `sRGB IEC61966-2.1`) before returning an
+`NSImage` with an explicit bitmap representation. sRGB is standard and independent
+of a particular monitor. The old references embedded the disconnected display's
+`LG ULTRAFINE` profile; captures on the replacement display embedded `Display P3`.
+The conversion changes encoding, not comparison: exact SnapshotTesting comparison
+and `assertFlatMarkSnapshot` are unchanged. No tolerance was added.
+
+Only the macOS branch changed. The three layout passes, mounted-view hook, native
+capture failure, background flattening, and point size remain intact. Conversion
+failure also throws `FlatMarkSnapshotCaptureError.unavailable`.
+
+Qualified on Xcode 27 / Swift 6.4, macOS 27.0.1 with a 2x hosting display. Logs,
+reference hashes, review contact sheets, and result bundles are retained locally
+under `/tmp/flatmark-10b/`, not in the repository.
+
+```sh
+# Authorized full macOS re-record. Exit 3: 62 expected recording assertions,
+# producing all 72 references across the ten suites.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS-Record --on mac --non-interactive --result-bundle /tmp/flatmark-10b/mac-record.xcresult
+
+# Consecutive non-recording runs. Each exited 0: 62 tests passed.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-10b/mac-verify1.xcresult
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-10b/mac-verify2.xcresult
+
+# Profile inspection: 72 entries, all sRGB IEC61966-2.1.
+for f in $(find Tests/References/Snapshots -path '*/macOS/*' -name '*.png'); do sips -g profile "$f"; done | grep 'profile:' | sort | uniq -c
+
+# iOS guard: exit 0, no differences across all 72 iOS PNGs.
+find Tests/References/Snapshots -path '*/iOS/*' -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-10b/ios-after.txt
+diff /tmp/flatmark-10b/ios-baseline.txt /tmp/flatmark-10b/ios-after.txt
+
+# Mutation probe: exit 3, two genuine snapshot mismatches with reference/actual
+# paths and xcresult comparison attachments. No reference was recorded.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --only-testing FlatMarkSnapshots-macOS/FlatMarkLinkedImageSnapshotTests --non-interactive --result-bundle /tmp/flatmark-10b/mac-mutation.xcresult
+
+# After restoring the mutation and reviewing the images: exit 0, 62 passed.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-10b/mac-final.xcresult
+
+# Exit 0: 231 tests in 30 suites, one known issue, no snapshot failures.
+swift test
+
+# Build only; both exited 0. The iOS destination is this run's simulator.
+sweetpad build --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-macOS --on mac --non-interactive
+sweetpad build --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-iOS --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --non-interactive
+
+git diff --check
+```
+
+The mutation temporarily wrapped the mounted macOS fixture in
+`view.overlay(Text("MUTATION PROBE"))` in the capture helper. It was restored before
+package tests, builds, and the final normal-scheme run. SHA-256 hashes of all 72
+macOS references stayed unchanged through verification and mutation.
+
+Visual review covered all 72 re-recorded images in per-suite contact sheets:
+EmptyStructures, ImagePhases, InlineFlow, LinkedImage, NativePlaceholderFlow,
+NestedContainers, OmissionSpacing, Tables, TaskMarkers, and UnsupportedPolicies.
+Checked text and placeholders, blue links, purple custom replacements and task
+markers, colored rasters, table rules and both scroll positions, outside margins,
+and clipping. No new missing content or layout changes were found. A supplementary
+foreground-mask comparison against the committed images found identical masks in
+71 images; `customDisabled` differed by eight threshold-edge pixels after color
+conversion. This inspection aid is not part of snapshot comparison.
+
+The known NestedContainers list overflow outside the offered column remains;
+this re-record does not fix or approve it as correct behavior. TaskMarkers still
+has no RTL reference on either platform. No iOS recording ran. Cross-display
+execution, minimum-OS behavior, forced native/conversion failure, live gestures,
+and accessibility were not verified by this qualification.
+
 ### Inline-flow qualification (ticket 02)
 
 `FlatMarkInlineFlowSnapshotTests` owns ten references: narrow, wide, enlarged, RTL,

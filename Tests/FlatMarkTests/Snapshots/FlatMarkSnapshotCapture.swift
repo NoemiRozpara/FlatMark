@@ -58,12 +58,23 @@ func flatMarkSnapshotImage<V: View>(
         hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
         let captured = NSImage(size: environment.captureSize)
         captured.addRepresentation(bitmap)
-        return NSImage(size: environment.captureSize, flipped: false) { bounds in
+        let flattened = NSImage(size: environment.captureSize, flipped: false) { bounds in
             (environment.appearance == .dark ? NSColor.black : NSColor.white).setFill()
             bounds.fill()
             captured.draw(in: bounds)
             return true
         }
+        // Encode in standard sRGB, not the hosting display's hardware ICC profile.
+        guard let cgImage = flattened.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let standardBitmap = NSBitmapImageRep(cgImage: cgImage)
+                  .converting(to: .sRGB, renderingIntent: .default)
+        else {
+            throw FlatMarkSnapshotCaptureError.unavailable
+        }
+        let image = NSImage(size: environment.captureSize)
+        standardBitmap.size = environment.captureSize
+        image.addRepresentation(standardBitmap)
+        return image
     #elseif os(iOS)
         let hosting = UIHostingController(rootView: environment.pinnedContent(view))
         hosting.view.frame = CGRect(origin: .zero, size: environment.captureSize)

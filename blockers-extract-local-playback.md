@@ -62,8 +62,18 @@ tickets"). None of them stops the remaining tickets. See
   project. Exposing `FlatMarkFixtures` as a package product instead would change `Package.swift`, a public
   build surface, and needs agreement first.
 
-## Blocker 4 — macOS captures inherit the main display's ICC profile, so the macOS lane is hardware-bound (blocks the macOS half of every remaining ticket)
+## Blocker 4 — macOS captures inherited the main display's ICC profile — RESOLVED by ticket 10b
 
+- **Resolution (ticket 10b, committed):** the macOS branch of `flatMarkSnapshotImage`
+  (`Tests/FlatMarkTests/Snapshots/FlatMarkSnapshotCapture.swift`) now converts the flattened capture to
+  `NSColorSpace.sRGB` and returns an `NSImage` backed by that explicit bitmap. All 72 macOS references
+  were re-recorded and now embed one `sRGB IEC61966-2.1` profile instead of the disconnected monitor's
+  `LG ULTRAFINE` profile. Comparison stays byte-exact (no tolerance). Two non-recording macOS runs pass
+  62/62 and `swift test` passes 231 tests in 30 suites with one known issue. iOS references unchanged.
+  This was the user-chosen option 2 (pin + deliberate re-record), not a tolerance.
+- **Residual limit (still reported, not a defect):** only this Mac has ever run the macOS lane. The pin
+  makes output hardware-independent by construction; that is unverified on a second Mac or CI machine.
+- Original finding retained below for provenance.
 - Found by the orchestrator while qualifying ticket 10a, on a clean checkout of `53f543a` with no
   ticket-10a changes applied. It is therefore not caused by ticket 10a.
 - Symptom: 27 of the 72 committed macOS references fail byte comparison, and the same 27 fail in the
