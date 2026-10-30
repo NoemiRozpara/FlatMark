@@ -4,6 +4,8 @@
 
 Execute tickets 01–14 in order. Each ticket has an isolated implementation worker, independent acceptance review, and a separate bookkeeping worker for a commit after acceptance. The user's explicit commit authorization overrides the draft plan's no-commit default. Preserve unrelated changes. Stop on critical blockers; record them in `@blockers-extract-local-playback.md`.
 
+Resume point for a new orchestrator session: [the handoff note](ui-snapshot-testing-HANDOFF.md).
+
 Initial working tree: clean.
 
 ## Status
@@ -20,11 +22,12 @@ Initial working tree: clean.
 | 08 | Accepted; committed | coding assistant + reviewer + orchestrator | 16 references; both falsification probes failed as expected. See ticket 08 below. |
 | 09 | Accepted; committed | coding assistant + reviewer + orchestrator | 10 references; numbering probe failed as expected; no new defect. See ticket 09 below. |
 | 10 | Accepted after 2 review rounds; committed | coding assistant + reviewer + orchestrator | Hard-break fixtures were mutation-insensitive at 3 macOS settings; repaired. See ticket 10 below. |
-| 10a | Implemented, **not accepted**; loop stopped | coding assistant + orchestrator | Fixture sources and raster now reach both snapshot targets; iOS verified 62/62, both demos build, 144 hashes unchanged. macOS gate blocked by Blocker 4. See ticket 10a below. |
-| 11 | Not started | Unassigned | Blocked by ticket 10a acceptance and Blocker 4. |
-| 12 | Not started | Unassigned | Blocked by Blocker 4 (the macOS lane cannot pass). |
-| 13 | Not started | Unassigned | Blocked by ticket 10a acceptance and Blocker 4. |
-| 14 | Not started | Unassigned | Depends on accepted tickets 01–13 and Blocker 4. |
+| 10a | Implemented, **not accepted**; held for 10b | coding assistant + orchestrator | Fixture sources and raster now reach both snapshot targets; iOS verified 62/62, both demos build, 144 hashes unchanged. macOS gate held for Blocker 4. See ticket 10a below. |
+| 10b | Not started; **enqueue first** | Unassigned | Blocker 4: user chose to pin the capture color space and re-record the 72 macOS baselines. See ticket 10b below and the handoff note. |
+| 11 | Not started | Unassigned | Blocked by ticket 10a acceptance and ticket 10b. |
+| 12 | Not started | Unassigned | Blocked by ticket 10b (the macOS lane cannot pass until it lands). |
+| 13 | Not started | Unassigned | Blocked by ticket 10a acceptance and ticket 10b. |
+| 14 | Not started | Unassigned | Depends on accepted tickets 01–13 and ticket 10b. |
 
 ## Ticket 01
 
@@ -339,3 +342,41 @@ the macOS non-recording lane fails 27 of 62, and `swift test` reports the same 2
 orchestrator reproduced both on a clean checkout of `53f543a` with the ticket reverted, so they come from
 [Blocker 4](../../blockers-extract-local-playback.md), not from ticket 10a. Demo runtime raster resolution is
 build-only evidence, not a running-app observation. The worker made no commits.
+
+## Ticket 10b — Pin the macOS capture color space and re-record the macOS baselines
+
+Added after Blocker 4. The user chose this option over reconnecting the recording display and over adding a
+pixel tolerance. It is authorized bulk re-recording, not a workaround for a failing comparison.
+
+**Why.** `flatMarkSnapshotImage` builds its bitmap with `bitmapImageRepForCachingDisplay` and `cacheDisplay`,
+so the captured image takes the current main display's pixel format and ICC profile. Nothing pins a color
+space. Every macOS reference therefore records the display that was main during recording, and the lane only
+passes on that hardware.
+
+**Owned paths.** `Tests/FlatMarkTests/Snapshots/FlatMarkSnapshotCapture.swift` and the macOS reference
+namespaces under `Tests/References/Snapshots/*/macOS/`. The shared capture helper is reassigned by the
+orchestrator for this ticket, following the ticket 05 precedent. `Tests/README.md` records the pin.
+**Not owned:** production `Sources/FlatMark`, `Package.swift`, `Demo/project.yml`, demo sources, existing
+suites other than capture support, and every iOS reference.
+
+**Acceptance criteria.**
+
+- [ ] macOS captures are produced in one named, hardware-independent color space, chosen and justified in
+      code and in `Tests/README.md`. The three layout passes, the `prepareMountedView` hook, and the
+      unavailable-capture failure path keep working.
+- [ ] All 72 macOS references are re-recorded, reviewed visually, and then pass two consecutive
+      non-recording macOS runs with no reference change.
+- [ ] A fixture mutation still fails with SnapshotTesting comparison diagnostics. Pinning must not be
+      implemented as a pixel tolerance or a looser comparison.
+- [ ] All 72 iOS references stay byte-identical to their accepted hashes. If iOS is pinned too, all 72 iOS
+      baselines are re-recorded and re-reviewed in this ticket and `Tests/README.md` says so.
+- [ ] `swift test`: 231 tests in 30 suites, one known issue, no snapshot failures.
+- [ ] Blocker 1 and Blocker 2 evidence survives re-recording: list content still draws outside the offered
+      column, and no RTL task-marker baseline is added.
+
+**Verification.** Recording run, two non-recording runs per platform, a mutation probe, the full package
+suite, both demo builds, the iOS hash guard, and `git diff --check`. Report each as inspection, compilation,
+automated test, or build only.
+
+**Known limit to keep reporting.** Only this Mac has run the macOS lane. A pin makes output
+hardware-independent by construction; that remains unverified on a second machine.
