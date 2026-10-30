@@ -526,6 +526,164 @@ snapshot offsets do not verify actual gesture reachability. That ticket criterio
 remains unverified. Minimum-OS behavior, VoiceOver, selection, and vertically
 constrained hosts are also outside this qualification.
 
+### Image-phase qualification (ticket 06)
+
+`FlatMarkImagePhaseSnapshotTests.swift` adds ten public-view cases per platform,
+with 17 references each under `References/Snapshots/ImagePhases/{macOS,iOS}`.
+The seven symbol cases each have a same-run hand-authored SwiftUI `control`.
+Controls are independent plain SwiftUI contract fixtures; image captures exercise
+the public renderer, `FlatMarkView`, and its real loading path.
+No production or shared capture support changed. All loaders are local; the
+`.invalid` Markdown URL is an identifier, not a network request.
+
+Qualification used macOS 27.0.1 (26A434), Swift 6.4, and the iPhone 18 Pro
+simulator on iOS 27.0. Captures offer a 200pt column inside 600×500pt bounds,
+with 100pt insets, 2× scale, en_US, left-to-right, and body text. Body overrides
+are 13pt on macOS and 17pt on iOS. This is not minimum-OS qualification.
+
+Readiness has two gates. Loader bookkeeping must report completion for loaded
+and failed cases. Then document size and mounted native descendant frames must
+remain identical for five consecutive comparisons. The loop allows 100 attempts,
+20ms apart. It records the fixture, environment, attempts, consecutive-stable
+count, and all observed geometry on timeout. A failed gate prevents the
+renderer-image assertion/recording. Controls are asserted before mounting the
+renderer (suite lines 86–91); the readiness guard precedes the renderer-image
+assertion (lines 125–129). A later timeout cannot undo a control recording.
+Placeholder needs no loader. Held loading waits for request
+start but deliberately keeps the operation outstanding. Geometry does not identify
+phases, and completion does not prove drawing. Exact comparison against reviewed,
+phase-specific references is the protection against premature captures.
+
+The held loader polls its lock-protected release flag with cancellation-aware sleep.
+A synchronous loader-exit `defer` marks completion without an intervening suspension.
+Capture teardown cancels its task. Both the normal and throwing capture exits
+also call `release()`; a readiness failure takes the throwing exit. Controls run
+before any loader is mounted. Thus no early assertion, timeout, or capture error
+can strand suspended work. This cleanup is not a new cancellation-behavior test.
+
+#### Visual review
+
+Every one of the 34 PNGs was opened with `read`. Rows below name both the `image`
+and `control` PNG where present; each control was cross-checked against its image
+in that platform's recording run. All content has clear capture-edge margins.
+No URL text is shown. Loaded rasters replace the alt label rather than printing it.
+
+| Case / PNGs on each platform | macOS review | iOS review | Coverage |
+| --- | --- | --- | --- |
+| `placeholder.image`, `.control` | Photo symbol, complete “Striped local diagram”; agrees with control | Same symbol and complete label; agrees with control | AC-10, no loader |
+| `emptyAltPlaceholder.image`, `.control` | Photo plus “Image”; agrees with control | Photo plus “Image”; agrees with control | Generic fallback |
+| `heldLoading.image`, `.control` | Clock plus descriptive label; agrees with control | Clock plus descriptive label; agrees with control | AC-10, outstanding request |
+| `throwingFailure.image`, `.control` | Warning triangle, complete descriptive label; agrees with control | Warning triangle, complete descriptive label; agrees with control | AC-10, real thrown error |
+| `emptyAltFailure.image`, `.control` | Warning triangle plus “Image”; agrees with control | Warning triangle plus “Image”; agrees with control | Failure generic fallback |
+| `smallIntrinsicRaster.image` | Four-color 120×60pt raster, 2:1, below 200pt column width | Same intrinsic size and aspect | Intrinsic-size output |
+| `oversizedRaster.image` | Complete four-color 200×100pt raster from 1000×500 source | Same fitted size and aspect | Narrow-proposal fit; outside margins expose overflow, not clipping into a fit |
+| `mixedLoadedText.image` | 120×60pt raster below “Before the diagram”; trailing sentence below raster on one line | Same raster; trailing text wraps across two lines below it | Loaded responsive flow, no hidden overflow |
+| `darkPlaceholder.image`, `.control` | Light photo symbol and complete label visible on black; agrees with control | White photo symbol and label visible on black; agrees with control | Dark symbol visibility |
+| `darkFailure.image`, `.control` | Light triangle and complete label visible on black; agrees with control | White triangle and label visible on black; agrees with control | Dark failure visibility |
+
+#### Runs and probes
+
+Logs, mismatch attachments in xcresults, and hash manifests are retained locally
+under `/tmp/flatmark-ticket06/`. Files prefixed `revised-` are this qualification;
+earlier experiments and `unaccepted/` are not baselines. Explicit recording
+failed the ten tests on each platform only because recording assertions are
+expected. There were no readiness failures in those recording runs. A first
+compile attempt failed because the shared mounted callback is nonthrowing; the
+suite now records the diagnostic there and throws after capture instead.
+
+Separate verify runs passed all ten tests on both platforms. After restoring all
+probes, both platforms passed ten again. SHA-256 checks kept all 34 new and all
+50 existing references byte-identical. Existing suite guards passed on both
+platforms: LinkedImage 2, InlineFlow 5, OmissionSpacing 3, NestedContainer 5,
+Tables 7. No reference was re-recorded for a probe.
+
+The held-loader probe deliberately held all loaded/failure requests and bypassed
+the completion gate to force comparison of a stable premature frame. On each
+platform, all six loaded/failure image references mismatched, while the other
+four cases and all controls passed. The probe released held work on exit. With
+the hold removed and completion restored, all ten cases passed separately.
+Evidence: `revised-{macOS,iOS}-held-probe.{log,xcresult}` and
+`revised-{macOS,iOS}-released-probe.{log,xcresult}`. This proves that a stable
+loading frame cannot pass the loaded/failure reference; it does not claim that
+geometry recognized a phase.
+
+A second, controlled delayed-success probe used the existing
+`smallIntrinsicRaster.image` reference, in verify mode only. This was a temporary
+change, not a new permanent case or reference. Immediately after `delivery.start()`
+and the completion `defer`, its loader executed
+`try await Task.sleep(for: .seconds(1))`, then returned the unchanged raster.
+The condition was `phase == .loaded && !oversized && !mixed`; no other fixture
+was delayed. One second is ten times the five 20ms stable-comparison intervals.
+With both completion and quiescence gates unchanged and enabled, all ten tests
+passed on each platform. The delayed small-raster test took 1.231s on macOS and
+1.236s on iOS and matched its accepted loaded reference.
+
+For the contrasting run, the same fixture and one-second delay stayed in place.
+Only that fixture's completion predicate changed from `completed` to `started`;
+the five-comparison quiescence gate remained enabled. On both platforms, exactly
+`smallIntrinsicRaster.image` failed its loaded reference; the other nine tests
+passed. Both commands exited 3 for the expected mismatch, not a readiness timeout.
+Thus the same delayed fixture passes with completion readiness and fails without
+it: request start plus stable geometry is not sufficient. Normal and throwing
+exits still called `delivery.release()`, and capture teardown still cancelled its
+task; the sleep was cancellation-aware. No cleanup path was bypassed.
+
+The temporary delay, predicate change, and diagnostic print were removed.
+`cmp` confirmed the suite matched its pre-probe copy at
+`/tmp/flatmark-ticket06/correction-accepted.swift` byte-for-byte. No reference was
+recorded or changed. Final `shasum -a 256 -c` checks passed for all 34 accepted
+and all 50 existing references. Exact commands from the repository root:
+
+```sh
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-ticket06/correction-macOS-delay-gated.xcresult --only-testing FlatMarkSnapshots-macOS/FlatMarkImagePhaseSnapshotTests
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --non-interactive --result-bundle /tmp/flatmark-ticket06/correction-iOS-delay-gated.xcresult --only-testing FlatMarkSnapshots-iOS/FlatMarkImagePhaseSnapshotTests
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-ticket06/correction-macOS-delay-start-only.xcresult --only-testing FlatMarkSnapshots-macOS/FlatMarkImagePhaseSnapshotTests
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --non-interactive --result-bundle /tmp/flatmark-ticket06/correction-iOS-delay-start-only.xcresult --only-testing FlatMarkSnapshots-iOS/FlatMarkImagePhaseSnapshotTests
+```
+
+Logs use the same stems with `.log` instead of `.xcresult`.
+
+Verify-only mutations had identical results on both platforms:
+
+| Mutation | Mismatched references | Unchanged references |
+| --- | --- | --- |
+| Change raster blue channel and small-raster aspect to 120×90 | Three loaded images: small, oversized, mixed | All 14 symbol/control references |
+| Change descriptive alt to “Changed description” | Images and controls for placeholder, loading, failure, dark placeholder, dark failure (10) | Empty-alt images/controls and three loaded images (7) |
+| Make the throwing loader succeed | Three failure images | Failure controls and every other reference (14) |
+
+`swift test --filter FlatMarkImageLoadingTests` passed 17 tests in one suite.
+`swift test` passed 201 tests in 26 suites with the existing intentional
+LoaderSpyTests known issue. `swift test --list-tests` listed all 17 loading tests
+and all ten new snapshot tests. Existing loading, numeric fitting, accessibility
+phase-label, URL-policy, and loader-configuration tests remain unchanged.
+
+Commands (one capture process at a time, from the repository root):
+
+```sh
+(cd Demo && xcodegen generate)
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS-Record --on mac --non-interactive --result-bundle /tmp/flatmark-ticket06/revised-mac-record2.xcresult --only-testing FlatMarkSnapshots-macOS/FlatMarkImagePhaseSnapshotTests
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS-Record --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --non-interactive --result-bundle /tmp/flatmark-ticket06/revised-ios-record.xcresult --only-testing FlatMarkSnapshots-iOS/FlatMarkImagePhaseSnapshotTests
+# platform=macOS: dest=mac; platform=iOS:
+# dest=674C04A9-8792-4995-A6A9-66F80E5F96AA
+# suite=LinkedImage, InlineFlow, OmissionSpacing, NestedContainer, Table, ImagePhase
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --non-interactive --result-bundle /tmp/flatmark-ticket06/revised-$platform-verify-$suite.xcresult --only-testing FlatMarkSnapshots-$platform/FlatMark${suite}SnapshotTests
+# Same command with suite=ImagePhase and result stem revised-$platform-$phase:
+# phase=held-probe, released-probe, mutation-raster, mutation-alt,
+# mutation-success, final-verify, gated-final-verify
+shasum -a 256 -c /tmp/flatmark-ticket06/existing-before.sha256
+shasum -a 256 -c /tmp/flatmark-ticket06/accepted.sha256
+swift test --filter FlatMarkImageLoadingTests
+swift test
+swift test --list-tests
+git status --short
+git diff --check
+```
+
+These captures qualify fixture appearance and exact repeatability only. They do
+not prove cancellation behavior, accessibility labelling, URL policy, live
+VoiceOver, interaction, system Dynamic Type, or general running-app behavior.
+Those claims stay with the existing test families and manual checks.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.

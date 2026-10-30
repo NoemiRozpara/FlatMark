@@ -20,6 +20,7 @@ enum FlatMarkSnapshotSuite: String {
     case omissionSpacing = "OmissionSpacing"
     case nestedContainers = "NestedContainers"
     case tables = "Tables"
+    case imagePhases = "ImagePhases"
 }
 
 // MARK: - FlatMarkSnapshotMode
