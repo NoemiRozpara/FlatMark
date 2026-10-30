@@ -931,6 +931,78 @@ selection, minimum-OS, or general running-app behavior was verified. Exact
 payload and independent activation claims remain with existing behavioral tests;
 full package testing runs their macOS lane, not iOS interaction.
 
+### Empty-structure qualification (ticket 09)
+
+`FlatMarkEmptyStructureSnapshotTests` owns five public-view cases and five PNGs
+per platform in `EmptyStructures/{macOS,iOS}`. All use local Markdown with `.omit`,
+serialized Swift Testing, and exact comparison. No production or existing test
+changed. The only shared-support change adds the approved namespace case;
+XcodeGen registers the new file in both targets.
+
+Qualified in the established Xcode 27 RC / Swift 6.4 lane: macOS 27.0.1 on the
+2x display and booted iPhone 18 Pro on iOS 27.0. Captures offer a 340pt column,
+100pt inset, 560×450pt bounds (560×950pt enlarged), 2x, light, en_US, LTR, and
+intrinsic vertical sizing. iOS enlarged uses `.accessibility3`; macOS uses a
+28pt font override, not system Dynamic Type.
+
+The implementation worker opened every one of the ten recorded PNGs with `read`.
+Each row below names both platform references by test stem:
+
+| Stem | Visual review on macOS and iOS |
+| --- | --- |
+| `emptyTaskInteractive` | Empty gray square visibly retained above green checked neighbor; no synthetic label or HTML ink. |
+| `emptyTaskReadOnly` | Same visible empty square and checked neighbor without a callback. |
+| `authoredOrderedRows` | `7.` remains in its empty first row; `8.` precedes `keep` in the next row. |
+| `omittedTableCells` | A/B columns retained; `keep` stays right, `left` stays left; fully empty third body row remains above last/end; outer boundary and horizontal row rules complete. No internal vertical rules are promised. |
+| `enlargedEmptyTask` | Empty square retained; checked neighboring wording wraps into three lines on macOS and five on iOS; all wording and both markers intact. |
+
+All references have clear outside margins. These compact LTR fixtures do not
+include the known overflowing list continuations or RTL indentation defects.
+No new clipping or rendering defect was accepted.
+
+Commands ran serially from the repository root. Logs, xcresults, accepted source
+copy, and manifests remain local under `/tmp/flatmark-ticket09/`:
+
+```sh
+(cd Demo && xcodegen generate)
+find Tests/References/Snapshots -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-ticket09/existing.sha256
+# platform=macOS: dest=mac; platform=iOS: dest=booted
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform-Record --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkEmptyStructureSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket09/$platform-record.xcresult
+# Run each phase separately, with the probe edit/restoration between phases.
+# phase=verify, probe: filter shown below. phase=final: omit --only-testing.
+find Tests/References/Snapshots -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-ticket09/$platform-$phase-before.sha256
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkEmptyStructureSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket09/$platform-$phase.xcresult
+find Tests/References/Snapshots -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-ticket09/$platform-$phase-after.sha256
+diff -u /tmp/flatmark-ticket09/$platform-$phase-{before,after}.sha256
+shasum -a 256 -c /tmp/flatmark-ticket09/existing.sha256
+cmp /tmp/flatmark-ticket09/accepted.swift Tests/FlatMarkTests/Snapshots/FlatMarkEmptyStructureSnapshotTests.swift
+swift test
+git diff --check
+```
+
+An initial macOS compile attempt (`mac-record`) caught initializer argument order;
+no references were written by that attempt. Corrected explicit recordings
+(`macOS-record`, `iOS-record`) each reported five expected recording assertions,
+with no capture failures. Separate `verify` runs passed five tests per platform.
+The VERIFY-only probe changed the ordered source to `9.` / `10.`. Each platform
+reported one genuine ordered-row mismatch and four passes, not recording failures.
+Restoration matched the saved source byte-for-byte. Full normal `final` runs
+passed 54 tests per platform: five new and 49 across the eight existing namespaces.
+Every verify/probe/final before/after manifest matched. All 118 existing PNGs and
+ten new PNGs stayed byte-identical; verify mode wrote no references.
+Missing-reference behavior relies on the unchanged ticket 01 contract, not a
+repeated probe here.
+
+Full `swift test` passed 223 tests in 29 suites with one existing intentional
+LoaderSpyTests known issue and no unexpected failures. Existing byte-exact task
+updates, omitted-label activation, and list/table projection assertions remain
+intact. `git diff --check` passed.
+
+All ticket 09 appearance criteria pass for these reviewed fixtures. These are
+mounted appearance and repeatability checks, not live callback, running-demo,
+VoiceOver, keyboard, selection, minimum-OS, or general overflow qualification.
+No new iOS activation or macOS system Dynamic Type observation was performed.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.
