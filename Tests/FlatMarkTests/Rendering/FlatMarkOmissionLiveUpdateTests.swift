@@ -27,7 +27,6 @@
                 matching: FlatMarkOmissionSample.displayedLiterally,
                 in: mounted
             ) == FlatMarkOmissionSample.displayedLiterally)
-            #expect(mounted.showsContent)
             #expect(model.markdown == FlatMarkOmissionSample.markdown)
             #expect(model.imageCalls.urls == [imageURL])
 
@@ -38,7 +37,6 @@
                 matching: FlatMarkOmissionSample.displayedOmitted,
                 in: mounted
             ) == FlatMarkOmissionSample.displayedOmitted)
-            #expect(mounted.showsContent)
             #expect(model.markdown == FlatMarkOmissionSample.markdown)
             #expect(model.imageCalls.urls == [imageURL])
             #expect(model.taskUpdates == 0)
@@ -50,7 +48,6 @@
                 matching: FlatMarkOmissionSample.displayedLiterally,
                 in: mounted
             ) == FlatMarkOmissionSample.displayedLiterally)
-            #expect(mounted.showsContent)
             #expect(model.markdown == FlatMarkOmissionSample.markdown)
             #expect(model.taskUpdates == 0)
             #expect(model.imageCalls.urls.count == 1)

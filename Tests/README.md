@@ -3,6 +3,128 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Integrated qualification (ticket 14)
+
+This section is the current integrated result. The ticket sections below retain
+historical baseline-review and mutation evidence; their old package counts are not
+current totals. Reviewed replacement evidence is indexed in the
+[work ledger](../AI-docs/prds/ui-snapshot-testing-work-ledger.md).
+
+### Current commands and environments
+
+Run from the repository root. Discover destinations with `sweetpad devices`.
+The qualified environment is Xcode 27 RC, Swift 6.4, macOS 27.0.1 (26A434),
+a 2x macOS hosting display, and iPhone 18 Pro simulator on iOS 27.0
+(`674C04A9-8792-4995-A6A9-66F80E5F96AA`). macOS capture pins sRGB;
+second-Mac and minimum-OS execution remain unverified.
+
+```sh
+swift test
+swift test --list-tests
+mkdir -p /tmp/flatmark-14
+find Tests/References -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-14/before.sha
+for platform in macOS iOS; do
+  dest=mac
+  [ "$platform" = iOS ] && dest=674C04A9-8792-4995-A6A9-66F80E5F96AA
+  for n in 1 2; do
+    sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --non-interactive --result-bundle /tmp/flatmark-14/$platform-verify$n.xcresult
+  done
+done
+find Tests/References -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-14/after.sha
+diff -u /tmp/flatmark-14/before.sha /tmp/flatmark-14/after.sha
+git diff --check
+```
+
+Use fresh result-bundle paths when repeating these commands. Serialize capture
+processes, including package tests, because they share native display resources.
+Normal schemes use `FLATMARK_SNAPSHOT_RECORD=never`. To record an intended change,
+use the corresponding `-Record` scheme with `--only-testing
+FlatMarkSnapshots-<platform>/<suite>`. Recording assertions are expected, not a
+passing verification run. Review every changed image at readable scale, reject
+unintended output, then run the normal scheme separately twice. Never record to
+hide a mismatch. Ticket 14 did not record or change any reference.
+
+Automated results: `swift test` passed **239 tests in 32 suites**, with the one
+existing known LoaderSpy issue (before retirement: 245 tests in 33 suites).
+`swift test --list-tests` exited 0 and selected-survivor inspection confirmed URL,
+accessibility, configuration, cancellation, aspect-fit, linked-width, non-breaking
+space, source-byte, payload, and task-editing checks remain registered. The package
+run also executed them. Both full snapshot lanes passed **76/76 twice** (all four
+commands exit 0). All **206 PNG hashes** stayed identical, including manual assets.
+These are automated tests, not new visual baseline review or running-app observations.
+
+Missing-reference probe (automated negative test):
+
+```sh
+ref=Tests/References/Snapshots/LinkedImage/macOS/linkedImagePresentationMatchesReviewedBaseline.linked-240col-20inset-320x300-2x-light-en_US-ltr-body.png
+mv "$ref" /tmp/flatmark-14/held-reference.png
+# Always restore the original, even if the verification command fails.
+trap 'mv /tmp/flatmark-14/held-reference.png "$ref"' EXIT
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-14/mac-missing.xcresult
+test ! -e "$ref"
+mv /tmp/flatmark-14/held-reference.png "$ref"
+trap - EXIT
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-14/mac-restored.xcresult
+```
+
+The missing run exited 3: 75 passed, one failed. It reported the LinkedImage
+`linked` case, attached the expected PNG filename, and said: “No reference was
+found on disk. New snapshot was not recorded because recording is disabled”.
+The file remained absent (`test ! -e` exit 0). After restoration the full lane
+passed 76/76, exit 0, and the hash guard passed. **Diagnostic limitation:** neither
+the summary nor `sweetpad test output --project Demo/FlatMarkDemo.xcodeproj
+--result-bundle /tmp/flatmark-14/mac-missing.xcresult --full` printed the full
+expected reference path. The command above identifies that path; automatic
+full-path missing-reference diagnostics remain unqualified. Shared assertion
+support was outside this ticket's edit scope.
+
+### Coverage mapping (AC-18)
+
+Reference paths below are relative to `Tests/References/Snapshots`; each applies
+to both `macOS` and `iOS`. Test stems identify the reviewed PNGs despite their
+long environment suffixes.
+
+| Retired proxy | Reviewed replacement ticket / namespace / test stems | Coverage retained outside pixels |
+| --- | --- | --- |
+| Mixed linked-image arbitrary PNG inequality | 01 — `LinkedImage`: `linkedImagePresentationMatchesReviewedBaseline`, `unlinkedImagePresentationMatchesReviewedBaseline` | Link destinations and rendering-mode tests remain. |
+| Ordinary-image native wrapping fitted-size comparisons | 10 — `NativePlaceholderFlow`: narrow/wide × standard/enlarged `Wrapping` | Native inline-text mode and exact-attribute tests remain. No separate public exact fitted-size contract was found. |
+| Ordinary-image hard-break fitted-size comparisons | 10 — `NativePlaceholderFlow`: narrow/wide × standard/enlarged `HardBreaks` | Hard-break projection and native inline-text mode remain; both authored-break mutation probes were reviewed in 10. |
+| Linked-flow positive size and row-count scaffolding | 02 — `InlineFlow`: narrow, wide, enlarged captures | Drawn left/right width bounds, capture margin, effective-size controls, and non-breaking spaces remain. |
+| Image description policy PNG equalities/inequalities | 11 — `PolicyTransitions`: `imageDescriptionRestoresWithoutLoader`, `loadedImageDescriptionDoesNotReload` | Same retained mount still traverses literal→omit→literal with exact request counts and policy wording assertions. Snapshot 11 proves mounted restoration; policy wording alone does not. |
+| Configuration lifecycle phase PNG comparisons | 06 — `ImagePhases`: placeholder, loaded raster, failure cases | Original no-loader→first configuration→unrelated update→new configuration→no-loader sequence and exact requests remain. Static phase captures do not replace that lifecycle test. |
+| Generic throwing-loader anonymous PNG comparison | 06 — `ImagePhases`: `throwingFailure`, `emptyAltFailure`, `darkFailure`, plus independent controls | Package test retains real held request, release, confirmed throwing completion, and exact URL. Failure-state appearance is established by ticket 06, not by callback completion alone. |
+| Empty custom-host wording and literal-export control | 08 — `UnsupportedPolicies`: `emptyLiteral`, `emptyCustom`, `emptyOmit` | Compact mounted exact block-payload dispatch remains, so silent omission cannot pass the package dispatch check. |
+| Inline/block custom replacement exported-order and `showsContent` proxies | 08 — `UnsupportedPolicies`: `custom`, `literal`, `omit` | Mounted exact payload set and projected block/component addresses remain, as do extraction-input tests. |
+| Custom-policy repeated exported-output matrix and task-row `showsContent` | 11 — `PolicyTransitions`: `retainedPolicyTransitions`, `bothInitializerPaths` | Six directed transitions, source, image request counts, task-update counts, and host payload/label dispatch remain. |
+| Omission live-update `showsContent` | 03 — `OmissionSpacing`; 11 — `PolicyTransitions` | Exact native exported wording on the larger omission fixture stays as semantic restoration coverage, along with same-mount source/request/task checks. This is not retained as layout evidence. |
+| Custom task-marker exported labels | 07 — `TaskMarkers`: default/custom, read-only/interactive/disabled, retained-initializer and enlarged cases | Compact exact checked/unchecked host-input test through both initializers remains; editing-policy and exact-source tests are untouched. |
+| Header-only / empty-table eligibility booleans | 05 — `Tables`: `headerOnly`, `emptyInternalTableBetweenNeighbors`, `visiblePublicTableBetweenNeighbors` | Located in `FlatMarkDocumentViewTests.swift` (`FlatMarkTableViewTests`), not a separate table file. Internal eligibility has no independent predicate contract; table projection tests remain. |
+
+Both private `renderedPNG` overloads and the now-unused unwrapped-width constant
+were removed; searching the image-loading file finds no `renderedPNG` callers.
+No whole test file was deleted, so project regeneration was unnecessary.
+The font-override control remains because the surviving drawn-width test still
+uses enlarged effective text. This is not macOS system Dynamic Type verification.
+Native observation helpers remain for exact attributes, semantic initializer
+parity, and helper contracts. URL policy, loader identity/cancellation, callback
+counts, accessibility labels, extraction, projection identity, mention grammar,
+links, source mutations, and numeric raster aspect-fit checks were not retired.
+
+### Boundaries and remaining manual work
+
+Snapshots prove reviewed appearance in these environments, not activation,
+selection gestures, live VoiceOver, keyboard behavior, contrast/WCAG, minimum-OS
+support, or general cancellation. Package tests own their semantic/lifecycle and
+numeric contracts; neither lane substitutes for the other. Existing ticket
+review evidence is retained below; no new baseline review was needed here.
+
+Known renderer defects remain: list content can draw outside the offered column,
+and RTL task indentation runs outward. No RTL task baseline was added. Recipe
+iOS lower-scroll was observed in ticket 13; macOS running-app lower-scroll remains
+unperformed. Constrained quote hosts, task hit targets, real selection gestures,
+live accessibility, and running-demo interaction still need manual qualification.
+Recipe Lab captures are manual artifacts, not this automated baseline suite.
+
 ## Automated tests
 
 Run from the package repository root with a toolchain meeting the [requirements](../README.md#requirements):
@@ -49,8 +171,11 @@ without an app test host so AppKit snapshot setup owns application initializatio
 `Demo/project.yml` owns both targets and all four schemes. After editing it,
 regenerate with `cd Demo && xcodegen generate`.
 SnapshotTesting reports reference/actual/diff paths on mismatches; runner logs
-and xcresult bundles retain failure diagnostics. Missing references report the
-expected path and fail. Do not record a mismatch just to make it pass.
+and xcresult bundles retain failure diagnostics. A missing reference fails the
+run and is never recorded in verify mode; the message names the case and the
+expected PNG filename, and verify mode states that recording is disabled. The
+message does not print the full reference path (see the ticket 14 qualification
+limitations). Do not record a mismatch just to make it pass.
 
 References live in `Tests/References/Snapshots/<suite>/<platform>/`.
 Each suite owns one namespace (`LinkedImage` initially); later suites add their

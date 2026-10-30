@@ -3,38 +3,6 @@ import Foundation
 import SwiftUI
 import Testing
 
-// MARK: - FlatMarkTableViewTests
-
-@MainActor
-struct FlatMarkTableViewTests {
-    @Test
-    func `table eligibility includes a header without body rows`() {
-        let view = FlatMarkTableView(
-            table: FlatMarkRenderTable(
-                header: [
-                    .init(id: .init(path: [0, 0, 0]), content: "Name", colspan: 1),
-                ],
-                rows: []
-            ),
-            context: .readOnly
-        )
-
-        #expect(view.rendersTable)
-    }
-
-
-
-    @Test
-    func `table eligibility excludes an empty table`() {
-        let view = FlatMarkTableView(
-            table: FlatMarkRenderTable(header: [], rows: []),
-            context: .readOnly
-        )
-
-        #expect(!view.rendersTable)
-    }
-}
-
 // MARK: - FlatMarkInlineViewTests
 
 @MainActor

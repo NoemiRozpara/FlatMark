@@ -6,7 +6,8 @@ Resume point only. Authority stays in [the plan](ui-snapshot-testing.md),
 
 ## State
 
-- Branch `snapshot-tests`. Tickets 01–10, 10a, 10b, 11, 12, and 13 accepted and committed.
+- Branch `snapshot-tests`. Tickets 01–10, 10a, 10b, 11, 12, 13, and 14 accepted and committed. The UI
+  snapshot testing program is COMPLETE (see the ledger's "Program status" section).
 - **Ticket 10b landed:** the macOS capture path is pinned to `NSColorSpace.sRGB`; all 72 macOS references
   were re-recorded (now `sRGB IEC61966-2.1`), reviewed, and pass two consecutive non-recording macOS runs
   (62/62) and `swift test` (231 tests in 30 suites, one known issue). iOS references unchanged. Blocker 4
@@ -27,7 +28,9 @@ Resume point only. Authority stays in [the plan](ui-snapshot-testing.md),
   section crops + enlarged upper), via the public `FlatMarkView` with a suite-local controlled loader and a
   `leaf.fill` fallback contrast. Shared fixtures/production unchanged. macOS running-app lower-scroll NOT
   PERFORMED (unverified).
-- Ticket 14 (Wave C integration + retirement) not started; depends on all of 01–13 (all now accepted).
+- Ticket 14 (Wave C integration + retirement) landed: retired weak PNG proxies (package lane 245/33 →
+  239/32) against the reviewed 01–13 snapshots, with a coverage mapping in `Tests/README.md`; both lanes 76/76;
+  206 references byte-identical. No new blockers.
 
 ## Issue
 
@@ -41,13 +44,14 @@ checkout with ticket 10a reverted, so ticket 10a is not the cause. Details: Bloc
 
 ## Pick
 
-**Next: ticket 14** (Wave C integration and retirement) — the final ticket. It is the only owner of edits to
-existing test suites (retiring weak proxies), shared documentation changes, and dead-helper deletion. It needs
-all of 01–13 accepted (done).
+**Program complete.** Tickets 01–14 are all implemented, independently reviewed, and committed. Integrated
+suite: package lane 239 tests in 32 suites (one known issue) and both snapshot lanes 76/76.
 
-The shared capture support now includes `FlatMarkRetainedSnapshotHost` (ticket 11). Treat shared support
-(capture/environment/assertions) as frozen except where ticket 14 legitimately needs to remove now-dead
-helpers it owns. Never re-record to make a mismatch pass.
+No further snapshot tickets remain. Remaining open items are NOT part of these tickets: two known production
+defects (Blocker 1 list-column overflow, Blocker 2 RTL task indentation) need separate bounded fixes, and the
+long-standing unverified categories (running-app, VoiceOver, gestures, keyboard, contrast/WCAG, minimum-OS,
+second-Mac hardware) stay reported as unverified. Do not re-record baselines or reopen frozen shared support
+without a new plan-level decision.
 
 Ticket 10b owns `Tests/FlatMarkTests/Snapshots/FlatMarkSnapshotCapture.swift` and the macOS reference
 namespaces — an explicit orchestrator reassignment, following the ticket 05 precedent. It does not own

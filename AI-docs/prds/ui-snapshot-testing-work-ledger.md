@@ -27,7 +27,7 @@ Initial working tree: clean.
 | 11 | Accepted; committed | coding assistant + reviewer + orchestrator | 32 references (16/platform); one retained host captures literal→custom→label→omit→restored-literal; no-reload proof (1 request vs fresh-mount 1→2); delayed-completion probe. See ticket 11 below. |
 | 12 | Accepted; committed | coding assistant + reviewer + orchestrator | 12 references (6/platform): light/dark typography, enabled/disabled mentions, narrow + enlarged. Inline-code-is-monospaced (no background) confirmed as current contract, not a defect. See ticket 12 below. |
 | 13 | Accepted; committed | coding assistant + reviewer + orchestrator | 18 references (9/platform): upper/lower recipe sections (title+image, tasks/quotes, table/code, lower notes) via public `FlatMarkView` + suite-local controlled loader; raster-draw proven vs a `leaf.fill` control; no shared-fixture change. See ticket 13 below. |
-| 14 | Not started | Unassigned | Depends on accepted tickets 01–13. |
+| 14 | Accepted; committed | coding assistant + reviewer + orchestrator | Retired weak PNG proxies (245→239 package tests) against reviewed 01–13 snapshots; coverage mapping in `Tests/README.md`; both lanes 76/76; 206 references byte-identical. See ticket 14 below. |
 
 ## Ticket 01
 
@@ -503,3 +503,43 @@ passed. RTL is deliberately excluded (known-defect area). Enlarged coverage is u
 The iOS running-app lower-scroll was observed (six swipes, screenshot inspected); **macOS running-app
 lower-scroll was NOT PERFORMED**. Minimum-OS, gestures, activation, live accessibility, and contrast/WCAG remain
 unverified. No production changes and no commits were made by the worker.
+
+## Ticket 14
+
+Final integration and retirement (the sole owner of edits to existing `Tests/FlatMarkTests/Rendering/*` suites,
+dead-helper removal, and shared documentation).
+
+Retired weak visual proxies now covered by reviewed snapshots, mapped in the new `Tests/README.md` coverage
+table (AC-18): the linked/unlinked PNG inequality (→ ticket 01), the two ordinary-image native wrapping/hard-break
+size proxies (→ ticket 10), linked-flow positive-size/row scaffolding (→ ticket 02), image-description policy
+PNG comparisons (→ ticket 11), configuration-lifecycle phase PNG comparisons (→ ticket 06), the generic
+throwing-loader PNG comparisons (→ ticket 06), empty-custom-host export scaffolding and literal-export control
+(→ ticket 08), custom inline/block exported-order/output proxies (→ tickets 08/11), omission live-update
+`showsContent` (→ tickets 03/11), custom task-marker exported labels (→ ticket 07), and header-only/empty-table
+eligibility booleans (→ ticket 05). Deleted six test declarations, both private `renderedPNG` overloads, and a
+few now-unused constants. Package suite: 245 tests in 33 suites → **239 in 32 suites**, one known issue.
+
+AC-19 held: independent review confirmed URL/loaded-URL, request-count, loader-configuration identity,
+cancellation, accessibility-phase semantics, extraction inputs, projected identity, numeric aspect-fit + margin,
+linked-flow width bounds + effective-size controls, non-breaking-space, mention grammar, link destinations,
+source mutation, initializer parity, custom-payload dispatch, and marker-input checks all survive. The
+throwing-loader test keeps a real held-request/throwing-completion/exact-URL behavioral core (not a PNG proxy),
+with ticket 06 owning failure appearance.
+
+Verification: `swift test` 239/32 green; both full non-recording lanes 76/76 (orchestrator re-ran each); the
+two verify runs changed no hashes and a temporarily removed reference failed verification without recreation
+(then restored); all 206 reference PNGs byte-identical to commit; `git diff --check` clean. Independent review
+returned ACCEPT with no critical items. One documentation-consistency nit (an older "missing references report
+the expected path" sentence) was corrected to match the honest limitation that verify mode names the case and
+PNG filename and states recording is disabled, but not the full path — improving this needs a shared-support
+diagnostic change outside ticket 14.
+
+## Program status (01–14)
+
+All snapshot tickets 01–14 are implemented, independently reviewed, and committed. The integrated suite: package
+lane 239 tests in 32 suites (one known issue) and both snapshot lanes 76/76 on the qualified environment (macOS
+27.0.1; iPhone 18 Pro / iOS 27.0; Xcode 27 / Swift 6.4). Blockers 3 and 4 are resolved (tickets 10a, 10b).
+Blockers 1 (list column overflow) and 2 (RTL task indentation) remain open production defects, reported as
+blocked acceptance criteria with retained diagnostics, not blessed baselines. Running-app, VoiceOver, gestures,
+keyboard, contrast/WCAG, minimum-OS, and second-Mac cross-hardware remain unverified by design (see the blockers
+file and `Tests/README.md`).
