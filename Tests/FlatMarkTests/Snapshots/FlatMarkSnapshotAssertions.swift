@@ -17,6 +17,7 @@ import Testing
 enum FlatMarkSnapshotSuite: String {
     case linkedImage = "LinkedImage"
     case inlineFlow = "InlineFlow"
+    case omissionSpacing = "OmissionSpacing"
 }
 
 // MARK: - FlatMarkSnapshotMode

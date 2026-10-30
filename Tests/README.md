@@ -147,6 +147,89 @@ those rendering tests were not rerun in this focused snapshot check.
 These are mounted-rendering snapshot checks, not running-demo interaction,
 VoiceOver, selection-gesture, or minimum-OS qualification.
 
+### Omission-spacing qualification (ticket 03)
+
+`FlatMarkOmissionSpacingSnapshotTests` owns twelve PNGs in `OmissionSpacing`:
+three cases, each with an omitted document and a hand-authored supported-only
+control, on both platforms. All use public `FlatMarkView` with `.omit` and local
+Markdown. Exact comparison uses the shared support without tolerances.
+
+Qualified with Xcode 27.0 (27A266a), Swift 6.4, macOS 27.0.1 on a 2x display,
+and iPhone 18 Pro on iOS 27.0. Enlarged text uses real `.accessibility3` on iOS
+and a 28pt font override on macOS, not macOS system Dynamic Type.
+
+These exact commands ran from the repository root. Each loop ran serially.
+Logs and xcresults remain local under `/tmp/flatmark-ticket03/`.
+
+```sh
+(cd Demo && xcodegen generate)
+
+# Initial recordings: three tests / six expected recording assertions per platform.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS-Record --on mac --only-testing FlatMarkSnapshots-macOS/FlatMarkOmissionSpacingSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket03/mac-record.xcresult
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS-Record --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --only-testing FlatMarkSnapshots-iOS/FlatMarkOmissionSpacingSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket03/ios-record.xcresult
+
+# Reviewed fixture correction, then separate verification, probe, and restoration.
+# Run this loop once per phase, with the fixture state described below.
+for phase in intrinsic-record verify mutation final; do
+  for platform in macOS iOS; do
+    if [ "$platform" = macOS ]; then
+      dest=mac
+    else
+      dest=674C04A9-8792-4995-A6A9-66F80E5F96AA
+    fi
+    scheme=FlatMarkSnapshots-$platform
+    if [ "$phase" = intrinsic-record ]; then scheme=$scheme-Record; fi
+    sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme "$scheme" --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkOmissionSpacingSnapshotTests --non-interactive --result-bundle /tmp/flatmark-ticket03/$platform-$phase.xcresult
+  done
+  # Pause between phases for visual review, hash capture, or fixture edits.
+done
+
+# Before verify, and again after final (substitute after.sha256):
+find Tests/References/Snapshots/OmissionSpacing -name '*.png' -exec shasum -a 256 {} \; | sort > /tmp/flatmark-ticket03/before.sha256
+diff -u /tmp/flatmark-ticket03/before.sha256 /tmp/flatmark-ticket03/after.sha256
+swift test
+git status --short
+git diff --check
+```
+
+The initial flexible quote filled the offered height and clipped the iOS after
+paragraph. Those captures were rejected and retained locally in
+`initial-unaccepted/`. The fixture now requests intrinsic vertical size with
+`.fixedSize(horizontal: false, vertical: true)`; the capture remains fixed at
+320×300pt or 320×1100pt, never fitted to the result. This does not qualify the
+renderer under a vertically constrained host.
+
+The implementation worker visually reviewed every final PNG with the image reader:
+
+| PNG stem (both omitted and control, on each platform) | Review and verdict |
+| --- | --- |
+| `emptiedBlocksLeaveNoSlotsOrRules` | Both paragraphs intact; ordinary neighbor gap; no HTML-only paragraph/heading slot or single/nested quote rule; clear margins. Accepted all four PNGs. |
+| `supportedListKeepsItsQuote` | Bullet and supported wording remain inside one visible quote rule; no removed child slot or nested rule; after paragraph fully visible. Accepted all four PNGs. |
+| `enlargedNarrowNeighborsKeepTheirSpacing` | Both neighbors wrap with complete wording; ordinary paragraph spacing; no removed slots/rules; ample bottom/right margins and no clipping. Accepted all four PNGs. |
+
+Each omitted/control pair has the same intended appearance. The final recordings
+reported six expected recording assertions per platform with no native capture
+failures. Separate `verify` runs passed three tests per platform.
+
+For `mutation`, the first HTML-only paragraph and single quote changed from
+`<u></u>` to `<u> </u>`. The supported spaces retain a blank block slot and an
+otherwise empty quote rule. Both normal schemes reported two genuine image
+mismatches (standard and enlarged omitted captures) and one passing retained-list
+case; controls did not mismatch. The macOS actual image was also inspected: the
+extra gap and orphan rule were visible. Restored both strings before `final`:
+three tests passed per platform. All twelve reference SHA-256 hashes stayed
+unchanged across verify, mutation, and restoration.
+
+`swift test` passed 179 tests in 23 suites with zero unexpected failures and one
+intentional known issue in LoaderSpyTests (`reports an expectation dropped by a
+later arm`). Existing rendering/identity/whitespace/source-update tests remain
+unchanged. `git diff --check` passed. The unrelated untracked work ledger remains.
+
+These snapshots qualify the listed omission fixtures only. They do not establish
+live policy transitions, VoiceOver, gestures, selection, constrained-host quote
+sizing, minimum-OS support, or running-demo behavior. Discover a local simulator
+with `sweetpad devices`; the identifier above records this run only.
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.
