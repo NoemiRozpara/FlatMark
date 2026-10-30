@@ -24,7 +24,7 @@ Initial working tree: clean.
 | 10 | Accepted after 2 review rounds; committed | coding assistant + reviewer + orchestrator | Hard-break fixtures were mutation-insensitive at 3 macOS settings; repaired. See ticket 10 below. |
 | 10a | Accepted; committed | coding assistant + reviewer + orchestrator | Fixture sources and raster reach both snapshot targets via one identical import; both lanes 62/62, both demos build, `swift test` 231/30, 144 hashes unchanged. See ticket 10a below. |
 | 10b | Accepted; committed | coding assistant + reviewer + orchestrator | Blocker 4 resolved: macOS captures pinned to sRGB; 72 macOS baselines re-recorded, reviewed, verified twice. iOS 72 references byte-identical. See ticket 10b below. |
-| 11 | Not started | Unassigned | Free to start (macOS lane and fixture reachability both available). |
+| 11 | Accepted; committed | coding assistant + reviewer + orchestrator | 32 references (16/platform); one retained host captures literal→custom→label→omit→restored-literal; no-reload proof (1 request vs fresh-mount 1→2); delayed-completion probe. See ticket 11 below. |
 | 12 | Not started | Unassigned | Free to start. |
 | 13 | Not started | Unassigned | Free to start. |
 | 14 | Not started | Unassigned | Depends on accepted tickets 01–13. |
@@ -416,3 +416,34 @@ confirmed content is intact and the overflow defect is still faithfully captured
 Unverified: cross-display (second Mac) execution, forced capture/conversion failure, minimum-OS, running
 app, VoiceOver, and gestures. The macOS lane has still only ever run on this one Mac; the sRGB pin makes
 output hardware-independent by construction, unverified on other hardware.
+
+## Ticket 11
+
+Added `FlatMarkPolicyTransitionSnapshotTests` with five cases and 32 references (16 per platform) in a new
+`.policyTransitions` namespace: retained `literal → custom → label-change → omit → restored-literal`; an
+image-description `literal → omit → literal`; a no-reload control; a fresh-mount request-count contrast; and
+a retained-host transition for each of the source and retained-document initializers.
+
+**Orchestrator-owned shared-support change (blocker resolved):** the fresh-mount helper cannot retain
+mounted image `@State` across captures, so AC-15's "one mounted identity / no reload" was unreachable. The
+worker stopped and reported it. Following the ticket 05/06 precedent, the orchestrator ruled for a small
+additive retained host (`FlatMarkRetainedSnapshotHost` / `flatMakeRetainedSnapshotHost`) in the shared
+capture support, reached by extracting the existing per-platform mount and capture code into shared private
+helpers. `flatMarkSnapshotImage` now composes mount→capture→close with unchanged behavior; the 144 prior
+references stayed byte-identical (git shows 0 modified; the 16 new macOS refs embed the same sRGB profile).
+
+The suite drives one retained mount and asserts exact loader request counts: the loaded raster is requested
+**once** across retained policy-only changes, while the `freshMountsStartNewRequests` contrast shows two
+fresh `flatMarkSnapshotImage` captures request **1 then 2** (no test-side cache hides requests). The
+restored literal is compared to the initial `literal` reference with `mode: .verify` (never records), so a
+stale restore fails. A one-second delayed loader plus a requests+completion+stable-geometry readiness gate
+proves a transient loading frame cannot pass as final; weakening readiness to request-only makes the loaded
+reference mismatch. Independent review opened the transition, held-loading, description, and initializer
+references and accepted with no critical or warning items.
+
+Per-platform: recording produced expected recording assertions for the new namespace only; two consecutive
+non-recording lanes passed 67/67; the replacement-label mutation mismatched `retainedPolicyTransitions.custom`
+only. The orchestrator independently re-ran both lanes (67/67) and `swift test` (236 tests in 31 suites, one
+known issue), and confirmed the 144 prior references unchanged. `git diff --check` passed. Minimum-OS,
+dark/RTL/enlarged transitions, VoiceOver, gestures, task activation, general cancellation, and running-demo
+behavior remain unverified. No production changes and no commits were made by the worker.

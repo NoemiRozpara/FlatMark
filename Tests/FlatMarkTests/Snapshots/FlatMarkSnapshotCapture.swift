@@ -24,7 +24,67 @@ func flatMarkSnapshotImage<V: View>(
     environment: FlatMarkSnapshotEnvironment,
     prepareMountedView: (@MainActor (FlatMarkSnapshotNativeView) async -> Void)? = nil
 ) async throws -> FlatMarkSnapshotImage {
+    let host = flatMakeRetainedSnapshotHost(view: view, environment: environment)
+    defer { host.close() }
+    return try await host.capture(prepareMountedView: prepareMountedView)
+}
+
+/// A native host kept mounted across several captures of the SAME view identity, so a
+/// render-setting can change in place without remounting. Callers mutate the model between
+/// `capture` calls and drive it to the intended drawn state; this is not a readiness signal.
+@MainActor
+final class FlatMarkRetainedSnapshotHost {
+    private var captureMounted: ((@MainActor (FlatMarkSnapshotNativeView) async -> Void)?) async throws -> FlatMarkSnapshotImage
+    private var closeMounted: (() -> Void)?
+
+    fileprivate init(
+        capture: @escaping ((@MainActor (FlatMarkSnapshotNativeView) async -> Void)?) async throws -> FlatMarkSnapshotImage,
+        close: @escaping () -> Void
+    ) {
+        captureMounted = capture
+        closeMounted = close
+    }
+
+    /// Runs the bounded layout passes (+ optional mounted preparation), then captures once.
+    func capture(prepareMountedView: (@MainActor (FlatMarkSnapshotNativeView) async -> Void)? = nil) async throws -> FlatMarkSnapshotImage {
+        guard closeMounted != nil else { throw FlatMarkSnapshotCaptureError.unavailable }
+        return try await captureMounted(prepareMountedView)
+    }
+
+    /// Unmounts and releases the host. Call in a defer/teardown.
+    func close() {
+        closeMounted?()
+        closeMounted = nil
+        captureMounted = { _ in throw FlatMarkSnapshotCaptureError.unavailable }
+    }
+}
+
+/// Mounts `view` once and returns a host for repeated captures.
+@MainActor
+func flatMakeRetainedSnapshotHost<V: View>(view: V, environment: FlatMarkSnapshotEnvironment) -> FlatMarkRetainedSnapshotHost {
     #if os(macOS)
+        let (hosting, window) = mountSnapshotView(view, environment: environment)
+        return FlatMarkRetainedSnapshotHost(capture: { prepare in
+            try await captureMountedSnapshot(hosting, environment: environment, prepareMountedView: prepare)
+        }, close: {
+            window.orderOut(nil)
+            window.contentView = nil
+            window.close()
+        })
+    #elseif os(iOS)
+        let (hosting, window) = mountSnapshotView(view, environment: environment)
+        return FlatMarkRetainedSnapshotHost(capture: { prepare in
+            try await captureMountedSnapshot(hosting, window: window, environment: environment, prepareMountedView: prepare)
+        }, close: {
+            window.isHidden = true
+            window.rootViewController = nil
+        })
+    #endif
+}
+
+#if os(macOS)
+    @MainActor
+    private func mountSnapshotView<V: View>(_ view: V, environment: FlatMarkSnapshotEnvironment) -> (NSHostingView<some View>, NSWindow) {
         _ = NSApplication.shared
         let hosting = NSHostingView(rootView: environment.pinnedContent(view))
         hosting.sizingOptions = []
@@ -39,11 +99,14 @@ func flatMarkSnapshotImage<V: View>(
         window.animationBehavior = .none
         window.appearance = NSAppearance(named: environment.appearance == .dark ? .darkAqua : .aqua)
         window.contentView = hosting
-        defer {
-            window.orderOut(nil)
-            window.contentView = nil
-            window.close()
-        }
+        return (hosting, window)
+    }
+
+    @MainActor
+    private func captureMountedSnapshot<V: View>(
+        _ hosting: NSHostingView<V>, environment: FlatMarkSnapshotEnvironment,
+        prepareMountedView: (@MainActor (FlatMarkSnapshotNativeView) async -> Void)?
+    ) async throws -> FlatMarkSnapshotImage {
         for _ in 0 ..< 3 {
             await Task.yield()
             hosting.layoutSubtreeIfNeeded()
@@ -75,7 +138,10 @@ func flatMarkSnapshotImage<V: View>(
         standardBitmap.size = environment.captureSize
         image.addRepresentation(standardBitmap)
         return image
-    #elseif os(iOS)
+    }
+#elseif os(iOS)
+    @MainActor
+    private func mountSnapshotView<V: View>(_ view: V, environment: FlatMarkSnapshotEnvironment) -> (UIHostingController<some View>, UIWindow) {
         let hosting = UIHostingController(rootView: environment.pinnedContent(view))
         hosting.view.frame = CGRect(origin: .zero, size: environment.captureSize)
         hosting.view.backgroundColor = .clear
@@ -83,10 +149,14 @@ func flatMarkSnapshotImage<V: View>(
         window.overrideUserInterfaceStyle = environment.appearance == .dark ? .dark : .light
         window.rootViewController = hosting
         window.isHidden = false
-        defer {
-            window.isHidden = true
-            window.rootViewController = nil
-        }
+        return (hosting, window)
+    }
+
+    @MainActor
+    private func captureMountedSnapshot<V: View>(
+        _ hosting: UIHostingController<V>, window: UIWindow, environment: FlatMarkSnapshotEnvironment,
+        prepareMountedView: (@MainActor (FlatMarkSnapshotNativeView) async -> Void)?
+    ) async throws -> FlatMarkSnapshotImage {
         for _ in 0 ..< 3 {
             await Task.yield()
             window.layoutIfNeeded()
@@ -104,5 +174,5 @@ func flatMarkSnapshotImage<V: View>(
         }
         guard drawn else { throw FlatMarkSnapshotCaptureError.unavailable }
         return image
-    #endif
-}
+    }
+#endif

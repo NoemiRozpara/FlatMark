@@ -21,6 +21,7 @@ enum FlatMarkSnapshotSuite: String {
     case nestedContainers = "NestedContainers"
     case tables = "Tables"
     case imagePhases = "ImagePhases"
+    case policyTransitions = "PolicyTransitions"
     case taskMarkers = "TaskMarkers"
     case unsupportedPolicies = "UnsupportedPolicies"
     case emptyStructures = "EmptyStructures"

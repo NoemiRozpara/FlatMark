@@ -94,6 +94,118 @@ SweetPad CLI qualification in the same environment: both normal schemes passed
 (two tests each). Both `-Record` schemes reached explicit recording assertions and
 wrote byte-identical references. Separate normal-scheme reruns passed afterward.
 
+### Live policy-transition qualification (ticket 11)
+
+`FlatMarkPolicyTransitionSnapshotTests` owns sixteen PNGs per platform under
+`References/Snapshots/PolicyTransitions/{macOS,iOS}`. Five Swift Testing tests
+include two argument cases for the initializer check. The shared capture support
+now offers a test-only retained host. Mounting and native capture code were moved
+into private helpers without changing the three passes, mounted callback, native
+capture errors, macOS flatten/sRGB conversion, or UIKit renderer. The ordinary
+`flatMarkSnapshotImage` still mounts and closes once per call. Comparison is unchanged.
+
+Qualified with Xcode 27.0 (27A266a), Swift 6.4, macOS 27.0.1 (26A434) on the
+2x hosting display, and the iPhone 18 Pro simulator on iOS 27.0. The suite uses
+640×650pt captures, a 400pt column, 80pt insets, 2x, light, en_US, LTR, and
+13pt macOS / 17pt iOS body overrides. These are selected variants, not a matrix.
+
+#### States and visual review
+
+Every one of the 32 final PNGs was opened individually with the image reader.
+All text, checkboxes, and raster edges are complete with clear outside margins.
+Omitted HTML blocks leave no stale block slot. Inline replacement labels adjoin
+the supported middle text, matching replacement of adjacent tags, not inserted spaces.
+The changed label wraps on iOS without clipping. Literal restoration compares to
+the initial literal reference in verify mode even during an explicit recording run.
+
+Each row names PNG stems on **both** platforms. Every filename ends with
+`-400col-80inset-640x650-2x-light-en_US-ltr-body.png`.
+
+| PNG stems | Reviewed result |
+| --- | --- |
+| `retainedPolicyTransitions.heldLoading` | Literal tags/block, unchanged task, clock plus description, no raster. |
+| `retainedPolicyTransitions.literal` | Same content with the complete four-color local raster. |
+| `retainedPolicyTransitions.custom` | Three indigo Replacement labels; task and raster survive. |
+| `retainedPolicyTransitions.changedCustom` | Three Changed replacement labels on the same mount; task and raster survive. |
+| `retainedPolicyTransitions.omit` | Tags/block disappear; supported middle text, task, raster, and after paragraph remain. |
+| `imageDescriptionRestoresWithoutLoader.literal`, `.omit` | Photo placeholder wording changes from literal `<u>local</u>` to `local`, then restores. |
+| `loadedImageDescriptionDoesNotReload.loaded` | Inline raster remains between Before and after; no alt wording leaks. |
+| `freshMountsStartNewRequests.mount1`, `.mount2` | Complete matching rasters from two independent mounts. |
+| `bothInitializerPaths.sourceLiteral`, `.sourceCustom`, `.sourceOmit` | Source initializer: literal tags/block, replacements, then omitted content; task intact. |
+| `bothInitializerPaths.documentLiteral`, `.documentCustom`, `.documentOmit` | Retained-document initializer: same focused transitions and task. |
+
+The first recording was rejected because the description fixture contained no
+unsupported tags and therefore could not demonstrate a wording change. The fixture
+now includes `<u>local</u>`. Initial captures remain outside the repository under
+`/tmp/flatmark-11/initial-unaccepted/`; only corrected references are accepted.
+
+#### Readiness and lifecycle evidence
+
+The controlled loader has no cache. It counts requests under a lock, waits for
+explicit release, then delays one second before returning a local 120×60 raster.
+Its completion defer runs without suspension. Readiness requires the intended
+request count and completion, then five identical native-frame observations,
+20ms apart, within 100 attempts. Request-only readiness is used intentionally for
+the held-loading reference. Geometry bounds settling; it does not identify phases.
+Readiness errors throw before comparison or recording. Tests close retained hosts
+in defer; unmounting cancels view tasks, and held delivery is released on teardown.
+
+On both platforms, the complete unrelated-policy transition sequence kept the
+request count at **1** while the reviewed raster stayed drawn. Loaded-description
+literal → omit → literal also kept exactly **1** request and matched the same loaded
+reference after each change. Unchanged-source assertions accompany both cases.
+Two calls to `flatMarkSnapshotImage` with the same model and loader produced counts
+**1, then 2**. Thus retention, not loader caching, prevents the extra request.
+
+With the one-second completion delay and full readiness, all five tests passed on
+each platform (`*-delay-gated`). A verify-only probe changed only the initial loaded
+capture to request-start readiness, keeping geometry checks and the same delay.
+Each platform then reported exactly one genuine mismatch, `retainedPolicyTransitions.literal`,
+with the other four tests passing (`*-delay-start-only`). The initial loaded frame
+was premature; completion readiness is necessary. The probe was restored.
+A separate verify-only label mutation changed Replacement to MUTATION replacement.
+Exactly `retainedPolicyTransitions.custom` mismatched on each platform; the other
+four tests passed. No probe recorded references.
+
+#### Commands and results
+
+Commands ran from the repository root, one capture process at a time. Logs,
+xcresults, hash manifests, and review sheets remain under `/tmp/flatmark-11/`.
+
+```sh
+find Tests/References -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-11/references-before.txt
+(cd Demo && xcodegen generate)
+# platform=macOS: dest=mac
+# platform=iOS: dest=674C04A9-8792-4995-A6A9-66F80E5F96AA
+# Initial verify compiled both targets and failed only on missing references.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkPolicyTransitionSnapshotTests --non-interactive --result-bundle /tmp/flatmark-11/$platform-initial.xcresult
+# Explicit namespace-only recordings: exit 3, expected recording assertions.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform-Record --on "$dest" --only-testing FlatMarkSnapshots-$platform/FlatMarkPolicyTransitionSnapshotTests --non-interactive --result-bundle /tmp/flatmark-11/$platform-final-record.xcresult
+# After review: two full runs per platform; then gated, weak-readiness and label
+# probes with the suite filter above. All probe edits were restored before final1.
+for phase in final1 final2; do
+  sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-$platform --on "$dest" --non-interactive --result-bundle /tmp/flatmark-11/$platform-$phase.xcresult
+done
+swift test
+find Tests/References -name '*.png' ! -path '*/PolicyTransitions/*' | sort | xargs shasum -a 256 > /tmp/flatmark-11/existing-after.txt
+diff -u /tmp/flatmark-11/references-before.txt /tmp/flatmark-11/existing-after.txt
+shasum -a 256 -c /tmp/flatmark-11/accepted.txt
+git diff --check
+```
+
+Both consecutive final full lanes exited 0: **67 tests passed per platform per run**.
+Earlier full verify1/verify2 runs also passed 67 each. `swift test` exited 0 with
+**236 tests in 31 suites**, one existing intentional LoaderSpy known issue, no
+unexpected failures. All **144 existing PNGs** remain byte-identical; all **32 new
+PNGs** remain byte-identical through verification and probes. Hash comparison and
+`git diff --check` exited 0. The first macOS compile attempt failed on an unconditional
+fixture-module import; the corrected conditional import supports both target layouts.
+
+This qualifies mounted appearance, live policy updates, and the stated loader
+counts only. It does not verify gestures, task activation/source acceptance,
+VoiceOver, minimum OS versions, dark/RTL/enlarged transitions, general cancellation
+behavior, or running-demo interaction. Existing semantic and interaction tests remain.
+
 ### macOS color-space qualification (ticket 10b)
 
 The macOS capture helper converts the flattened native bitmap to named
