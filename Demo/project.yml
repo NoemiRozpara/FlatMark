@@ -36,6 +36,7 @@ targets:
     platform: iOS
     sources:
       - path: ../Tests/FlatMarkTests/Snapshots
+      - path: ../Support/FlatMarkFixtures
     dependencies:
       - target: FlatMarkDemo-iOS
       - package: FlatMark
@@ -49,6 +50,7 @@ targets:
     platform: macOS
     sources:
       - path: ../Tests/FlatMarkTests/Snapshots
+      - path: ../Support/FlatMarkFixtures
     dependencies:
       - target: FlatMarkDemo-macOS
       - package: FlatMark

@@ -32,8 +32,16 @@ tickets"). None of them stops the remaining tickets. See
   bless a defect, which the plan forbids. AC-11 therefore remains partially open.
 - Needed: a separate bounded production fix, then new reviewed RTL baselines on both platforms.
 
-## Blocker 3 — Snapshot targets cannot reach the shared fixtures (blocks tickets 11 and 13)
+## Blocker 3 — Snapshot targets could not reach the shared fixtures — RESOLVED by ticket 10a
 
+- **Resolution (ticket 10a, committed):** `Demo/project.yml` adds `../Support/FlatMarkFixtures` to both
+  snapshot targets (project regenerated), and `FlatMarkFixtureResources` now prefers
+  `Bundle(for: BundleToken.self)` over `Bundle.main` outside SwiftPM, so `focaccia.jpeg` resolves from each
+  platform's own `.xctest` bundle. A temporary probe reached `FlatMarkRecipeSample`,
+  `FlatMarkCustomFixtureModel`, and `FlatMarkCustomDocumentFixture` from both targets with one identical
+  `@testable import FlatMark`, then was deleted. The `Package.swift` product option was not taken. Tickets
+  11 and 13 can now use the shared fixtures directly.
+- Original finding retained below for provenance.
 - Found by the orchestrator while briefing ticket 11. Recorded as ticket 10a in
   [the work ledger](AI-docs/prds/ui-snapshot-testing-work-ledger.md), enqueued before tickets 11 and 13.
 - Symptom: neither `FlatMarkSnapshots-macOS` nor `FlatMarkSnapshots-iOS` can reference

@@ -22,11 +22,11 @@ Initial working tree: clean.
 | 08 | Accepted; committed | coding assistant + reviewer + orchestrator | 16 references; both falsification probes failed as expected. See ticket 08 below. |
 | 09 | Accepted; committed | coding assistant + reviewer + orchestrator | 10 references; numbering probe failed as expected; no new defect. See ticket 09 below. |
 | 10 | Accepted after 2 review rounds; committed | coding assistant + reviewer + orchestrator | Hard-break fixtures were mutation-insensitive at 3 macOS settings; repaired. See ticket 10 below. |
-| 10a | Implemented, **not accepted**; held for 10b | coding assistant + orchestrator | Fixture sources and raster now reach both snapshot targets; iOS verified 62/62, both demos build, 144 hashes unchanged. macOS gate held for Blocker 4. See ticket 10a below. |
+| 10a | Accepted; committed | coding assistant + reviewer + orchestrator | Fixture sources and raster reach both snapshot targets via one identical import; both lanes 62/62, both demos build, `swift test` 231/30, 144 hashes unchanged. See ticket 10a below. |
 | 10b | Accepted; committed | coding assistant + reviewer + orchestrator | Blocker 4 resolved: macOS captures pinned to sRGB; 72 macOS baselines re-recorded, reviewed, verified twice. iOS 72 references byte-identical. See ticket 10b below. |
-| 11 | Not started | Unassigned | Blocked by ticket 10a acceptance. |
-| 12 | Not started | Unassigned | Blocked by ticket 10a acceptance. |
-| 13 | Not started | Unassigned | Blocked by ticket 10a acceptance. |
+| 11 | Not started | Unassigned | Free to start (macOS lane and fixture reachability both available). |
+| 12 | Not started | Unassigned | Free to start. |
+| 13 | Not started | Unassigned | Free to start. |
 | 14 | Not started | Unassigned | Depends on accepted tickets 01–13. |
 
 ## Ticket 01
@@ -319,7 +319,16 @@ reference hash guard, and `git diff --check`. Report each as compilation, automa
 targets' `sources` needs no manifest change. Exposing `FlatMarkFixtures` as a package product instead
 changes `Package.swift`, which is a public build-surface change: report that option rather than making it.
 
-### Ticket 10a result (implemented, awaiting the Blocker 4 decision)
+### Ticket 10a result (accepted; committed)
+
+Ticket 10b landed first, which resolved the macOS lane that had held 10a. 10a was then re-verified on
+that working lane: both non-recording lanes pass 62/62, both demo schemes build, `swift test` passes 231
+tests in 30 suites with one known issue, and all 144 reference hashes are unchanged. The temporary
+reachability probe was re-added, passed one test on each lane (raster resolved from each platform's own
+`.xctest` bundle), and was deleted with the project regenerated. The `Tests/README.md` 10a section now
+reports the passing state and attributes the earlier macOS failure to Blocker 4 (fixed by 10b). Only the
+four intended files changed. Independent review accepted with no critical or warning items. Demo raster
+resolution is build-only, not running-app.
 
 Two rounds. Round 1 added the two `Demo/project.yml` source entries, proved all three fixture types compile
 into both snapshot targets through one identical import, and stopped honestly when the raster resolved to nil

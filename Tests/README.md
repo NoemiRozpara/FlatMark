@@ -1210,6 +1210,67 @@ that all possible appearance or interaction criteria pass. Selection gestures,
 semantic selectability, VoiceOver, keyboard, minimum-OS behavior, running-demo
 behavior, and macOS system Dynamic Type remain unverified by these captures.
 
+### Shared-fixture reachability (ticket 10a)
+
+Qualified environment: Xcode 27.0 (27A266a), Swift 6.4, macOS destination
+`mac`, and iPhone 18 Pro simulator on iOS 27.0.
+
+**Mechanism (inspection):** `Demo/project.yml` adds
+`- path: ../Support/FlatMarkFixtures` to both snapshot targets. XcodeGen places
+these sources and the existing `focaccia.jpeg` in both test bundles. Outside
+SwiftPM, `FlatMarkFixtureResources.bundle` now tries a private class token's
+`Bundle(for:)` before falling back to `Bundle.main`. The sources compile into
+the bundle that embeds the raster. `Bundle.module` is unchanged. There is no
+new raster, dependency, public product, or production-source change. Publishing
+a `FlatMarkFixtures` product would change `Package.swift`'s public build surface;
+that larger option was not taken.
+
+**Compilation and automated test:** An identical temporary probe used
+`@testable import FlatMark` on both lanes and referenced `FlatMarkRecipeSample`,
+`FlatMarkCustomFixtureModel`, and `FlatMarkCustomDocumentFixture`. It required a
+non-nil raster URL, a `.xctest` bundle path, and a decoded native image with
+positive width and height. Both probes passed one test (exit 0). The probe was
+then deleted and XcodeGen rerun. No probe remains in the generated project.
+
+Raw output (automated test):
+
+```text
+FIXTURE_PROBE bundle=/Users/noemirozpara/Library/Developer/Xcode/DerivedData/FlatMarkDemo-dykqjaewytgiccajucmwhqwmhyty/Build/Products/Debug/FlatMarkSnapshots-macOS.xctest raster=/Users/noemirozpara/Library/Developer/Xcode/DerivedData/FlatMarkDemo-dykqjaewytgiccajucmwhqwmhyty/Build/Products/Debug/FlatMarkSnapshots-macOS.xctest/Contents/Resources/focaccia.jpeg
+FIXTURE_PROBE bundle=/Users/noemirozpara/Library/Developer/CoreSimulator/Devices/674C04A9-8792-4995-A6A9-66F80E5F96AA/data/Containers/Bundle/Application/87F4CC16-5263-44C8-A246-1BFBB7EDCA40/FlatMarkDemo.app/PlugIns/FlatMarkSnapshots-iOS.xctest raster=/Users/noemirozpara/Library/Developer/CoreSimulator/Devices/674C04A9-8792-4995-A6A9-66F80E5F96AA/data/Containers/Bundle/Application/87F4CC16-5263-44C8-A246-1BFBB7EDCA40/FlatMarkDemo.app/PlugIns/FlatMarkSnapshots-iOS.xctest/focaccia.jpeg
+```
+
+**Final verification:** After ticket 10b committed the sRGB macOS capture pin,
+both non-recording lanes passed all 62 tests each (exit 0). `swift test` passed
+231 tests in 30 suites with one known issue and no snapshot failures (exit 0).
+The earlier 27 macOS snapshot mismatches were Blocker 4: captures inherited the
+recording display's ICC profile. Ticket 10b resolved that blocker. Both demo
+builds passed (exit 0, build-only evidence). The token's code is compiled into
+the app bundle for each demo, which embeds the raster (inspection). Demo raster
+resolution has not been observed in a running app. All 144 accepted reference
+hashes are identical (diff exit 0). `git diff --check` passed. No Record scheme ran.
+
+Exact continuation commands, from the repository root:
+
+```sh
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --result-bundle /tmp/flatmark-10a/mac-verify.xcresult
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --non-interactive --result-bundle /tmp/flatmark-10a/ios-verify.xcresult
+sweetpad build --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-macOS --on mac --non-interactive
+sweetpad build --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-iOS --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --non-interactive
+swift test
+find Tests/References -name '*.png' | sort | xargs shasum -a 256 > /tmp/flatmark-10a/references-after.txt
+diff /tmp/flatmark-10a/references-baseline.txt /tmp/flatmark-10a/references-after.txt
+git diff --check
+# After adding the temporary probe:
+(cd Demo && xcodegen generate)
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac --non-interactive --only-testing FlatMarkSnapshots-macOS/FlatMarkFixtureReachabilityProbe --result-bundle /tmp/flatmark-10a/mac-probe.xcresult
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --on 674C04A9-8792-4995-A6A9-66F80E5F96AA --non-interactive --only-testing FlatMarkSnapshots-iOS/FlatMarkFixtureReachabilityProbe --result-bundle /tmp/flatmark-10a/ios-probe.xcresult
+sweetpad test output --project Demo/FlatMarkDemo.xcodeproj --result-bundle /tmp/flatmark-10a/mac-probe.xcresult --full
+sweetpad test output --project Demo/FlatMarkDemo.xcodeproj --result-bundle /tmp/flatmark-10a/ios-probe.xcresult --full
+rm Tests/FlatMarkTests/Snapshots/FlatMarkFixtureReachabilityProbe.swift
+(cd Demo && xcodegen generate)
+git status --short
+```
+
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.
