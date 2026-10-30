@@ -6,11 +6,11 @@ FlatMark uses swift-markdown to parse the GitHub Flavored Markdown (GFM) specifi
 
 Status meanings:
 
-- **Fully rendered** — projected as its Markdown meaning without an intentional loss of semantic content.
-- **Rendered with documented policy** — visible in the preview, with the policy in the Notes column.
-- **Parsed but omitted** — accepted because it supplies structure or metadata, but has no separate visible output.
-- **Unsupported** — not projected as that construct.
-- **Not applicable** — a source-processing or GitHub-web behavior, rather than a native-preview construct.
+- **Fully rendered:** projected as its Markdown meaning without an intentional loss of semantic content.
+- **Rendered with documented policy:** visible in the preview, with the policy in the Notes column.
+- **Parsed but omitted:** accepted because it supplies structure or metadata, but has no separate visible output.
+- **Unsupported:** not projected as that construct.
+- **Not applicable:** a source-processing or GitHub-web behavior, rather than a native-preview construct.
 
 ### Block constructs
 

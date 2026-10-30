@@ -35,16 +35,16 @@ public enum FlatMarkUnsupportedContentPolicy {
 
     /// Show a host-provided view at each unsupported inline or block node's source position.
     ///
-    /// `render` is a presentation closure, not an event callback: FlatMark calls it while
-    /// building the view for that node's position and shows the view it returns, with no
-    /// literal fallback, diagnostic label, border, or minimum-size box added around it. The
-    /// argument is the same extracted string ``literal`` would show — the parser's raw HTML for
+    /// `render` is a presentation closure, not an event callback. FlatMark calls it while
+    /// building the view for that node's position and shows the view it returns. It adds no
+    /// literal fallback, diagnostic label, border, or minimum-size box around the view. The
+    /// argument is the same extracted string ``literal`` would show: the parser's raw HTML for
     /// an HTML node, otherwise the source slice the parser addressed, readable descendants,
-    /// or empty text — so an empty extraction still reaches the closure.
+    /// or empty text. An empty extraction still reaches the closure.
     ///
     /// The returned view keeps the ambient environment, interaction, and accessibility of the
-    /// position it lands in. FlatMark never inspects it: an erased `EmptyView()` simply renders
-    /// nothing. Interpretation, sanitization, fetching, and execution inside that view are the
+    /// position it lands in. FlatMark never inspects it: an erased `EmptyView()` renders nothing.
+    /// Interpretation, sanitization, fetching, and execution inside that view are the
     /// host's responsibility; FlatMark makes no claim that custom output is inert.
     ///
     /// Inline views inherit ambient SwiftUI styles (including heading fonts), not the inline

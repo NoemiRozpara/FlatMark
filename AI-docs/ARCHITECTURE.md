@@ -17,7 +17,7 @@ Keep fixtures, test infrastructure, benchmark code, and demo-only dependencies o
 
 `FlatMarkDocument` is a snapshot pairing the original Markdown with its parsed/projected representation. Its construction inputs are source, `baseURL`, and mention detection. Changing any of these requires a new document; document equality compares these inputs.
 
-`FlatMarkView(markdown:)` constructs a document on initialization. Hosts can retain a document and use `FlatMarkView(document:)` to avoid repeated construction. Rendering settings—including image loading, unsupported-content policy, callbacks, and task-marker appearance—can change without reparsing.
+`FlatMarkView(markdown:)` constructs a document on initialization. Hosts can retain a document and use `FlatMarkView(document:)` to avoid repeated construction. Rendering settings can change without reparsing. They include image loading, unsupported-content policy, callbacks, and task-marker appearance.
 
 Keep parsing/projection separate from render-time decisions. Do not introduce callback execution, resource fetching, or URL opening into document construction. Preserve initializer parity for equivalent inputs and settings.
 

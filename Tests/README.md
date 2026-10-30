@@ -23,12 +23,13 @@ and navigation. They do not replace visual, gesture, or live accessibility check
 - **Native content:** `MountedView.visibleText` / `visibleAttributedText` export native selection
   through public `NSServicesMenuRequestor` APIs into a temporary pasteboard. Assertions cover
   wording and exported bold, italic, strikethrough, and link attributes. The general pasteboard
-  is not used. A region displaying no wording at all — an emptied row, item, or cell — reads as
-  blank; a region that takes space and still cannot export fails rather than returning empty
-  content. `visibleText(showing:)` waits for wording to appear; `visibleText(matching:)` waits for
-  the exact wording a reader gets, so a mounted view that keeps its earlier answer after a state
-  change fails. `FlatMarkOmissionSample.swift` pairs one Markdown source with the wording each
-  built-in policy is expected to display, so the mounted and projection checks read one document.
+  is not used. A region with no wording at all reads as blank, for example an emptied row,
+  item, or cell. A region that takes space and still cannot export fails instead of returning
+  empty content. `visibleText(showing:)` waits for wording to appear. `visibleText(matching:)`
+  waits for the exact wording a reader gets, so a mounted view that keeps its earlier answer
+  after a state change fails. `FlatMarkOmissionSample.swift` pairs one Markdown source with the
+  wording each built-in policy is expected to display, so the mounted and projection checks read
+  one document.
 - **Interaction:** isolated AppKit event-loop hosts activate links and task markers and inspect
   callbacks. Navigation hosts use hidden windows, local events, and a controlled opener: no global
   input, Accessibility permission, browser, or external handler is required. Reports and timeouts

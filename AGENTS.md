@@ -28,7 +28,23 @@ Within repository guidance, prefer this file, then `AI-docs/`, then tool-specifi
 
 Search narrowly first. Prefer existing project code, then Swift Standard Library and Apple frameworks, then existing dependencies.
 
+## Write plainly
+
+Use concise, plain language in everything you produce: replies, reports, plans, specs, issues, review findings, doc comments, and code comments.
+
+- Write short sentences with one idea each. Split long or nested sentences.
+- Use common, concrete words. Prefer the plain word over the formal one.
+- Prefer active voice and name the actor: "FlatMark cancels the request," not "the request is cancelled by the renderer."
+- Cut filler and hype: "it's important to note", "simply", "actually", "robust", "seamless", "comprehensive", "leverage", "utilize", "delve".
+- Use bullets or tables for lists of facts instead of long prose.
+- Link to the authoritative document instead of restating it.
+- Keep hedges that carry evidence. "iOS is unverified" is required; "it may possibly behave differently" is not.
+
+Brevity must not cost precision. Do not shorten a verification claim, public contract, or security statement until it becomes vague or wrong.
+
 ## Code style
+
+Write comments under [Write plainly](#write-plainly). Say why, or name the invariant that holds; do not narrate the next line. Doc comments state the contract a caller can rely on. Omit parameter restatements.
 
 Extract code only when there is a meaningful responsibility or UI component to separate. Cohesive SwiftUI layout need not be split to meet an arbitrary size metric.
 
@@ -40,7 +56,7 @@ Unless explicitly requested, do not commit, push, merge, rebase, or create PRs. 
 
 ## Reports
 
-Scale reports to the task. For issue implementation, briefly include:
+Scale reports to the task and write them under [Write plainly](#write-plainly). For issue implementation, briefly include:
 
 - selected issue and completed behavior;
 - files changed and important decisions;

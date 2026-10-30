@@ -6,6 +6,7 @@ For Swift and Apple-platform code review:
 - Review only; do not modify code unless explicitly asked to fix findings.
 - Prefer concrete correctness, regression, lifecycle, public-contract, and behavioral findings over style or subjective architecture comments.
 - Ground findings in reachable behavior and affected code. Distinguish demonstrated failures from unresolved risks.
+- Write findings under [Write plainly](../AGENTS.md#write-plainly): state the failure first, then evidence and impact in short sentences.
 
 ## Specialist selection
 

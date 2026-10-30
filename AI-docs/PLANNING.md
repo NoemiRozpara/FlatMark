@@ -21,13 +21,13 @@ For FlatMark, explicitly consider public compatibility, minimum-platform support
 
 The user confirms shared understanding before PRD synthesis. Write agreed PRDs to `AI-docs/prds/<feature-slug>.md`. Preserve agreed behavior and technical decisions; distinguish repository facts from unresolved questions. Include verified code anchors as navigation hints rather than frozen APIs, and only requirements justified by the discussion. Give stories and acceptance criteria stable identifiers such as `US-01` and `AC-01`.
 
-This stage produces a local PRD, not published issues or implementation. Finish with the path and a compact decision summary for the next thread. For exploratory requests without a PRD, finish with a compact decision summary instead.
+This stage produces a local PRD, not published issues or implementation. Write clarification questions and PRDs under [Write plainly](../AGENTS.md#write-plainly): one requirement per sentence, plain words, no preamble, and no restating linked documents. Finish with the path and a compact decision summary for the next thread. For exploratory requests without a PRD, finish with a compact decision summary instead.
 
 ## 2. Turn the PRD into issues in a fresh thread
 
 If the installed `to-tickets` skill is available, use its slice-design and issue procedure. Otherwise prepare self-contained issue drafts directly. Obtain approval before publication; do not assume that approval of a local specification also authorizes publishing issues.
 
-The PRD is the handoff; do not depend on the previous chat being available. Ground tickets in affected code and representative tests. Each child issue must include the relevant stories, requirements, decisions, constraints, acceptance criteria, verification, and explicit blockers needed for implementation without the full PRD. Add verified entry points, a short ordered implementation approach, and preservation hazards; show the compact approach during approval.
+The PRD is the handoff; do not depend on the previous chat being available. Ground tickets in affected code and representative tests. Each child issue must include the relevant stories, requirements, decisions, constraints, acceptance criteria, verification, and explicit blockers needed for implementation without the full PRD. Write issue bodies under the same rule. Make each acceptance criterion one short testable sentence. Drop background that verified code anchors already show. Add verified entry points, a short ordered implementation approach, and preservation hazards; show the compact approach during approval.
 
 Do not silently delegate missing product or architectural decisions to implementation. Self-contained pickup does not promise conflict-free simultaneous edits.
 

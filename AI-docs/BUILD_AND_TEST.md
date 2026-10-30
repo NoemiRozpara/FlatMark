@@ -42,7 +42,7 @@ Do not assume todo's tool tiers, session defaults, CI hooks, formatter hooks, or
 
 ## Demo project changes
 
-`Demo/project.yml` is the source of truth for demo project configuration. After changing it or adding/removing demo or shared fixture files, regenerate with `cd Demo && xcodegen generate` and include the generated project and schemes in the change. Do not change configuration only in the generated Xcode project.
+`Demo/project.yml` is the source of truth for demo project configuration. Do not change configuration only in the generated Xcode project. After changing `project.yml` or adding/removing demo or shared fixture files, regenerate with `cd Demo && xcodegen generate`. Include the generated project and schemes in the change.
 
 Use the actual `FlatMarkDemo-iOS` and `FlatMarkDemo-macOS` schemes described in the demo guide. A package test run does not establish that the demo still builds or that an iOS-specific path works.
 
@@ -65,6 +65,6 @@ The testing guide owns current verification status; historical observations and 
 
 ## Reporting
 
-Distinguish what was inspected, compiled, automatically tested, and observed in the running app. Name the commands or tool lane, and report meaningful limitations. A green result needs a concise summary, not pasted test listings.
+Write reports under [Write plainly](../AGENTS.md#write-plainly). Distinguish what was inspected, compiled, automatically tested, and observed in the running app. Name the commands or tool lane, and report meaningful limitations. A green result needs a concise summary, not pasted test listings.
 
 Do not claim coverage percentages, performance improvements, platform compatibility, or accessibility correctness without corresponding evidence. For benchmarks, record the environment and follow the existing measurement method rather than comparing unrelated runs.
