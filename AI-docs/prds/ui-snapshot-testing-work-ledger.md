@@ -18,7 +18,12 @@ Initial working tree: clean.
 | 06 | Accepted after 2 review rounds; committed | coding assistant + reviewer | Readiness contract redesigned by orchestrator; delayed-success probe added. See ticket 06 below. |
 | 07 | Accepted; committed with RTL criterion blocked | coding assistant + reviewer | Second renderer defect found: RTL task indentation runs outward. See ticket 07 below and the blockers file. |
 | 08 | Accepted; committed | coding assistant + reviewer + orchestrator | 16 references; both falsification probes failed as expected. See ticket 08 below. |
-| 09–13 | Pending | Unassigned | Depend on accepted preceding tickets. |
+| 09 | Accepted; committed | coding assistant + reviewer + orchestrator | 10 references; numbering probe failed as expected; no new defect. See ticket 09 below. |
+| 10 | Accepted after 2 review rounds; committed | coding assistant + reviewer + orchestrator | Hard-break fixtures were mutation-insensitive at 3 macOS settings; repaired. See ticket 10 below. |
+| 10a | Pending; **enqueue before 11 and 13** | Unassigned | Blocker 3: shared fixtures unreachable from both snapshot targets. See ticket 10a below. |
+| 11 | Pending | Unassigned | Blocked by ticket 10a. Needs `FlatMarkCustomFixtureModel` / `FlatMarkCustomDocumentFixture`. |
+| 12 | Pending | Unassigned | Depend on accepted preceding tickets; not blocked by 10a. |
+| 13 | Pending | Unassigned | Blocked by ticket 10a. Needs `FlatMarkRecipeSample` and the bundled raster. |
 | 14 | Pending | Unassigned | Depends on accepted tickets 01–13. |
 
 ## Ticket 01
@@ -204,3 +209,109 @@ non-recording lanes plus all 118 reference hashes: no drift in the 102 accepted 
 `swift test`: 218 tests in 28 suites passed with one known issue. `git diff --check` passed.
 Running-demo observation, iOS action activation, VoiceOver, keyboard behavior, selection gestures, and
 minimum-OS remain unverified. No production changes and no commits were made by the worker.
+
+## Ticket 09
+
+Added `FlatMarkEmptyStructureSnapshotTests` with five cases and ten references on both platforms:
+an interactive and a read-only empty-label task next to a checked neighbor, authored ordered rows
+`7.` and `8. keep`, an omitted-only-cell two-column table with left-empty, right-empty, fully empty,
+and populated anchor rows, and an enlarged empty-task variant whose neighbor genuinely wraps. Added
+the `.emptyStructures` case to `FlatMarkSnapshotSuite` and registered the source through
+`xcodegen generate`. Production rendering, shared capture support, shared fixtures, and existing
+behavioral tests are unchanged.
+
+Independent acceptance review opened all ten images and accepted every criterion with no required
+changes. The reviewer established from `FlatMarkDocumentView.swift` that tables draw horizontal rules
+and one outer border rather than vertical column rules, so the references are described as retaining
+column placement and outer/horizontal boundaries, not as proving vertical grid lines; the README says
+so plainly.
+
+Per-platform runs: explicit recording reported five expected recording assertions; a separate
+non-recording run passed five; changing the authored numbers to `9.`/`10.` produced one genuine
+mismatch and four passes; restored sources matched the accepted manifests. Full snapshot lanes passed
+54 tests per platform, and the orchestrator independently re-ran both non-recording lanes (54 each)
+and all 128 reference hashes with no drift in the 118 accepted references. Final `swift test`: 223
+tests in 29 suites passed with one known issue. `git diff --check` passed. Running-demo observation,
+new iOS activation, VoiceOver, keyboard, selection gestures, macOS system Dynamic Type, and
+minimum-OS remain unverified. No production changes and no commits were made by the worker.
+
+## Ticket 10
+
+Added `FlatMarkNativePlaceholderFlowSnapshotTests` with eight cases and sixteen references on both
+platforms: narrow/wide × standard/enlarged ordinary placeholder wrapping, and the same four settings
+with an authored hard break before and after the placeholder. Fixtures use an unlinked image with no
+loader, so they stay on the native `inlineText` path. Added the `nativePlaceholderFlow` case to
+`FlatMarkSnapshotSuite` and registered the source through `xcodegen generate`. The two existing
+fitted-size proxy tests in `FlatMarkImageLoadingTests.swift` are untouched for ticket 14.
+
+Round 1 review returned the ticket. It reproduced from the retained probe log that removing the first
+authored break produced byte-identical macOS output at narrow standard, wide standard, and narrow
+enlarged: natural wrapping already forced the line end, so three required settings could not detect a
+lost break. The README also claimed every appearance criterion passed. Round 2 shortened the boundary
+runs so each authored break is the only reason its line ends (`A`, placeholder, one sentence) and
+probed each break separately: all four hard-break references mismatched on both platforms for each of
+the two break removals. Reviewer round 2 opened all sixteen images, confirmed no setting masks either
+break, confirmed wrapping coverage stayed intact, and withheld acceptance only for the fresh byte-level
+hash gate it was not permitted to run.
+
+The orchestrator ran that gate and the lanes: current bytes of all sixteen ticket-10 references match
+the round-2 manifest exactly; the eight wrapping references are identical to round 1 while the eight
+hard-break references differ; all 128 pre-existing references are byte-identical to their accepted
+baseline and no committed reference shows drift in Git. Independent non-recording lanes passed 62 tests
+per platform. Final `swift test`: 231 tests in 30 suites passed with one known issue. `git diff --check`
+passed. Selection gestures, semantic selectability, VoiceOver, keyboard behavior, minimum-OS, and
+running-demo behavior remain unverified. No production changes and no commits were made by the worker.
+
+## Ticket 10a — Expose shared fixture sources to both snapshot targets (enqueued before 11 and 13)
+
+**Why this ticket exists.** Discovered by the orchestrator while briefing ticket 11, and recorded as
+Blocker 3 in [the blockers file](../../blockers-extract-local-playback.md). Tickets 11 and 13 require the
+shared fixtures, and the plan forbids a second recipe copy (`Use the shared recipe rather than copying it
+into a parallel fixture system.`). Neither snapshot target can currently reach them:
+
+- `Package.swift` exposes one product, `FlatMark`. `FlatMarkFixtures` is a target under
+  `Support/FlatMarkFixtures` and is not a product, so an Xcode project target that consumes the package
+  cannot depend on it.
+- `Demo/project.yml` gives each snapshot target `sources: - path: ../Tests/FlatMarkTests/Snapshots` only.
+  It gives the `Demo` target template `- path: ../Support/FlatMarkFixtures`. So the shared recipe and
+  custom fixtures compile into the two app targets only.
+- The generated project confirms this: fixture sources appear in exactly two source build phases, both
+  belonging to `FlatMarkDemo-iOS` and `FlatMarkDemo-macOS`.
+- `FlatMarkSnapshots-macOS` sets `TEST_HOST = ''` and `BUNDLE_LOADER = ''`, so it has no route to
+  app-internal types. `FlatMarkSnapshots-iOS` is hosted by `FlatMarkDemo.app`, so it could only reach
+  those types through `@testable import FlatMarkDemo`, which is asymmetric across lanes and unverified.
+- No snapshot suite references these types today. Ticket 06 built its own raster and ticket 07 owned a
+  private marker for the same reason. `Tests/FlatMarkTests` (package lane) reaches them fine through the
+  `FlatMarkFixtures` target dependency in `Package.swift`.
+- `Support/FlatMarkFixtures/FlatMarkFixtureResources.swift` resolves `focaccia.jpeg` via `Bundle.module`
+  in SwiftPM and `Bundle.main` otherwise, so bundled-image availability inside a test bundle is also
+  unresolved. Ticket 13 lists bundled image availability as an external prerequisite for the same reason.
+
+**Effect if unresolved.** Ticket 11 cannot express its custom-replacement transition through the shared
+fixture model, and ticket 13 cannot capture the shared recipe at all without either a parallel fixture
+system (forbidden) or a second recipe copy (forbidden). Both would have to be reported blocked.
+
+**Owned paths.** `Demo/project.yml`, the regenerated `Demo/FlatMarkDemo.xcodeproj` (project file and
+schemes), a probe-then-delete temporary snapshot source used only to prove reachability, and the
+`Tests/README.md` support contract. Not owned: `Package.swift` (report, do not edit), production
+`Sources/FlatMark`, existing snapshot suites, and every accepted reference.
+
+**Acceptance criteria.**
+
+- [ ] Both `FlatMarkSnapshots-macOS` and `FlatMarkSnapshots-iOS` compile against `FlatMarkRecipeSample`,
+      `FlatMarkCustomFixtureModel`, and `FlatMarkCustomDocumentFixture` in the same qualified environment,
+      with the same import path on both platforms.
+- [ ] The shared recipe raster resolves inside the test bundle on both platforms, with the resolving
+      location recorded, or the ticket reports it unresolved instead of substituting a generated image.
+- [ ] All 144 accepted references stay byte-identical, and a full non-recording run passes on both lanes.
+- [ ] Both demo apps still build with the shared fixture sources, so the demo is not silently broken.
+- [ ] `swift test` totals stay unchanged, proving the package lane is unaffected.
+- [ ] `Tests/README.md` records the chosen mechanism, why it is the smallest one, and the exact commands.
+
+**Verification.** Compile proof on both lanes, a temporary reachability source that is removed afterwards
+with the project regenerated, both full non-recording lanes, both demo builds, the full package suite, the
+reference hash guard, and `git diff --check`. Report each as compilation, automated test, or build only.
+
+**Decision the worker must make and justify.** Adding `../Support/FlatMarkFixtures` to both snapshot
+targets' `sources` needs no manifest change. Exposing `FlatMarkFixtures` as a package product instead
+changes `Package.swift`, which is a public build-surface change: report that option rather than making it.

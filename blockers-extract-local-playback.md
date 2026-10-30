@@ -32,6 +32,36 @@ tickets"). None of them stops the remaining tickets. See
   bless a defect, which the plan forbids. AC-11 therefore remains partially open.
 - Needed: a separate bounded production fix, then new reviewed RTL baselines on both platforms.
 
+## Blocker 3 — Snapshot targets cannot reach the shared fixtures (blocks tickets 11 and 13)
+
+- Found by the orchestrator while briefing ticket 11. Recorded as ticket 10a in
+  [the work ledger](AI-docs/prds/ui-snapshot-testing-work-ledger.md), enqueued before tickets 11 and 13.
+- Symptom: neither `FlatMarkSnapshots-macOS` nor `FlatMarkSnapshots-iOS` can reference
+  `FlatMarkRecipeSample`, `FlatMarkCustomFixtureModel`, or `FlatMarkCustomDocumentFixture`.
+- Cause, verified in the repository:
+  - `Package.swift` declares one product, `FlatMark`. `FlatMarkFixtures` is a target at
+    `Support/FlatMarkFixtures` and is not a product, so an Xcode target consuming the package cannot
+    depend on it.
+  - `Demo/project.yml` compiles `../Support/FlatMarkFixtures` into the `Demo` target template only. The
+    snapshot targets list only `../Tests/FlatMarkTests/Snapshots`. The generated project confirms the
+    fixture sources appear in exactly two source build phases, both belonging to the two demo apps.
+  - `FlatMarkSnapshots-macOS` sets `TEST_HOST = ''` and `BUNDLE_LOADER = ''`, so it has no route to
+    app-internal types at all. The iOS bundle is hosted by `FlatMarkDemo.app` and could only reach them
+    through `@testable import FlatMarkDemo`, which is asymmetric across lanes and unverified.
+  - `Support/FlatMarkFixtures/FlatMarkFixtureResources.swift` resolves `focaccia.jpeg` through
+    `Bundle.module` under SwiftPM and `Bundle.main` otherwise, so resource availability inside a test
+    bundle is unresolved too.
+- Precedent for the cost: ticket 06 built its own raster and ticket 07 owned a private task marker, both
+  because the shared fixture was unreachable.
+- Effect on the plan: ticket 11 cannot express custom-replacement transitions through the shared fixture
+  model, and ticket 13 cannot capture the shared recipe without a parallel fixture system or a second
+  recipe copy, both of which the plan forbids. Ticket 13 also lists bundled image availability as an
+  external prerequisite.
+- Needed: ticket 10a, a build-configuration change owned by the orchestrator lane. The smallest candidate
+  adds `../Support/FlatMarkFixtures` to both snapshot targets in `Demo/project.yml` and regenerates the
+  project. Exposing `FlatMarkFixtures` as a package product instead would change `Package.swift`, a public
+  build surface, and needs agreement first.
+
 ## Not blockers, but permanently unverified by these tickets
 
 Reported as unverified, never as passed. Each is an evidence-boundary limit, not a defect.
