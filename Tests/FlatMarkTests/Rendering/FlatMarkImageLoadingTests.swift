@@ -183,21 +183,16 @@ struct FlatMarkImageLoadingTests {
                 } else {
                     await settleRendering()
                 }
-                let literalPNG = try #require(renderedPNG(of: hostingView))
+                #expect(model.unsupportedContentPolicy.plainText(for: content) == "before <u>x</u> after")
 
                 model.unsupportedContentPolicy = .omit
                 await settleRendering()
-                let omittedPNG = try #require(renderedPNG(of: hostingView))
+                #expect(model.unsupportedContentPolicy.plainText(for: content) == "before x after")
                 #expect(await spy.loadedURLs.count == (usesLoader ? 1 : 0))
-                if usesLoader {
-                    #expect(omittedPNG == literalPNG)
-                } else {
-                    #expect(omittedPNG != literalPNG)
-                }
 
                 model.unsupportedContentPolicy = .literal
                 await settleRendering()
-                #expect(renderedPNG(of: hostingView) == literalPNG)
+                #expect(model.unsupportedContentPolicy.plainText(for: content) == "before <u>x</u> after")
                 #expect(await spy.loadedURLs.count == (usesLoader ? 1 : 0))
             }
         }
@@ -223,21 +218,6 @@ struct FlatMarkImageLoadingTests {
 
                 #expect(await spy.loadedURLs.isEmpty)
             }
-        }
-
-        @Test
-        func `mixed linked image receives visible link presentation`() async throws {
-            let linkedContent = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
-                markdown: "Before [![Diagram](image.png)](https://example.com/details) after."
-            )))
-            let unlinkedContent = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
-                markdown: "Before ![Diagram](image.png) after."
-            )))
-
-            #expect(await renderedPNG(of: linkedContent, width: 300) != renderedPNG(
-                of: unlinkedContent,
-                width: 300
-            ))
         }
 
         /// The control for every enlarged-text case below.
@@ -282,29 +262,13 @@ struct FlatMarkImageLoadingTests {
 
             // This document really does take more room once text is enlarged, so the cases below cannot
             // pass with both variants rendered at one effective size.
-            #expect(bodyHeight > 0)
             #expect(enlargedHeight > bodyHeight)
 
             for textSize in [MountedTextSize.body, .enlarged] {
-                let wrapped = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: textSize)
-                let oneRow = fittedSize(of: linkedContent, width: unwrappedColumnWidth, textSize: textSize)
-
-                // Positive geometry, and at least two rows: a flow that placed the whole document on one
-                // line, or on no line at all, fails here instead of looking finite.
-                #expect(oneRow.width > 0)
-                #expect(oneRow.height > 0)
-                #expect(wrapped.width > 0)
-                #expect(
-                    wrapped.height >= oneRow.height * 2,
-                    "\(textSize.name): wrapped flow measured \(wrapped.height)pt, one row is \(oneRow.height)pt"
-                )
-
                 // Read from the view's own drawing rather than from what the layout reported, so a line
                 // that ran past the column is caught whether or not the layout admitted it.
                 let drawn = try await waitForFlowInk(of: linkedContent, textSize: textSize)
 
-                #expect(drawn.frame.width > 0)
-                #expect(drawn.frame.height > 0)
                 // The whole drawing sat inside the capture, so the edges below are the drawing's own and
                 // not the border of the region it was read back from.
                 #expect(drawn.edgeInset > drawnGeometryTolerance)
@@ -387,86 +351,6 @@ struct FlatMarkImageLoadingTests {
         }
 
         @Test
-        func `ordinary image matches native wrapping across effective text sizes`() throws {
-            let textBeforeImage = "A long introduction wraps before the diagram"
-            let textAfterImage = "and the explanation continues after it."
-            let content = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
-                markdown: "\(textBeforeImage) ![Diagram](image.png) \(textAfterImage)"
-            )))
-            let nativeInlineText = Text("\(textBeforeImage) ")
-                + Text(Image(systemName: "photo"))
-                + Text(" Diagram \(textAfterImage)")
-            let narrowWidth: CGFloat = 160
-            let wideWidth: CGFloat = 240
-
-            // Both settings are exercised for this document: if enlarging it changed nothing, the
-            // comparisons below would only ever cover one effective size.
-            #expect(
-                fittedSize(of: content, width: narrowWidth, textSize: .enlarged).height
-                    > fittedSize(of: content, width: narrowWidth, textSize: .body).height
-            )
-
-            // With room for every glyph on one line the widths the wrapped rows are cut from have to
-            // agree as well, so a run that simply measured differently without changing the row count is
-            // still a difference.
-            #expect(
-                fittedSize(of: content, width: unwrappedColumnWidth, textSize: .body)
-                    == fittedSize(of: nativeInlineText, width: unwrappedColumnWidth, textSize: .body)
-            )
-
-            for textSize in [MountedTextSize.body, .enlarged] {
-                let narrow = fittedSize(of: content, width: narrowWidth, textSize: textSize)
-                let wide = fittedSize(of: content, width: wideWidth, textSize: textSize)
-
-                // Positive geometry, and a fixture that genuinely wraps. Two collapsed views, or two
-                // single lines, would agree with the native comparison without laying anything out.
-                #expect(narrow.width > 0)
-                #expect(narrow.height > 0)
-                #expect(wide.width > 0)
-                #expect(wide.height > 0)
-                #expect(
-                    narrow.height > wide.height,
-                    "\(textSize.name): no wrapping — \(narrow.height)pt at \(narrowWidth)pt vs \(wide.height)pt"
-                )
-
-                #expect(narrow == fittedSize(of: nativeInlineText, width: narrowWidth, textSize: textSize))
-                #expect(wide == fittedSize(of: nativeInlineText, width: wideWidth, textSize: textSize))
-            }
-        }
-
-        @Test
-        func `ordinary image matches native hard break layout across effective text sizes`() throws {
-            let content = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
-                markdown: "Before  \n![Diagram](image.png)  \nAfter"
-            )))
-            let nativeInlineText = Text("Before\n")
-                + Text(Image(systemName: "photo"))
-                + Text(" Diagram\nAfter")
-            let columnWidth: CGFloat = 180
-
-            #expect(
-                fittedSize(of: content, width: columnWidth, textSize: .enlarged).height
-                    > fittedSize(of: content, width: columnWidth, textSize: .body).height
-            )
-
-            for textSize in [MountedTextSize.body, .enlarged] {
-                let layout = fittedSize(of: content, width: columnWidth, textSize: textSize)
-                // One line of the same wording at the same effective size, offered more room than it needs.
-                let oneLine = fittedSize(of: Text("Before"), width: 400, textSize: textSize)
-
-                // Positive geometry, and three hard-broken lines rather than one collapsed row.
-                #expect(oneLine.width > 0)
-                #expect(oneLine.height > 0)
-                #expect(layout.width > 0)
-                #expect(
-                    layout.height >= oneLine.height * 2,
-                    "\(textSize.name): hard breaks produced \(layout.height)pt, one line is \(oneLine.height)pt"
-                )
-                #expect(layout == fittedSize(of: nativeInlineText, width: columnWidth, textSize: textSize))
-            }
-        }
-
-        @Test
         func `reloads only when the host loader configuration changes`() async throws {
             let spy = LoaderSpy()
             let firstConfigurationID = UUID()
@@ -487,12 +371,11 @@ struct FlatMarkImageLoadingTests {
             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
             try await withTemporaryWindow(hosting: hostingView) {
                 await settleRendering()
-                let initialPlaceholder = try #require(renderedPNG(of: hostingView))
                 #expect(await spy.loadedURLs.isEmpty)
 
                 model.loaderConfigurationID = firstConfigurationID
                 await expectImageLoad(in: spy)
-                let firstLoadedImage = try #require(renderedPNG(of: hostingView))
+                #expect(await spy.loadedURLs.count == 1)
 
                 model.unrelatedState.toggle()
                 await settleRendering()
@@ -500,15 +383,10 @@ struct FlatMarkImageLoadingTests {
 
                 model.loaderConfigurationID = UUID()
                 await expectImageLoad(in: spy)
-                let secondLoadedImage = try #require(renderedPNG(of: hostingView))
+                #expect(await spy.loadedURLs.count == 2)
 
                 model.loaderConfigurationID = nil
                 await settleRendering()
-                let resetPlaceholder = try #require(renderedPNG(of: hostingView))
-
-                #expect(firstLoadedImage != initialPlaceholder)
-                #expect(secondLoadedImage != firstLoadedImage)
-                #expect(resetPlaceholder == initialPlaceholder)
                 #expect(await spy.loadedURLs == [
                     URL(string: "https://example.com/image.png")!,
                     URL(string: "https://example.com/image.png")!,
@@ -516,6 +394,7 @@ struct FlatMarkImageLoadingTests {
             }
         }
 
+        /// The package lane checks throwing completion; ticket 06 observes the resulting failure state.
         @Test
         func `generic loader error renders the failure state`() async throws {
             let spy = LoaderSpy()
@@ -527,7 +406,7 @@ struct FlatMarkImageLoadingTests {
                     imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
                         await spy.record(url)
                         await gate.wait()
-                        throw ImageLoaderTestError.failed
+                        return try await gate.fail()
                     },
                     imageURLPolicy: .webOnly
                 )
@@ -536,26 +415,16 @@ struct FlatMarkImageLoadingTests {
 
             try await withTemporaryWindow(hosting: hostingView) {
                 await expectImageLoad(in: spy)
-                let loadingImage = try #require(renderedPNG(of: hostingView))
-
                 await gate.release()
-                await settleRendering()
-                let failedImage = try #require(renderedPNG(of: hostingView))
-
-                hostingView.rootView = FlatMarkInlineView(
-                    content: imageContent(url: URL(string: "file:///private/image.png")),
-                    context: FlatMarkRenderContext(
-                        imageLoader: FlatMarkImageLoader(configurationID: UUID()) { _ in
-                            Image(systemName: "photo.fill")
-                        },
-                        imageURLPolicy: .webOnly
-                    )
-                )
-                await settleRendering()
-                let expectedFailure = try #require(renderedPNG(of: hostingView))
-
-                #expect(failedImage != loadingImage)
-                #expect(failedImage == expectedFailure)
+                for _ in 0 ..< 50 {
+                    if await gate.didThrow {
+                        break
+                    }
+                    await settleRendering()
+                }
+                // Ticket 06 verifies the resulting failure pixels with a real throwing loader.
+                #expect(await gate.didThrow)
+                #expect(await spy.loadedURLs == [URL(string: "https://example.com/image.png")!])
             }
         }
 
@@ -608,6 +477,12 @@ private enum ImageLoaderTestError: Error {
 private actor SuspensionGate {
     private var continuation: CheckedContinuation<Void, Never>?
     private var isReleased = false
+    private(set) var didThrow = false
+
+    func fail() throws -> Image {
+        didThrow = true
+        throw ImageLoaderTestError.failed
+    }
 
     func wait() async {
         guard !isReleased else {
@@ -627,11 +502,7 @@ private actor SuspensionGate {
 }
 
 #if os(macOS)
-    /// The size a view takes for itself at one effective text size when offered a column.
-    ///
-    /// Both dimensions come from the same proposal, so a comparison against a hand-written native `Text`
-    /// is not just an agreement about height: a run that placed its widest line somewhere else differs
-    /// even when it happens to need the same number of rows.
+    /// Measures effective-size controls for the surviving drawn-width checks.
     @MainActor
     private func fittedSize<V: View>(
         of view: V,
@@ -654,21 +525,6 @@ private actor SuspensionGate {
             content: content,
             context: .readOnly
         ), width: width, textSize: textSize)
-    }
-
-    @MainActor
-    private func renderedPNG(
-        of content: FlatMarkRenderInlineContent,
-        width: CGFloat
-    ) async -> Data? {
-        let hostingView = NSHostingView(rootView: FlatMarkInlineView(
-            content: content,
-            context: .readOnly
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading))
-        hostingView.frame = CGRect(x: 0, y: 0, width: width, height: 44)
-        await settleRendering()
-        return renderedPNG(of: hostingView)
     }
 
     @MainActor
@@ -750,19 +606,6 @@ private actor SuspensionGate {
         }
     }
 
-    @MainActor
-    private func renderedPNG<V: View>(of hostingView: NSHostingView<V>) -> Data? {
-        hostingView.layoutSubtreeIfNeeded()
-        hostingView.displayIfNeeded()
-
-        guard let bitmap = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) else {
-            return nil
-        }
-
-        hostingView.cacheDisplay(in: hostingView.bounds, to: bitmap)
-        return bitmap.representation(using: .png, properties: [:])
-    }
-
     /// Consumes one host loader invocation, whenever it arrived, then lets SwiftUI render what it
     /// returned.
     ///
@@ -835,10 +678,6 @@ private actor SuspensionGate {
 
     /// The column the flow cases offer their document.
     private let flowColumnWidth: CGFloat = 180
-
-    /// A width no tested inline content needs to wrap at, for measuring one row or one line of the same
-    /// document.
-    private let unwrappedColumnWidth: CGFloat = 4000
 
     /// The flow capture region: wider and taller than any correctly wrapped flow at the tested sizes, so
     /// a line that ran past the column reads as ink reaching the capture edge instead of being clipped

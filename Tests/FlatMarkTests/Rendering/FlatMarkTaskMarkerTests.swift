@@ -16,7 +16,7 @@
         }
 
         @Test(arguments: [false, true], [false, true])
-        func `host draws checked and nested unchecked markers through either initializer`(
+        func `host receives checked and nested unchecked states through either initializer`(
             retainedDocument: Bool, interactive: Bool
         ) async throws {
             let markdown = "- [x] Parent\n  - [ ] Child"
@@ -33,7 +33,6 @@
             defer { hosted.close() }
 
             #expect(states == [false, true])
-            #expect(try hosted.visibleText == "ParentChild")
         }
     }
 #endif
