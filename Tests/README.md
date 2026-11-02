@@ -19,16 +19,18 @@ qualification:
 - iPhone 18 Pro on iOS 27.0: the full snapshot lane passed **82/82 twice** after
   the label fix. Only the narrow RTL list reference changed during its recording;
   the other seven references in that suite stayed byte-identical.
-- macOS: the earlier capture path passed **46/82** in the two-display environment.
-  With pre-draw sRGB, both controlled display runs executed **82 tests, all failing**
-  against the existing references. All **109 captures were byte-identical across
-  displays**. See [the capture-contract investigation](#macos-pre-draw-color-space-investigation).
-  Baseline qualification remains blocked. Do not re-record without review and approval.
+- macOS: after the authorized pre-draw sRGB reference migration, the full
+  non-recording lane passed **82/82 twice**. Verification left references unchanged.
+  Early visual review covered all 13 suite contact sheets and selected full-resolution
+  content crops; it found no obvious new rendering defect. See
+  [the reference migration](#macos-srgb-reference-migration-and-early-review).
 - Non-snapshot package selection: **163 tests in 19 suites passed**, with one
   known LoaderSpy issue.
-- Verification did not change any reference hashes. `git diff --check` passed.
-- Static RTL reference inspection is not running-demo verification. LTR reference
-  review and running-demo observations remain incomplete. Do not treat the
+- Recording changed all 109 macOS PNG files. iOS and manual reference files stayed
+  byte-identical. Verification did not change the post-record hashes.
+  `git diff --check` passed.
+- Static reference inspection is not running-demo verification. Detailed LTR
+  reference review and running-demo observations remain incomplete. Do not treat the
   historical qualifications below as approval of this change.
 
 ## Integrated qualification (ticket 14)
@@ -490,6 +492,40 @@ counts only. It does not verify gestures, task activation/source acceptance,
 VoiceOver, minimum OS versions, dark/RTL/enlarged transitions, general cancellation
 behavior, or running-demo interaction. Existing semantic and interaction tests remain.
 
+### macOS sRGB reference migration and early review
+
+The owner authorized re-recording after the cross-display investigation below.
+The macOS recording scheme executed all **82 tests** and wrote **109 references**.
+Its recording assertions failed as expected; this was not a verification pass.
+Two consecutive runs of `FlatMarkSnapshots-macOS` then passed **82/82**, without
+recording or temporary placement/export code. Reference SHA-256 manifests were
+identical before and after both verification runs.
+
+All 109 macOS PNG files changed. iOS and manual captures stayed byte-identical.
+Exact comparison remains unchanged. The environment was macOS 27.0.1 (26A434),
+Swift 6.4, and the current two-display setup. Before migration, all 109 captures
+were byte-identical across the LG and built-in displays with pre-draw sRGB.
+The post-record verification runs did not explicitly place hosts on each display.
+
+Early visual review covered contact sheets for all 13 suites. It checked visible
+wording, wrapping, task markers, custom replacements, image states, table endpoints,
+and light/dark backgrounds. Full-resolution content crops additionally covered:
+
+- narrow RTL list continuations, including the complete `Final child bullet.`;
+- enlarged default task markers and complete wrapped labels in LTR and RTL;
+- the primary recipe header, styled mentions, and loaded image.
+
+No obvious new rendering defect was found in this pass. Table leading/trailing
+captures intentionally show different scroll endpoints. Cropped and scaled contact
+sheets do not establish original outer margins or pixel-level correctness. This
+is early static review, not a full before/after visual audit, running-demo testing,
+VoiceOver, or selection/interaction qualification.
+
+Local evidence is under `/tmp/flatmark-capture-rerecord/`: `record.log`,
+`verify1.log`, `verify2.log`, before/recorded/verified SHA-256 manifests, the saved
+old references, and `sheets/`. Temporary artifacts may disappear. No iOS lane was
+rerun for this macOS-only reference migration.
+
 ### macOS pre-draw color-space investigation
 
 The macOS helper now sets `NSWindow.colorSpace` to `.sRGB` before attaching the
@@ -521,8 +557,9 @@ Local evidence is under `/tmp/flatmark-capture-investigation/`: `full-lg-complet
 `full-builtin-complete.log`, `full-final.log`, the corresponding capture directories, and
 `full-cross-display.txt`. These files may disappear when temporary storage clears.
 Visual review has covered only the linked-image example, not all changed outputs.
-The macOS lane is **not qualified**. A reference migration requires separate
-review and approval; do not loosen comparison precision to make this lane pass.
+At this stage, the macOS lane was **not qualified**. The subsequent authorized
+[reference migration](#macos-srgb-reference-migration-and-early-review) records
+verification under the new capture contract. Comparison precision was not loosened.
 
 ### macOS color-space qualification (ticket 10b)
 
