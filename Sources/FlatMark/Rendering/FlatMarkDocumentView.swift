@@ -223,7 +223,6 @@ struct FlatMarkInlineView: View {
     let content: FlatMarkRenderInlineContent
     let context: FlatMarkRenderContext
 
-    @Environment(\.layoutDirection) private var layoutDirection
     @State private var imagePhases: [Int: ImagePhase] = [:]
 
     var renderingMode: RenderingMode {
@@ -275,7 +274,7 @@ struct FlatMarkInlineView: View {
         switch renderingMode {
         case let .standaloneLinkedImage(destination):
             Link(destination: destination) {
-                FlatMarkInlineFlowLayout(layoutDirection: layoutDirection) {
+                FlatMarkInlineFlowLayout {
                     ForEach(inlineElements) { element in
                         inlineView(for: element)
                     }
@@ -283,7 +282,7 @@ struct FlatMarkInlineView: View {
             }
 
         case .linkedImageFlow, .responsiveImageFlow, .customInlineFlow:
-            FlatMarkInlineFlowLayout(layoutDirection: layoutDirection) {
+            FlatMarkInlineFlowLayout {
                 ForEach(inlineElements) { element in
                     inlineView(for: element)
                 }

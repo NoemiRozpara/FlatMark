@@ -3,12 +3,14 @@ import SwiftUI
 // MARK: - FlatMarkInlineFlowLayout
 
 /// Places inline Markdown elements on shared text baselines and wraps them as a paragraph.
+///
+/// Placement is always logical left-to-right: SwiftUI mirrors this layout's horizontal coordinates
+/// when the surrounding environment is right-to-left. Reading the environment direction here as well
+/// mirrors twice, which pulls a row that is shorter than the column back to the wrong edge.
 struct FlatMarkInlineFlowLayout: Layout {
     struct LineBreakKey: LayoutValueKey {
         static let defaultValue = false
     }
-
-    let layoutDirection: LayoutDirection
 
     func sizeThatFits(
         proposal: ProposedViewSize,
@@ -38,21 +40,14 @@ struct FlatMarkInlineFlowLayout: Layout {
         var y = bounds.minY
 
         for row in rows {
-            var x = layoutDirection == .rightToLeft ? bounds.maxX : bounds.minX
+            var x = bounds.minX
 
             for item in row.items {
-                if layoutDirection == .rightToLeft {
-                    x -= item.size.width
-                }
-
                 subviews[item.index].place(
                     at: CGPoint(x: x, y: y + row.baseline - item.baseline),
                     proposal: ProposedViewSize(item.size)
                 )
-
-                if layoutDirection != .rightToLeft {
-                    x += item.size.width
-                }
+                x += item.size.width
             }
 
             y += row.height
