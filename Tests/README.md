@@ -3,12 +3,42 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Issue #4 verification in progress
+
+List nesting now reserves its indentation inside the offered width and follows
+layout direction. Row labels retain their full vertical size. Visual inspection
+caught an ellipsis in the iOS narrow RTL list's `Final child bullet.` label;
+the corrected reference shows the complete wording. The existing
+`rtlNarrowListContinuations` snapshot guards that result.
+
+The suites now include RTL narrow/wide list continuations, a nested quote, and
+default/custom/enlarged task markers on both platforms. There are **218 PNGs**
+under `Tests/References`, including manual assets. This is not completed
+qualification:
+
+- iPhone 18 Pro on iOS 27.0: the full snapshot lane passed **82/82 twice** after
+  the label fix. Only the narrow RTL list reference changed during its recording;
+  the other seven references in that suite stayed byte-identical.
+- macOS: after the authorized pre-draw sRGB reference migration, the full
+  non-recording lane passed **82/82 twice**. Verification left references unchanged.
+  Early visual review covered all 13 suite contact sheets and selected full-resolution
+  content crops; it found no obvious new rendering defect. See
+  [the reference migration](#macos-srgb-reference-migration-and-early-review).
+- Non-snapshot package selection: **163 tests in 19 suites passed**, with one
+  known LoaderSpy issue.
+- Recording changed all 109 macOS PNG files. iOS and manual reference files stayed
+  byte-identical. Verification did not change the post-record hashes.
+  `git diff --check` passed.
+- Static reference inspection is not running-demo verification. Detailed LTR
+  reference review and running-demo observations remain incomplete. Do not treat the
+  historical qualifications below as approval of this change.
+
 ## Integrated qualification (ticket 14)
 
-This section is the current integrated result. The ticket sections below retain
+This section is the historical integrated result before issue #4. The ticket sections below retain
 historical baseline-review and mutation evidence; their old package counts are not
-current totals. Reviewed replacement evidence is indexed in the
-[work ledger](../AI-docs/prds/ui-snapshot-testing-work-ledger.md).
+current totals. The ticket sections below retain the replacement evidence;
+the former work ledger has been removed.
 
 ### Current commands and environments
 
@@ -118,8 +148,9 @@ support, or general cancellation. Package tests own their semantic/lifecycle and
 numeric contracts; neither lane substitutes for the other. Existing ticket
 review evidence is retained below; no new baseline review was needed here.
 
-Known renderer defects remain: list content can draw outside the offered column,
-and RTL task indentation runs outward. No RTL task baseline was added. Recipe
+At ticket 14 qualification, list content could draw outside the offered column,
+and RTL task indentation ran outward. Issue #4 addresses these defects; see the
+verification-in-progress section above for the remaining approval limits. Recipe
 iOS lower-scroll was observed in ticket 13; macOS running-app lower-scroll remains
 unperformed. Constrained quote hosts, task hit targets, real selection gestures,
 live accessibility, and running-demo interaction still need manual qualification.
@@ -460,6 +491,75 @@ This qualifies mounted appearance, live policy updates, and the stated loader
 counts only. It does not verify gestures, task activation/source acceptance,
 VoiceOver, minimum OS versions, dark/RTL/enlarged transitions, general cancellation
 behavior, or running-demo interaction. Existing semantic and interaction tests remain.
+
+### macOS sRGB reference migration and early review
+
+The owner authorized re-recording after the cross-display investigation below.
+The macOS recording scheme executed all **82 tests** and wrote **109 references**.
+Its recording assertions failed as expected; this was not a verification pass.
+Two consecutive runs of `FlatMarkSnapshots-macOS` then passed **82/82**, without
+recording or temporary placement/export code. Reference SHA-256 manifests were
+identical before and after both verification runs.
+
+All 109 macOS PNG files changed. iOS and manual captures stayed byte-identical.
+Exact comparison remains unchanged. The environment was macOS 27.0.1 (26A434),
+Swift 6.4, and the current two-display setup. Before migration, all 109 captures
+were byte-identical across the LG and built-in displays with pre-draw sRGB.
+The post-record verification runs did not explicitly place hosts on each display.
+
+Early visual review covered contact sheets for all 13 suites. It checked visible
+wording, wrapping, task markers, custom replacements, image states, table endpoints,
+and light/dark backgrounds. Full-resolution content crops additionally covered:
+
+- narrow RTL list continuations, including the complete `Final child bullet.`;
+- enlarged default task markers and complete wrapped labels in LTR and RTL;
+- the primary recipe header, styled mentions, and loaded image.
+
+No obvious new rendering defect was found in this pass. Table leading/trailing
+captures intentionally show different scroll endpoints. Cropped and scaled contact
+sheets do not establish original outer margins or pixel-level correctness. This
+is early static review, not a full before/after visual audit, running-demo testing,
+VoiceOver, or selection/interaction qualification.
+
+Local evidence is under `/tmp/flatmark-capture-rerecord/`: `record.log`,
+`verify1.log`, `verify2.log`, before/recorded/verified SHA-256 manifests, the saved
+old references, and `sheets/`. Temporary artifacts may disappear. No iOS lane was
+rerun for this macOS-only reference migration.
+
+### macOS pre-draw color-space investigation
+
+The macOS helper now sets `NSWindow.colorSpace` to `.sRGB` before attaching the
+hosting view. It still converts the flattened bitmap to sRGB afterward. Setting
+only the output profile did not prevent display-dependent pixels during drawing.
+Comparison remains exact; references and recording policy are unchanged.
+
+The owner confirmed that references were recorded on both the LG ULTRAFINE and
+built-in MacBook display. Controlled runs used macOS 27.0.1 (26A434), Swift 6.4
+(swiftlang-6.4.0.34.1), Dark system appearance, and both displays online at 2x.
+Temporary test-only code placed each unordered hosting window 40 points inside
+one display and exported every capture outside the repository. Diagnostics
+confirmed the selected screen, backing scale, and window color space. No global
+settings changed. Wake/lock state was not independently established.
+
+- With display-default window color spaces, LinkedImage output differed between
+  displays. Neither display exactly reproduced its linked-image reference.
+- With pre-draw sRGB, the full macOS lane ran on each display: **82 tests executed
+  per run, all failing against the existing references**.
+- All **109 exported captures were byte-identical between displays**. This
+  establishes cross-display consistency for these runs, not compatibility with
+  the old references or other OS/toolchain/display environments.
+- Temporary placement, logging, and export code was removed. A final run without
+  that instrumentation executed **82 tests, all failing** against the references.
+  Only the pre-draw sRGB setting remains in the helper. No iOS capture code changed.
+- Reference SHA-256 manifests stayed unchanged, and `git diff --check` passed.
+
+Local evidence is under `/tmp/flatmark-capture-investigation/`: `full-lg-complete.log`,
+`full-builtin-complete.log`, `full-final.log`, the corresponding capture directories, and
+`full-cross-display.txt`. These files may disappear when temporary storage clears.
+Visual review has covered only the linked-image example, not all changed outputs.
+At this stage, the macOS lane was **not qualified**. The subsequent authorized
+[reference migration](#macos-srgb-reference-migration-and-early-review) records
+verification under the new capture contract. Comparison precision was not loosened.
 
 ### macOS color-space qualification (ticket 10b)
 

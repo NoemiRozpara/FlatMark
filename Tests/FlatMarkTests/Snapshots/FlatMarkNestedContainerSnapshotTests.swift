@@ -69,11 +69,29 @@ struct FlatMarkNestedContainerSnapshotTests {
         try await capture(Self.list, column: 320, height: 2100, textSize: .enlarged, testName: #function)
     }
 
+    // The mixed list and nested quote mirrored, so RTL nesting and column fit get the same
+    // reviewed coverage as the left-to-right cases.
+    @Test
+    func rtlNarrowListContinuations() async throws {
+        try await capture(Self.list, column: 240, height: 1100, direction: .rightToLeft, testName: #function)
+    }
+
+    @Test
+    func rtlWideListContinuations() async throws {
+        try await capture(Self.list, column: 480, height: 750, direction: .rightToLeft, testName: #function)
+    }
+
+    @Test
+    func rtlNestedQuote() async throws {
+        try await capture(Self.quote, column: 240, height: 1100, direction: .rightToLeft, testName: #function)
+    }
+
     private func capture(
         _ markdown: String,
         column: CGFloat,
         height: CGFloat,
         textSize: FlatMarkSnapshotEnvironment.TextSize = .body,
+        direction: FlatMarkSnapshotEnvironment.LayoutDirection = .leftToRight,
         testName: String
     ) async throws {
         let environment = FlatMarkSnapshotEnvironment(
@@ -83,7 +101,7 @@ struct FlatMarkNestedContainerSnapshotTests {
             pixelScale: 2,
             appearance: .light,
             localeIdentifier: "en_US",
-            layoutDirection: .leftToRight,
+            layoutDirection: direction,
             textSize: textSize
         )
         // Qualify intrinsic document height, not flexible rules under a constrained host.

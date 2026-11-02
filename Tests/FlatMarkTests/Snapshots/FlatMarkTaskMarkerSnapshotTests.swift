@@ -22,15 +22,20 @@ struct FlatMarkTaskMarkerSnapshotTests {
     @Test func customRetainedDocument() async throws { try await capture(custom: true, retained: true, testName: #function) }
     @Test func enlargedDefault() async throws { try await capture(enlarged: true, testName: #function) }
     @Test func enlargedCustom() async throws { try await capture(custom: true, enlarged: true, testName: #function) }
+    @Test func rtlDefaultInteractive() async throws { try await capture(direction: .rightToLeft, testName: #function) }
+    @Test func rtlCustomInteractive() async throws { try await capture(custom: true, direction: .rightToLeft, testName: #function) }
+    @Test func rtlEnlargedDefault() async throws { try await capture(enlarged: true, direction: .rightToLeft, testName: #function) }
 
     private func capture(
         custom: Bool = false, interactive: Bool = true, disabled: Bool = false,
-        retained: Bool = false, enlarged: Bool = false, testName: String
+        retained: Bool = false, enlarged: Bool = false,
+        direction: FlatMarkSnapshotEnvironment.LayoutDirection = .leftToRight,
+        testName: String
     ) async throws {
         let environment = FlatMarkSnapshotEnvironment(
             captureSize: CGSize(width: 700, height: enlarged ? 1500 : 650),
             columnWidth: 280, contentInset: 150, pixelScale: 2, appearance: .light,
-            localeIdentifier: "en_US", layoutDirection: .leftToRight,
+            localeIdentifier: "en_US", layoutDirection: direction,
             textSize: enlarged ? .enlarged : .body
         )
         // The shared fixture is not compiled into the snapshot targets.
