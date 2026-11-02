@@ -19,9 +19,11 @@ qualification:
 - iPhone 18 Pro on iOS 27.0: the full snapshot lane passed **82/82 twice** after
   the label fix. Only the narrow RTL list reference changed during its recording;
   the other seven references in that suite stayed byte-identical.
-- macOS: **46/82 passed; 36 failed** in the current two-display environment.
-  Do not record over these mismatches. The capture-environment drift described
-  in the issue handoff remains unresolved.
+- macOS: the earlier capture path passed **46/82** in the two-display environment.
+  With pre-draw sRGB, both controlled display runs executed **82 tests, all failing**
+  against the existing references. All **109 captures were byte-identical across
+  displays**. See [the capture-contract investigation](#macos-pre-draw-color-space-investigation).
+  Baseline qualification remains blocked. Do not re-record without review and approval.
 - Non-snapshot package selection: **163 tests in 19 suites passed**, with one
   known LoaderSpy issue.
 - Verification did not change any reference hashes. `git diff --check` passed.
@@ -487,6 +489,40 @@ This qualifies mounted appearance, live policy updates, and the stated loader
 counts only. It does not verify gestures, task activation/source acceptance,
 VoiceOver, minimum OS versions, dark/RTL/enlarged transitions, general cancellation
 behavior, or running-demo interaction. Existing semantic and interaction tests remain.
+
+### macOS pre-draw color-space investigation
+
+The macOS helper now sets `NSWindow.colorSpace` to `.sRGB` before attaching the
+hosting view. It still converts the flattened bitmap to sRGB afterward. Setting
+only the output profile did not prevent display-dependent pixels during drawing.
+Comparison remains exact; references and recording policy are unchanged.
+
+The owner confirmed that references were recorded on both the LG ULTRAFINE and
+built-in MacBook display. Controlled runs used macOS 27.0.1 (26A434), Swift 6.4
+(swiftlang-6.4.0.34.1), Dark system appearance, and both displays online at 2x.
+Temporary test-only code placed each unordered hosting window 40 points inside
+one display and exported every capture outside the repository. Diagnostics
+confirmed the selected screen, backing scale, and window color space. No global
+settings changed. Wake/lock state was not independently established.
+
+- With display-default window color spaces, LinkedImage output differed between
+  displays. Neither display exactly reproduced its linked-image reference.
+- With pre-draw sRGB, the full macOS lane ran on each display: **82 tests executed
+  per run, all failing against the existing references**.
+- All **109 exported captures were byte-identical between displays**. This
+  establishes cross-display consistency for these runs, not compatibility with
+  the old references or other OS/toolchain/display environments.
+- Temporary placement, logging, and export code was removed. A final run without
+  that instrumentation executed **82 tests, all failing** against the references.
+  Only the pre-draw sRGB setting remains in the helper. No iOS capture code changed.
+- Reference SHA-256 manifests stayed unchanged, and `git diff --check` passed.
+
+Local evidence is under `/tmp/flatmark-capture-investigation/`: `full-lg-complete.log`,
+`full-builtin-complete.log`, `full-final.log`, the corresponding capture directories, and
+`full-cross-display.txt`. These files may disappear when temporary storage clears.
+Visual review has covered only the linked-image example, not all changed outputs.
+The macOS lane is **not qualified**. A reference migration requires separate
+review and approval; do not loosen comparison precision to make this lane pass.
 
 ### macOS color-space qualification (ticket 10b)
 

@@ -98,6 +98,8 @@ func flatMakeRetainedSnapshotHost<V: View>(view: V, environment: FlatMarkSnapsho
         window.isReleasedWhenClosed = false
         window.animationBehavior = .none
         window.appearance = NSAppearance(named: environment.appearance == .dark ? .darkAqua : .aqua)
+        // Pin the drawing color space too; converting afterward retains display-dependent pixels.
+        window.colorSpace = .sRGB
         window.contentView = hosting
         return (hosting, window)
     }
