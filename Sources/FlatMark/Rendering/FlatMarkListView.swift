@@ -1,29 +1,21 @@
 import SwiftUI
 
-// MARK: - FlatMarkListContentAlignment
+// MARK: - List indentation
 
-private enum FlatMarkListContentAlignment: AlignmentID {
-    static func defaultValue(in dimensions: ViewDimensions) -> CGFloat {
-        dimensions[.leading]
-    }
-}
-
-private extension HorizontalAlignment {
-    static let flatMarkListContent = HorizontalAlignment(FlatMarkListContentAlignment.self)
-}
+/// The gap one nesting level advances list content inward.
+private let flatMarkListIndentationSpacing: CGFloat = 8
 
 private extension View {
-    func markdownListIndentation(
-        _ indentation: Int,
-        spacing: CGFloat,
-        layoutDirection: LayoutDirection
-    ) -> some View {
-        let offset = CGFloat(indentation) * spacing
-        let directionalOffset = layoutDirection == .leftToRight ? -offset : offset
-
-        return alignmentGuide(.flatMarkListContent) { dimensions in
-            dimensions[.flatMarkListContent] + directionalOffset
-        }
+    /// Indents nested list content inward and reserves that space from the offered width.
+    ///
+    /// Padding rather than an alignment-guide offset keeps the content inside the reading column:
+    /// the proposal the content receives shrinks by the indentation, so wrapped wording, quote
+    /// rules, and code backgrounds end at the far column edge instead of drawing past it. The
+    /// `leading` edge follows the layout direction, so a right-to-left list indents from the right.
+    /// A continuation block is projected one level below its own row, so a caller may pass a level
+    /// of zero; it clamps instead of letting a negative indent draw outward.
+    func markdownListIndentation(_ indentation: Int, spacing: CGFloat) -> some View {
+        padding(.leading, CGFloat(max(indentation, 0)) * spacing)
     }
 }
 
@@ -34,7 +26,7 @@ struct FlatMarkListView: View {
     let context: FlatMarkRenderContext
 
     var body: some View {
-        VStack(alignment: .flatMarkListContent, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(visibleEntries) { entry in
                 switch entry {
                 case let .row(row):
@@ -66,29 +58,18 @@ struct FlatMarkListView: View {
 // MARK: - FlatMarkListChildBlockView
 
 private struct FlatMarkListChildBlockView: View {
-    @Environment(\.layoutDirection) private var layoutDirection
-
     let childBlock: FlatMarkListChildRenderBlock
     let context: FlatMarkRenderContext
 
     var body: some View {
         FlatMarkBlockView(block: childBlock.block, context: context)
-            .alignmentGuide(.flatMarkListContent) { dimensions in
-                dimensions[.leading]
-            }
-            .markdownListIndentation(
-                childBlock.indentation - 1,
-                spacing: 8,
-                layoutDirection: layoutDirection
-            )
+            .markdownListIndentation(childBlock.indentation - 1, spacing: flatMarkListIndentationSpacing)
     }
 }
 
 // MARK: - FlatMarkListRowView
 
 struct FlatMarkListRowView: View {
-    @Environment(\.layoutDirection) private var layoutDirection
-
     let row: FlatMarkListRenderRow
     let context: FlatMarkRenderContext
 
@@ -124,11 +105,10 @@ struct FlatMarkListRowView: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             leadingElement
             inlineContent
-                .alignmentGuide(.flatMarkListContent) { $0[.leading] }
+                // Preserve the full label when the stack proposes a compressed height.
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .markdownListIndentation(
-            row.indentation, spacing: 8, layoutDirection: layoutDirection
-        )
+        .markdownListIndentation(row.indentation, spacing: flatMarkListIndentationSpacing)
     }
 
     @ContentBuilder

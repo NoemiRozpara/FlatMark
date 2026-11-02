@@ -3,12 +3,38 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Issue #4 verification in progress
+
+List nesting now reserves its indentation inside the offered width and follows
+layout direction. Row labels retain their full vertical size. Visual inspection
+caught an ellipsis in the iOS narrow RTL list's `Final child bullet.` label;
+the corrected reference shows the complete wording. The existing
+`rtlNarrowListContinuations` snapshot guards that result.
+
+The suites now include RTL narrow/wide list continuations, a nested quote, and
+default/custom/enlarged task markers on both platforms. There are **218 PNGs**
+under `Tests/References`, including manual assets. This is not completed
+qualification:
+
+- iPhone 18 Pro on iOS 27.0: the full snapshot lane passed **82/82 twice** after
+  the label fix. Only the narrow RTL list reference changed during its recording;
+  the other seven references in that suite stayed byte-identical.
+- macOS: **46/82 passed; 36 failed** in the current two-display environment.
+  Do not record over these mismatches. The capture-environment drift described
+  in the issue handoff remains unresolved.
+- Non-snapshot package selection: **163 tests in 19 suites passed**, with one
+  known LoaderSpy issue.
+- Verification did not change any reference hashes. `git diff --check` passed.
+- Static RTL reference inspection is not running-demo verification. LTR reference
+  review and running-demo observations remain incomplete. Do not treat the
+  historical qualifications below as approval of this change.
+
 ## Integrated qualification (ticket 14)
 
-This section is the current integrated result. The ticket sections below retain
+This section is the historical integrated result before issue #4. The ticket sections below retain
 historical baseline-review and mutation evidence; their old package counts are not
-current totals. Reviewed replacement evidence is indexed in the
-[work ledger](../AI-docs/prds/ui-snapshot-testing-work-ledger.md).
+current totals. The ticket sections below retain the replacement evidence;
+the former work ledger has been removed.
 
 ### Current commands and environments
 
@@ -118,8 +144,9 @@ support, or general cancellation. Package tests own their semantic/lifecycle and
 numeric contracts; neither lane substitutes for the other. Existing ticket
 review evidence is retained below; no new baseline review was needed here.
 
-Known renderer defects remain: list content can draw outside the offered column,
-and RTL task indentation runs outward. No RTL task baseline was added. Recipe
+At ticket 14 qualification, list content could draw outside the offered column,
+and RTL task indentation ran outward. Issue #4 addresses these defects; see the
+verification-in-progress section above for the remaining approval limits. Recipe
 iOS lower-scroll was observed in ticket 13; macOS running-app lower-scroll remains
 unperformed. Constrained quote hosts, task hit targets, real selection gestures,
 live accessibility, and running-demo interaction still need manual qualification.
