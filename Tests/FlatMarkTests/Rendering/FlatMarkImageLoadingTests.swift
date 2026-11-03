@@ -7,6 +7,8 @@ import Testing
 
 #if os(macOS)
     import AppKit
+#else
+    import UIKit
 #endif
 
 // MARK: - FlatMarkImageLoadingTests
@@ -58,7 +60,7 @@ struct FlatMarkImageLoadingTests {
         ) == "Diagram, loading")
         #expect(FlatMarkInlineView.accessibilityLabel(
             for: image,
-            phase: .loaded(Image(systemName: "photo"))
+            phase: .loaded(loadedFixtureImage())
         ) == "Diagram")
         #expect(FlatMarkInlineView.accessibilityLabel(
             for: image,
@@ -70,7 +72,7 @@ struct FlatMarkImageLoadingTests {
         ) == "Image, loading")
         #expect(FlatMarkInlineView.accessibilityLabel(
             for: imageWithoutAltText,
-            phase: .loaded(Image(systemName: "photo"))
+            phase: .loaded(loadedFixtureImage())
         ) == "Image")
         #expect(FlatMarkInlineView.accessibilityLabel(
             for: imageWithoutAltText,
@@ -93,7 +95,7 @@ struct FlatMarkImageLoadingTests {
         let phases: [(FlatMarkInlineView.ImagePhase, String)] = [
             (.placeholder, ", not loaded"),
             (.loading, ", loading"),
-            (.loaded(Image(systemName: "photo")), ""),
+            (.loaded(loadedFixtureImage()), ""),
             (.failed, ", failed to load"),
         ]
         for (phase, suffix) in phases {
@@ -124,7 +126,7 @@ struct FlatMarkImageLoadingTests {
                 baseURL: URL(string: "https://example.com/"),
                 imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
                     await loads.record(url)
-                    return Image(systemName: "photo.fill")
+                    return loadedFixtureImage()
                 },
                 unsupportedContentPolicy: .custom(inline: { payload in
                     recorder.payloads.append(payload)
@@ -198,7 +200,7 @@ struct FlatMarkImageLoadingTests {
                 context: FlatMarkRenderContext(
                     imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
                         await spy.record(url)
-                        return Image(systemName: "photo.fill")
+                        return loadedFixtureImage()
                     },
                     imageURLPolicy: .webOnly
                 )
@@ -305,7 +307,7 @@ struct FlatMarkImageLoadingTests {
                 context: FlatMarkRenderContext(
                     imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
                         await spy.record(url)
-                        return Image(nsImage: raster)
+                        return raster
                     },
                     imageURLPolicy: .webOnly
                 )
@@ -432,7 +434,7 @@ struct FlatMarkImageLoadingTests {
 
                         do {
                             try await Task.sleep(for: .seconds(60))
-                            return Image(systemName: "photo.fill")
+                            return loadedFixtureImage()
                         } catch is CancellationError {
                             await spy.recordCancellation()
                             throw CancellationError()
@@ -471,7 +473,7 @@ private actor SuspensionGate {
     private var isReleased = false
     private(set) var didThrow = false
 
-    func fail() throws -> Image {
+    func fail() throws -> NativeImage {
         didThrow = true
         throw ImageLoaderTestError.failed
     }
@@ -574,7 +576,7 @@ private actor SuspensionGate {
             model.loaderConfigurationID.map { configurationID in
                 FlatMarkImageLoader(configurationID: configurationID) { url in
                     await model.spy.record(url)
-                    return Image(systemName: configurationID == model.firstConfigurationID
+                    return loadedFixtureImage(symbolName: configurationID == model.firstConfigurationID
                         ? "1.circle.fill"
                         : "2.circle.fill")
                 }
@@ -909,6 +911,15 @@ private actor SuspensionGate {
         return DrawnRegion(frame: frame, edgeInset: edgeInset)
     }
 #endif
+
+/// The native image a test loader returns when the case reads the request rather than the pixels.
+private func loadedFixtureImage(symbolName: String = "photo") -> NativeImage {
+    #if os(macOS)
+        NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) ?? NSImage()
+    #else
+        UIImage(systemName: symbolName) ?? UIImage()
+    #endif
+}
 
 private func paragraphContent(in document: FlatMarkRenderDocument) -> FlatMarkRenderInlineContent? {
     guard case let .paragraph(content) = document.blocks.first?.kind else {

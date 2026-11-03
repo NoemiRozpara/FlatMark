@@ -1,6 +1,12 @@
 import FlatMark
 import SwiftUI
 
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
+
 // MARK: - FlatMarkCustomPolicyKind
 
 public enum FlatMarkCustomPolicyKind: String, CaseIterable, Identifiable, Hashable {
@@ -224,18 +230,10 @@ public final class FlatMarkCustomFixtureModel {
         let expectedImageURL = Self.baseURL?.appending(path: "focaccia.jpeg")
         loader = FlatMarkImageLoader(configurationID: UUID()) { url in
             await imageCalls.record(url)
-            guard url == expectedImageURL, let imageURL else {
-                return Image(systemName: "leaf.fill")
+            guard url == expectedImageURL, let imageURL, let image = fixtureImage(at: imageURL) else {
+                return missingImagePlaceholder
             }
-            #if os(macOS)
-            guard let image = NSImage(contentsOf: imageURL) else { return Image(systemName: "leaf.fill") }
-            return Image(nsImage: image)
-            #elseif canImport(UIKit)
-            guard let image = UIImage(contentsOfFile: imageURL.path) else { return Image(systemName: "leaf.fill") }
-            return Image(uiImage: image)
-            #else
-            return Image(systemName: "leaf.fill")
-            #endif
+            return image
         }
     }
 
@@ -274,4 +272,24 @@ public final class FlatMarkCustomFixtureModel {
             )
         }
     }
+}
+
+// MARK: - Fixture loader images
+
+/// Reads the bundled photo as the native image a host loader returns.
+private func fixtureImage(at url: URL) -> NativeImage? {
+    #if os(macOS)
+        NSImage(contentsOf: url)
+    #else
+        UIImage(contentsOfFile: url.path)
+    #endif
+}
+
+/// Shown for a request the fixture does not serve, so a wrong URL still renders an image.
+private var missingImagePlaceholder: NativeImage {
+    #if os(macOS)
+        NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: nil) ?? NSImage()
+    #else
+        UIImage(systemName: "leaf.fill") ?? UIImage()
+    #endif
 }

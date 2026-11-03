@@ -138,6 +138,9 @@
         }
     }
 
+    /// The stand-in a host loader returns; these checks read the request, never its pixels.
+    private let loadedFixtureImage = NativeImage(systemSymbolName: "photo.fill", accessibilityDescription: nil) ?? NativeImage()
+
     private struct TaskInteractionView: View {
         let model: TaskInteractionModel
 
@@ -160,7 +163,7 @@
                     baseURL: URL(string: "https://example.com/"),
                     imageLoader: FlatMarkImageLoader(configurationID: model.loaderID) { url in
                         await MainActor.run { model.loadedURLs.append(url.absoluteString) }
-                        return Image(systemName: "photo.fill")
+                        return loadedFixtureImage
                     },
                     unsupportedContentPolicy: model.mode == "custom" ? .custom(inline: { payload in
                         model.payloads.append(payload)

@@ -23,7 +23,7 @@
             let recorder = ImageRecorder()
             let loader: FlatMarkImageLoader? = recordsImages ? FlatMarkImageLoader(configurationID: UUID()) { url in
                 await recorder.record(url)
-                return Image(systemName: "photo.fill")
+                return loadedFixtureImage
             } : nil
             var activated: [String] = []
             var opened: [String] = []
@@ -154,6 +154,9 @@
             exit(6)
         }
     }
+
+    /// The stand-in a host loader returns; these checks read the request, never its pixels.
+    private let loadedFixtureImage = NativeImage(systemSymbolName: "photo.fill", accessibilityDescription: nil) ?? NativeImage()
 
     @MainActor
     private final class ImageRecorder {
