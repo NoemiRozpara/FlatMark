@@ -19,16 +19,29 @@
             let select = #selector(NSText.selectAll(_:))
             let write = #selector(NSServicesMenuRequestor.writeSelection(to:types:))
             if view.responds(to: select), view.responds(to: write) {
-                guard let requestor = view as? any NSServicesMenuRequestor else {
+                // NSTextView exposes selection export without declaring this optional protocol.
+                let export: (NSPasteboard) -> Bool
+                if let textView = view as? NSTextView {
+                    export = { board in
+                        // AppKit advertises legacy pasteboard names, not the equivalent UTI.
+                        return textView.writeSelection(to: board, types: textView.writablePasteboardTypes)
+                    }
+                } else if let requestor = view as? any NSServicesMenuRequestor {
+                    export = { requestor.writeSelection?(to: $0, types: [.rtf, .string]) == true }
+                } else {
                     throw MountedTextObservationError.selectionExportFailed(
                         "Selection view does not conform to NSServicesMenuRequestor: \(type(of: view))"
                     )
                 }
-                view.perform(select, with: nil)
+                if let textView = view as? NSTextView {
+                    textView.selectAll(nil)
+                } else {
+                    view.perform(select, with: nil)
+                }
                 // Never touch the user's general pasteboard, and release this board after each read.
                 let pasteboard = NSPasteboard.withUniqueName()
                 defer { pasteboard.releaseGlobally() }
-                guard requestor.writeSelection?(to: pasteboard, types: [.rtf, .string]) == true,
+                guard export(pasteboard),
                       let data = pasteboard.data(forType: .rtf),
                       let text = NSAttributedString(rtf: data, documentAttributes: nil) else {
                     // A region displaying nothing has no selection to export, and omission leaves

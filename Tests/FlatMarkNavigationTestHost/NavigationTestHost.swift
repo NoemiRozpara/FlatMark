@@ -116,6 +116,23 @@
                 let point = recorder.replacementFrame.map { NSPoint(x: $0.midX, y: $0.midY) }
                     ?? NSPoint(x: 20, y: hosting.bounds.midY)
                 guard let target = hosting.hitTest(point) else { exit(3) }
+                if let text = target as? NSTextView, let manager = text.layoutManager,
+                   let container = text.textContainer, text.string.isEmpty == false,
+                   let expectedLink = text.textStorage?.attribute(.link, at: 0, effectiveRange: nil) as? URL {
+                    // Revalidate the fixed click point against glyphs, not just the view's frame.
+                    manager.ensureLayout(for: container)
+                    let local = text.convert(point, from: hosting)
+                    let containerPoint = NSPoint(
+                        x: local.x - text.textContainerOrigin.x, y: local.y - text.textContainerOrigin.y
+                    )
+                    let glyph = manager.glyphIndex(for: containerPoint, in: container)
+                    guard glyph < manager.numberOfGlyphs else { exit(7) }
+                    let character = manager.characterIndexForGlyph(at: glyph)
+                    guard manager.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: container)
+                        .contains(containerPoint),
+                        text.textStorage?.attribute(.link, at: character, effectiveRange: nil) as? URL == expectedLink
+                    else { exit(7) }
+                }
 
                 let location = hosting.convert(point, to: nil)
                 let timestamp = ProcessInfo.processInfo.systemUptime

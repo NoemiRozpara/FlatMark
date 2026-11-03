@@ -3,6 +3,40 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Native macOS paragraphs (#26)
+
+Image-free macOS paragraphs now use selectable, noneditable `NSTextView` storage with AppKit's
+preferred body font. Paragraphs containing Markdown images retain their existing renderer.
+Explicit native fonts/colors and SwiftUI foreground/background colors survive native defaults.
+Sizing probes use separate TextKit storage; the displayed container follows the allocated frame.
+AppKit ensures layout before drawing so cached glyphs do not retain an earlier width.
+
+Verification environment: Xcode 27.0 (27A266a), Swift 6.4, macOS 27.0.1 (26A434), arm64,
+built-in Retina display. This does not qualify macOS 14 or Xcode 26.
+
+- Five focused test methods pass. They cover native Unicode and combined traits, per-run host
+  precedence, RTL direction versus alignment, initial 140/280-point layout, and trailing empty lines.
+- `swift test --skip Snapshot` passes 175 tests in 20 suites, including one known LoaderSpy issue.
+  Mounted exports use a temporary pasteboard and AppKit's advertised legacy export types.
+- The isolated navigation suite passes eight methods, including handled/rejected/default/omitted
+  decisions, inherited/explicit replacement links, independent adjacent links, and inert text.
+  The host now checks the fixed click point against native glyph geometry for leading native links.
+- `swift test` selects 257 tests in 33 suites and fails with 79 issues, including the known issue:
+  77 snapshot comparisons and one image-link host timeout during the concurrent full run.
+  The isolated navigation rerun passes. No snapshot references were recorded. These comparisons
+  include intentional native typography changes and existing environment-sensitive captures;
+  they have not been fully classified or visually qualified.
+- `FlatMarkDemo-macOS` builds and launches. `FlatMarkDemo-iOS` compiles for the iPhone 18 Pro
+  simulator on iOS 27.0. The shared edit only changes paragraph routing's platform guard.
+- Running-demo screenshot inspection caught clipped cached glyphs despite a correctly sized frame.
+  After ensuring native layout before drawing, the inspected recipe paragraph wraps completely,
+  shows bold/italic/strike styling, and remains separate from the following photo.
+
+Wide-column and mixed-direction running-demo checks, visible blank-line inspection, independent
+live demo links, minimum-platform behavior, and visual baseline qualification remain incomplete.
+Exported wording and automated layout checks do not establish those observations. Retained-update
+qualification belongs to #28; integrated selection and live VoiceOver belong to #29.
+
 ## Native iOS paragraphs (#25)
 
 Image-free iOS paragraphs now use selectable, noneditable `UITextView` storage. Every paragraph
