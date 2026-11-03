@@ -42,15 +42,26 @@ failures as unverified, not as regressions, and do not re-record references to s
 
 ### References re-recorded deliberately
 
-16 macOS references were re-recorded because the contract change alters their rendered output, and
-each was opened and inspected: 5 InlineFlow, 3 NestedContainers (including `rtlNestedQuote`, whose
-capture hosts the custom policy), 4 PolicyTransitions, and 4 UnsupportedPolicies. Their plain
-comparisons pass. The custom captures use an attributed `BADGE` and attributed OPEN/CLOSE markers
-instead of the earlier arbitrary inline views; the enabled/disabled captures now carry one block
-control each.
+The contract change alters the rendered output of the same 16 captures on each platform: 5 InlineFlow,
+3 NestedContainers (including `rtlNestedQuote`, whose capture hosts the custom policy), 4
+PolicyTransitions, and 4 UnsupportedPolicies. All 32 were re-recorded and inspected. The custom
+captures use an attributed `BADGE` and attributed OPEN/CLOSE markers instead of the earlier arbitrary
+inline views; the enabled/disabled captures now carry one block control each.
 
-**iOS references are stale for these changes.** Only the macOS lane ran here. Re-record the affected
-iOS captures on a qualified host before treating the snapshot baseline as current.
+macOS: re-recorded through the package lane with `FLATMARK_SNAPSHOT_RECORD=all`, then confirmed by
+plain comparison. The other ~35 captures still fail for the environment reason above and were left
+alone.
+
+iOS: re-recorded with the `FlatMarkSnapshots-iOS-Record` scheme on iPhone 18 Pro (iOS 27.0),
+restricted with `-only-testing` to those four suites. Only the expected 16 references changed on
+disk. Two separate `FlatMarkSnapshots-iOS` runs then passed **82/82** with no reference drift, and
+the hash of every reference was unchanged by those runs.
+
+Two review concerns on the new iOS captures are **pre-existing, not introduced here**: the
+consecutive-hard-break capture shows no blank row, and the RTL mixed-flow marker sits at the line
+end. A reviewer compared each new capture against its pre-change reference and found both behaviors
+already present beforehand. The first is open as issue #5; the second is mixed-flow line behavior
+related to open issue #17. These captures record current behavior rather than endorse it.
 
 ### Running-app observations
 
@@ -77,8 +88,10 @@ Joined wording such as "tipthe water" is the agreed flat rule: FlatMark adds no 
 
 Minimum-OS and minimum-toolchain behavior. Live VoiceOver and focus order. Selection gestures and
 copy across replacements. System Dynamic Type (the fixture's size switch is not system settings).
-iOS reference currency. A supported **text-only** link was not activated in the running app; only the
-supported image link was.
+A supported **text-only** link was not activated in the running app; only the supported image link
+was. The macOS exact-pixel lane above is unverified rather than passing. No capture in this chunk
+places a replacement inside a Markdown heading, so heading-style inheritance rests on the mounted
+attribute checks and the running-app observation, not on a snapshot.
 
 ## Issue #4 verification in progress
 
