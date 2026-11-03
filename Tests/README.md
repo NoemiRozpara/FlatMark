@@ -3,53 +3,82 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
-## Issue #20 verification
+## Unsupported-content replacement contract (#18 chunk 1, tickets #19–#21)
 
-Inline custom output now composes with supported neighbors in native text. It contributes to
-paragraph accessibility text, task labels, and image descriptions. Images retain their existing
-flow boundaries. Mounted native exports check complete wording at a 90pt width; this is not
-running-app wrapping, selection, or VoiceOver evidence.
+`.custom` now takes a `(String) -> AttributedString` inline closure and an optional
+`(String) -> AnyView` block override. Inline replacements compose with supported text as native
+text. A replacement run inherits the enclosing Markdown presentation intent and link when the host
+omits it; an explicit host value wins on its run, and an explicitly empty intent set suppresses
+inheritance. Arbitrary views remain available only through the block override. Extraction,
+`.literal`, and recursive `.omit` behavior are unchanged.
 
-On Xcode 27.0 / Swift 6.4 / macOS 27.0.1 (arm64), `swift test` ran 246 tests in
-32 suites. The summary reported 40 issues including one intentional known loader issue.
-All unexpected issues were snapshot comparisons: 36 distinct reference names, all present in
-`/tmp/head.fails.txt` from clean HEAD. Exact-pixel comparisons remain limited by the current
-hosting-display environment; minimum-platform and iOS behavior are unverified.
+### Automated results
 
-Eight macOS references were intentionally re-recorded and opened for inspection:
-- NestedContainers: `narrowNestedQuote`, `wideNestedQuote`. The attributed BADGE sits beside
-  supported wording; complete inner/outer quote text and hard breaks remain visible.
-- PolicyTransitions: `retainedPolicyTransitions.custom`, `.changedCustom`, and
-  `bothInitializerPaths.sourceCustom`, `.documentCustom`. Replacement wording touches `middle`
-  without synthetic spaces. Tasks and the loaded raster remain visible where present.
-- UnsupportedPolicies: `custom`, `emptyCustom`. OPEN/CLOSE markers compose with supported bold
-  and linked wording. Empty output leaves `ab` contiguous and retains parent block spacing.
+Environment: Xcode 27.0 (27A266a), Swift 6.4, macOS 27.0.1 (26A434), arm64. This is not the minimum
+toolchain (Xcode 26.0+ / Swift 6.2, iOS 17+ / macOS 14+), so these runs do not establish
+minimum-platform support.
 
-These eight plain comparisons pass. Existing attributed capture policies remain meaningful;
-no new marker styling was needed. Image-flow references were not re-recorded.
-`rtlNestedQuote` was not recorded; its existing failure remains. No demo, fixture host, or
-simulator was launched. Running-app checks remain with the orchestrator.
+- `swift test` after all three tickets: 252 tests in 32 suites. No non-snapshot test failed, plus the
+  one intentional known `LoaderSpy` issue.
+- Focused custom-content and navigation selection: 62 tests in 4 suites passed.
+- Mounted native exports establish composed wording at narrow width, separate parser-node positions,
+  unchanged extractions, bold inheritance, italic precedence, empty-intent suppression, per-run link
+  destinations, and ambient heading fonts.
+- Isolated macOS interaction tests establish that inherited and explicit replacement links activate
+  through the existing host routing path, with handled, rejected, default, and omitted callbacks, and
+  that adjacent supported links stay independent.
 
-## Issue #19 verification
+### macOS snapshot lane is currently unreliable
 
-Custom inline replacements now return attributed text. Arbitrary controls remain
-available only through the block override. The current inline-flow and nested-quote
-captures use a white-on-indigo attributed `BADGE`, not the older 44×30pt view.
-The enabled/disabled unsupported-policy captures now each contain one block control.
-Historical observations below describe the earlier API unless noted otherwise.
+The exact-pixel lane fails about 35 captures in this environment, including ImagePhase, TaskMarker,
+Typography, EmptyStructure, RecipeIntegration, LinkedImage, PolicyTransition, and UnsupportedPolicy
+captures. The differences are sub-perceptual: `magick compare -fuzz 0.5% -metric AE` reports zero
+differing pixels. SnapshotTesting demands exact pixels (`precision: 1`), so they fail.
 
-On Xcode 27.0 / Swift 6.4 / macOS 27.0.1, the 246-test package run completed with
-40 snapshot failures and one known loader issue in the run summary. No
-non-snapshot test failed. The documented `rtlNestedQuote` mismatch remains.
-Other unchanged references also mismatch in this environment, including isolated
-image-phase and task-marker controls. Some differ only in low-bit color values;
-the full cause is unresolved. Those references were not re-recorded.
+This is machine state, not code. A pristine `git worktree` of the pre-ticket commit fails the same
+captures, and no reference failed that was not already failing there. The qualified environment in
+this file records a 2x macOS hosting display; these runs used only the built-in display. Treat these
+failures as unverified, not as regressions, and do not re-record references to silence them.
 
-Twelve intentionally changed macOS captures were re-recorded and visually inspected:
-five InlineFlow captures, narrow/wide NestedContainers, custom/changedCustom retained
-PolicyTransitions, and custom/enabledHost/disabledHost UnsupportedPolicies. Their
-plain comparisons pass. `rtlNestedQuote` and its reference remain untouched.
-iOS references remain stale for these changes. No demo or simulator run was performed.
+### References re-recorded deliberately
+
+16 macOS references were re-recorded because the contract change alters their rendered output, and
+each was opened and inspected: 5 InlineFlow, 3 NestedContainers (including `rtlNestedQuote`, whose
+capture hosts the custom policy), 4 PolicyTransitions, and 4 UnsupportedPolicies. Their plain
+comparisons pass. The custom captures use an attributed `BADGE` and attributed OPEN/CLOSE markers
+instead of the earlier arbitrary inline views; the enabled/disabled captures now carry one block
+control each.
+
+**iOS references are stale for these changes.** Only the macOS lane ran here. Re-record the affected
+iOS captures on a qualified host before treating the snapshot baseline as current.
+
+### Running-app observations
+
+Performed in the shared fixture host on both platforms. Launch it with `scripts/run-fixture-host.sh
+ios|macos`; `Replace tags` in Settings selects the `.custom` policy.
+
+- iOS, iPhone 18 Pro simulator on iOS 27.0, scheme `FlatMarkDemo-iOS`: the block override rendered as
+  a host button with no border or placeholder, and tapping it reported
+  "The recipe: Dimpling tip: oil your fingertips, then press gently into the risen dough." in the
+  activity strip. With the override off, the block rendered as plain native text. With "Replace with
+  nothing" on, the block and inline labels disappeared, surrounding wording stayed intact, and no
+  placeholder or synthetic space appeared. In the narrow column and in right-to-left layout, inline
+  replacements composed with supported text, wrapped completely, and took heading and emphasis styling.
+  Touching replacement text inside a linked note reported
+  "The recipe: Tin note: use a 23 × 33 cm tin and oil the base and corners generously."; a separate
+  supported image link reported its own "Rosemary note" activity. No browser opened.
+- macOS 27.0.1, scheme `FlatMarkDemo-macOS`: the same block override, default native-text block,
+  empty-output, narrow right-to-left composition, and both link activations reproduced, with the same
+  activity-strip wording.
+
+Joined wording such as "tipthe water" is the agreed flat rule: FlatMark adds no synthetic spaces.
+
+### Not verified
+
+Minimum-OS and minimum-toolchain behavior. Live VoiceOver and focus order. Selection gestures and
+copy across replacements. System Dynamic Type (the fixture's size switch is not system settings).
+iOS reference currency. A supported **text-only** link was not activated in the running app; only the
+supported image link was.
 
 ## Issue #4 verification in progress
 

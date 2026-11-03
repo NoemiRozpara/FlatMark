@@ -199,10 +199,13 @@ closure. Opening and closing tags are separate nodes, not paired elements. Known
 escaped tags, code, and ordinary text do not invoke either closure.
 
 Replacements keep their structural position and ambient environment. FlatMark adds no literal
-fallback, enclosing Markdown-link action, or minimum-size box. Block
-controls remain independently actionable beside tasks and supported links. Inline replacement text
-gets ambient SwiftUI styling, including heading fonts, but not enclosing Markdown presentation
-intents or links. Explicit host attributes are not overridden. Inline replacements compose with
+fallback or minimum-size box. Block controls remain independently actionable beside tasks and
+supported links. Inline replacement text gets ambient SwiftUI styling, including heading fonts.
+Each run inherits enclosing Markdown presentation intents and links when the host omits those
+attributes. An explicit host intent replaces the enclosing intent, including an empty intent set
+that suppresses inheritance. A host link overrides the enclosing destination on its run; a missing
+link inherits it. Replacement links use the same `linkActivationAction` and inherited `openURL`
+path as supported links. Inline replacements compose with
 supported neighbors as native text and contribute their wording to paragraph accessibility text.
 
 Empty attributed output and block overrides returning `AnyView(EmptyView())` do not imply recursive

@@ -188,6 +188,85 @@ struct FlatMarkCustomRenderingTests {
         }
 
         @Test
+        func `replacement runs inherit enclosing emphasis`() async throws {
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "**before <u>after**",
+                unsupportedContentPolicy: .custom { _ in AttributedString("Long replacement") }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "Long replacement", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            let index = (exported.string as NSString).range(of: "Long replacement").location
+            let font = try #require(exported.attribute(.font, at: index, effectiveRange: nil) as? NSFont)
+            #expect(NSFontManager.shared.traits(of: font).contains(.boldFontMask))
+        }
+
+        @Test
+        func `host intent and empty intent replace defaults per run`() async throws {
+            var explicit = AttributedString("Italic")
+            explicit.inlinePresentationIntent = .emphasized
+            var empty = AttributedString("Plain")
+            empty.inlinePresentationIntent = []
+            #expect(empty.runs.first?.attributes.inlinePresentationIntent == [])
+            #expect(AttributedString("Missing").runs.first?.attributes.inlinePresentationIntent == nil)
+            let replacement = AttributedString("Inherited") + explicit + empty
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "**before <u>after**",
+                unsupportedContentPolicy: .custom { _ in replacement }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "InheritedItalicPlain", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            var fonts: [NSFont] = []
+            for (word, bold, italic) in [("Inherited", true, false), ("Italic", false, true), ("Plain", false, false)] {
+                let index = (exported.string as NSString).range(of: word).location
+                let font = try #require(exported.attribute(.font, at: index, effectiveRange: nil) as? NSFont)
+                fonts.append(font)
+                let traits = NSFontManager.shared.traits(of: font)
+                #expect(traits.contains(.boldFontMask) == bold)
+                #expect(traits.contains(.italicFontMask) == italic)
+            }
+            #expect(fonts.allSatisfy { $0.pointSize == fonts[0].pointSize })
+        }
+
+        @Test
+        func `replacement retains ambient heading font`() async throws {
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "# Before <u>after",
+                unsupportedContentPolicy: .custom { _ in AttributedString("Replacement") }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "Replacement", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            let before = (exported.string as NSString).range(of: "Before").location
+            let replacement = (exported.string as NSString).range(of: "Replacement").location
+            let expected = try #require(exported.attribute(.font, at: before, effectiveRange: nil) as? NSFont)
+            let actual = try #require(exported.attribute(.font, at: replacement, effectiveRange: nil) as? NSFont)
+            #expect(actual == expected)
+            #expect(actual.pointSize > NSFont.systemFontSize)
+        }
+
+        @Test
+        func `replacement links inherit and override per run`() async throws {
+            let enclosing = try #require(URL(string: "https://example.com/destination"))
+            let override = try #require(URL(string: "https://host.example/explicit"))
+            var explicit = AttributedString("Explicit")
+            explicit.link = override
+            let replacement = AttributedString("Inherited") + explicit + AttributedString("Tail")
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "[before <u>after](https://example.com/destination)",
+                unsupportedContentPolicy: .custom { _ in replacement }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "InheritedExplicitTail", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            for (word, destination) in [("before", enclosing), ("Inherited", enclosing), ("Explicit", override), ("Tail", enclosing), ("after", enclosing)] {
+                let index = (exported.string as NSString).range(of: word).location
+                #expect(exported.attribute(.link, at: index, effectiveRange: nil) as? URL == destination)
+            }
+        }
+
+        @Test
         func `blocks use attributed inline output unless a block override is supplied`() async throws {
             let markdown = "before <u>x</u> after\n\n<div>raw</div>"
             let inlinePayloads = BlockPayloadRecorder()

@@ -44,10 +44,14 @@
             let policyArgument = recordsImages ? CommandLine.arguments[4] : "default"
             let policy: FlatMarkUnsupportedContentPolicy?
             switch policyArgument {
-            case "custom":
+            case "custom", "customLink":
                 policy = .custom(inline: { payload in
                     customPayloads.append(payload)
-                    return AttributedString("Replacement")
+                    var text = AttributedString("Replacement")
+                    if policyArgument == "customLink" {
+                        text.link = URL(string: "https://host.example/explicit")
+                    }
+                    return text
                 }, block: { payload in
                     customPayloads.append(payload)
                     return AnyView(
@@ -136,7 +140,7 @@
                 if recordsImages {
                     report["loaded"] = recorder.urls
                 }
-                if policyArgument == "custom" {
+                if policyArgument == "custom" || policyArgument == "customLink" {
                     report["customPayloads"] = customPayloads
                     report["customActivations"] = ["\(customActivations)"]
                 }

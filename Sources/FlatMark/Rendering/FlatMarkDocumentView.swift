@@ -377,7 +377,18 @@ struct FlatMarkInlineView: View {
         policy: FlatMarkUnsupportedContentPolicy
     ) -> AttributedString {
         if case let .custom(inline, _) = policy {
-            return inline(String(unsupported.literalText.characters))
+            var replacement = inline(String(unsupported.literalText.characters))
+            let defaults = unsupported.literalText.runs.first?.attributes
+            for run in replacement.runs {
+                // Inspect the attribute container: an explicitly empty intent suppresses inheritance.
+                if run.attributes.inlinePresentationIntent == nil {
+                    replacement[run.range].inlinePresentationIntent = defaults?.inlinePresentationIntent
+                }
+                if run.link == nil {
+                    replacement[run.range].link = defaults?.link
+                }
+            }
+            return replacement
         }
         return policy.literalText(for: unsupported)
     }

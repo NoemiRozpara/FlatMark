@@ -28,7 +28,8 @@ public struct FlatMarkView: View {
     ///   - unsupportedContentPolicy: Renders unsupported content as inert text by default.
     ///     `.omit` removes it and any emptied block's layout slot. `.custom` supplies attributed
     ///     text beside supported neighbors, with an optional host-owned block view. FlatMark adds
-    ///     no literal fallback or enclosing Markdown link action.
+    ///     no literal fallback. Block overrides receive no enclosing Markdown link action.
+    ///     See ``FlatMarkUnsupportedContentPolicy/custom(inline:block:)`` for inline inheritance.
     ///   - linkActivationAction: Synchronously handles the resolved absolute URL. Handling or
     ///     rejecting prevents opening; default opening calls the inherited SwiftUI opener once.
     ///   - taskToggleAction: Receives the complete updated source after a checkbox toggle,
@@ -86,7 +87,8 @@ public struct FlatMarkView: View {
     ///     never replaced by renderer diagnostics; `.omit` removes that content instead, together
     ///     with the layout slot of a block it leaves empty. `.custom` supplies attributed text
     ///     beside supported neighbors, with an optional host-owned block view. FlatMark adds no
-    ///     literal fallback or enclosing Markdown link action.
+    ///     literal fallback. Block overrides receive no enclosing Markdown link action.
+    ///     See ``FlatMarkUnsupportedContentPolicy/custom(inline:block:)`` for inline inheritance.
     ///   - linkActivationAction: An optional synchronous action receiving the resolved
     ///     absolute destination on activation. Handling or rejecting suppresses opening;
     ///     default opening delegates once to the inherited SwiftUI environment opener.

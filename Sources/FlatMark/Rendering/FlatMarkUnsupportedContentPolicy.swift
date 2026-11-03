@@ -47,9 +47,11 @@ public enum FlatMarkUnsupportedContentPolicy {
     /// and accessibility. Interpretation, sanitization, fetching, and execution in custom
     /// output remain the host's responsibility.
     ///
-    /// Inline text inherits ambient SwiftUI styles (including heading fonts), but not enclosing
-    /// Markdown presentation intents or links. Supported neighbors retain their attributes
-    /// and links. Hosts own explicit attributes and block-view actions and accessibility.
+    /// Inline text inherits ambient SwiftUI styles, including heading fonts. Each replacement run
+    /// inherits enclosing Markdown presentation intents and links only where the host omits them.
+    /// An explicit intent replaces the enclosing intent; an empty intent suppresses inheritance.
+    /// A host link overrides the enclosing destination. Replacement links use the existing
+    /// navigation callbacks. Hosts own explicit attributes and block-view actions and accessibility.
     ///
     /// Separate parser nodes remain separate calls: `<u>x</u>` supplies `<u>` and `</u>`, with
     /// supported `x` between the replacements. Known containers recurse; code, escaped HTML,
