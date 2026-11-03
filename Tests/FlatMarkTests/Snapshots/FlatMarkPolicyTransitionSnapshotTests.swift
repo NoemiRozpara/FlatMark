@@ -246,7 +246,11 @@ private final class ControlledModel {
         case .literal: .literal
         case .omit: .omit
         case .custom:
-            .custom { [replacementLabel] _ in AnyView(Text(replacementLabel).foregroundStyle(.indigo)) }
+            .custom { [replacementLabel] _ in
+                var replacement = AttributedString(replacementLabel)
+                replacement.foregroundColor = .indigo
+                return replacement
+            }
         }
     }
 

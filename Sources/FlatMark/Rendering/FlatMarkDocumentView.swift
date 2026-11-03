@@ -92,8 +92,14 @@ struct FlatMarkBlockView: View {
         case let .unsupported(content):
             // A host renderer owns what appears here: no literal fallback, label, border, or
             // minimum-size box is added around what it returns.
-            if case let .custom(render) = context.unsupportedContentPolicy {
-                render(String(content.literalText.characters))
+            if case let .custom(inline, block) = context.unsupportedContentPolicy {
+                let source = String(content.literalText.characters)
+                if let block {
+                    block(source)
+                } else {
+                    Text(inline(source))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             } else {
                 Text(context.unsupportedContentPolicy.literalText(for: content))
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -364,9 +370,9 @@ struct FlatMarkInlineView: View {
                     ))
             }
         case let .custom(unsupported):
-            if case let .custom(render) = context.unsupportedContentPolicy {
-                // No enclosing Markdown link or attributed-text style is applied to opaque views.
-                render(String(unsupported.literalText.characters))
+            if case let .custom(inline, _) = context.unsupportedContentPolicy {
+                // Enclosing Markdown attributes are not inherited by custom output yet.
+                Text(inline(String(unsupported.literalText.characters)))
             }
         }
     }

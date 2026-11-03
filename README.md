@@ -170,7 +170,7 @@ Raw HTML and other nodes without a native renderer follow `unsupportedContentPol
 | --- | --- |
 | `.literal` (default) | Inert source text; HTML uses parser-provided raw HTML |
 | `.omit` | Remove unsupported nodes and recursively emptied paragraphs, headings, and blockquotes |
-| `.custom` | Replace each unsupported node with a host-owned native view |
+| `.custom` | Replace each unsupported node with attributed text, with an optional native block-view override |
 
 Omission follows parser nodes, not HTML element boundaries: `before <u>important</u> after`
 retains `important`, while a whole HTML block may disappear. Authored spaces, supported structures,
@@ -181,23 +181,32 @@ state inside removed views is not preserved.
 ```swift
 FlatMarkView(
     markdown: markdown,
-    unsupportedContentPolicy: .custom { source in
-        AnyView(Button("Inspect") { inspect(source) })
-    }
+    unsupportedContentPolicy: .custom(
+        inline: { source in AttributedString(source) },
+        block: { source in AnyView(Button("Inspect") { inspect(source) }) }
+    )
 )
 ```
 
-The closure receives the same extracted source as `.literal`: raw HTML, otherwise a valid original
-source slice, readable descendants, or an empty string. Opening and closing tags are separate nodes,
-not paired elements. Known containers recurse; escaped tags, code, and ordinary text do not invoke it.
+The inline closure is required and returns `AttributedString`. For text-only replacements, use
+`.custom { source in AttributedString(source) }`. Inline nodes always use this closure. Block nodes
+use the optional block override when supplied; otherwise they render the inline closure's output
+as native text.
+
+Both closures receive the same extracted source as `.literal`: raw HTML, otherwise a valid original
+source slice, readable descendants, or an empty string. Empty extraction still reaches the selected
+closure. Opening and closing tags are separate nodes, not paired elements. Known containers recurse;
+escaped tags, code, and ordinary text do not invoke either closure.
 
 Replacements keep their structural position and ambient environment. FlatMark adds no literal
-fallback, enclosing Markdown-link action, extra accessibility proxy, or minimum-size box. Host
-controls remain independently actionable beside tasks and supported links. Inline text styling is
-not copied onto opaque host views, and explicit host styles are not overridden.
+fallback, enclosing Markdown-link action, extra accessibility proxy, or minimum-size box. Block
+controls remain independently actionable beside tasks and supported links. Inline replacement text
+gets ambient SwiftUI styling, including heading fonts, but not enclosing Markdown presentation
+intents or links. Explicit host attributes are not overridden.
 
-`AnyView(EmptyView())` is allowed, but does not imply recursive omission: parent spacing may remain.
-No spaces are synthesized. Invocation counts are not lifecycle guarantees.
+Empty attributed output and block overrides returning `AnyView(EmptyView())` do not imply recursive
+omission: parent spacing may remain. No spaces are synthesized. These are presentation closures;
+invocation counts are not lifecycle guarantees.
 
 Built-in policies never execute HTML or fetch HTML resources. **Custom output is host-owned**,
 including interpretation, sanitization, navigation, and resource access. FlatMark is not an HTML sanitizer.

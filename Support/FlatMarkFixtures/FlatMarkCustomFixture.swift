@@ -86,7 +86,7 @@ public struct FlatMarkCustomFixture: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("The recipe")
                 .font(.title2.bold())
-            Text("This recipe is an interactive rendering demo. Tick a baking step to update its checkbox and the Markdown source. Recipe links—including the photo—show a local note in the activity strip above instead of opening a browser. With Replace tags and Make replacements tappable enabled in Settings, replacement buttons show a baker’s tip in that same strip. These actions only change this demo’s state; they don’t send data or navigate away.")
+            Text("This recipe is an interactive rendering demo. Tick a baking step to update its checkbox and the Markdown source. Recipe links—including the photo—show a local note in the activity strip above instead of opening a browser. With Replace tags and Make replacements tappable enabled in Settings, block replacement buttons show a baker’s tip in that same strip. These actions only change this demo’s state; they don’t send data or navigate away.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: Self.columnWidth, alignment: .leading)
@@ -253,18 +253,25 @@ public final class FlatMarkCustomFixtureModel {
             let label = replacementLabel
             let showsButtons = showsButtons
             let showsEmpty = showsEmpty
-            return .custom { payload in
-                self.payloads.append(payload)
-                self.presentedLabels.append(label)
-                if showsEmpty { return AnyView(EmptyView()) }
-                if showsButtons {
-                    return AnyView(Button(label) {
-                        self.customActivations += 1
-                        self.lastActivity = "The recipe: Dimpling tip: oil your fingertips, then press gently into the risen dough."
-                    })
+            return .custom(
+                inline: { payload in
+                    self.payloads.append(payload)
+                    self.presentedLabels.append(label)
+                    return showsEmpty ? AttributedString() : AttributedString(label)
+                },
+                block: { payload in
+                    self.payloads.append(payload)
+                    self.presentedLabels.append(label)
+                    if showsEmpty { return AnyView(EmptyView()) }
+                    if showsButtons {
+                        return AnyView(Button(label) {
+                            self.customActivations += 1
+                            self.lastActivity = "The recipe: Dimpling tip: oil your fingertips, then press gently into the risen dough."
+                        })
+                    }
+                    return AnyView(Text(label))
                 }
-                return AnyView(Text(label))
-            }
+            )
         }
     }
 }

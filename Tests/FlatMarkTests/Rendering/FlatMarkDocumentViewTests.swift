@@ -17,7 +17,7 @@ struct FlatMarkInlineViewTests {
             return
         }
 
-        let policy = FlatMarkUnsupportedContentPolicy.custom { _ in AnyView(EmptyView()) }
+        let policy = FlatMarkUnsupportedContentPolicy.custom(inline: { _ in AttributedString() })
         let view = FlatMarkInlineView(
             content: content,
             context: FlatMarkRenderContext(unsupportedContentPolicy: policy)
@@ -70,7 +70,7 @@ struct FlatMarkInlineViewTests {
         let policies: [(FlatMarkUnsupportedContentPolicy, [String])] = [
             (.literal, ["a", "<u>", "</u>", "b"]),
             (.omit, ["a", "b"]),
-            (.custom(render: { _ in AnyView(EmptyView()) }), ["a", "custom(<u>)", "custom(</u>)", "b"]),
+            (.custom(inline: { _ in AttributedString() }), ["a", "custom(<u>)", "custom(</u>)", "b"]),
         ]
 
         for (policy, expected) in policies {

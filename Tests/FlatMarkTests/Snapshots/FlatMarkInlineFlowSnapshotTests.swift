@@ -7,7 +7,7 @@ import Testing
 
 /// Reviewed wrapping, baseline, ordering, break, and overflow behaviour for mixed inline content.
 ///
-/// One fixture carries a resolved linked image, a host custom replacement of a distinct height,
+/// One fixture carries a resolved linked image, a host attributed replacement with a distinct font,
 /// adjacent supported emphasis and link text, and explicit hard breaks. Every variant renders the
 /// same public `FlatMarkView`, so a change in how the inline flow places those parts shows up as a
 /// pixel difference. Baselines live in `Tests/References/Snapshots/InlineFlow/<platform>/`. Commands,
@@ -51,12 +51,13 @@ struct FlatMarkInlineFlowSnapshotTests {
     After two consecutive hard breaks.
     """
 
-    /// A fixed host replacement tall enough to change the row it sits on, so a baseline or replacement
-    /// position regression is visible against the surrounding text.
-    private static var replacement: some View {
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
-            .fill(Color.indigo)
-            .frame(width: 44, height: 30)
+    /// A distinctive attributed marker exposes replacement position and baseline changes.
+    private static var replacement: AttributedString {
+        var marker = AttributedString("BADGE")
+        marker.font = .system(size: 20, weight: .bold, design: .monospaced)
+        marker.foregroundColor = .white
+        marker.backgroundColor = .indigo
+        return marker
     }
 
     // MARK: Narrow mixed flow
@@ -166,7 +167,7 @@ struct FlatMarkInlineFlowSnapshotTests {
     ) async throws {
         let view = FlatMarkView(
             markdown: markdown,
-            unsupportedContentPolicy: .custom { _ in AnyView(Self.replacement) }
+            unsupportedContentPolicy: .custom { _ in Self.replacement }
         )
         let image = try await flatMarkSnapshotImage(of: view, environment: environment)
 

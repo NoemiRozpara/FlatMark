@@ -51,8 +51,13 @@
                 }
                 guard let frame = model.markerFrames[false] else { exit(7) }
                 let checkboxPoint = NSPoint(x: frame.midX, y: frame.midY)
-                // The replacement is the first inline child after the eight-point sibling gap.
-                let hostPoint = NSPoint(x: frame.midX + 22 + 20, y: frame.midY)
+                let hostPoint: NSPoint
+                if mode == "custom" {
+                    guard let replacement = model.replacementFrame else { exit(7) }
+                    hostPoint = NSPoint(x: replacement.midX, y: replacement.midY)
+                } else {
+                    hostPoint = checkboxPoint
+                }
                 var report = [
                     "initialMarkdown": [model.markdown],
                     "initialLoaded": model.loadedURLs,
@@ -122,6 +127,7 @@
         var linkActivations = 0
         var updates: [String] = []
         @ObservationIgnored var markerFrames: [Bool: CGRect] = [:]
+        @ObservationIgnored var replacementFrame: CGRect?
         @ObservationIgnored var payloads: [String] = []
         @ObservationIgnored var loadedURLs: [String] = []
         let loaderID = UUID()
@@ -156,10 +162,21 @@
                         await MainActor.run { model.loadedURLs.append(url.absoluteString) }
                         return Image(systemName: "photo.fill")
                     },
-                    unsupportedContentPolicy: model.mode == "custom" ? .custom { payload in
+                    unsupportedContentPolicy: model.mode == "custom" ? .custom(inline: { payload in
                         model.payloads.append(payload)
-                        return AnyView(Button("Replacement") { model.customActivations += 1 }.buttonStyle(.plain))
-                    } : model.policy,
+                        return AttributedString("Replacement")
+                    }, block: { payload in
+                        model.payloads.append(payload)
+                        return AnyView(
+                            Button("Replacement") { model.customActivations += 1 }
+                                .buttonStyle(.plain)
+                                .onGeometryChange(for: CGRect.self) { proxy in
+                                    proxy.frame(in: .named("host"))
+                                } action: { frame in
+                                    model.replacementFrame = frame
+                                }
+                        )
+                    }) : model.policy,
                     linkActivationAction: { _ in
                         model.linkActivations += 1
                         return .handled

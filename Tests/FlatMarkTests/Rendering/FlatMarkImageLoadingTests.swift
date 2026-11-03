@@ -90,7 +90,7 @@ struct FlatMarkImageLoadingTests {
         let erased = try #require(erasedContent.components.compactMap(renderImage).first)
         // A host view would be handed the same wording the literal policy prints; a `.custom` label
         // can only carry the text that stays supported.
-        let custom = FlatMarkUnsupportedContentPolicy.custom(render: { _ in AnyView(Text("Replacement")) })
+        let custom = FlatMarkUnsupportedContentPolicy.custom(inline: { _ in AttributedString("Replacement") })
         let phases: [(FlatMarkInlineView.ImagePhase, String)] = [
             (.placeholder, ", not loaded"),
             (.loading, ", loading"),
@@ -131,10 +131,10 @@ struct FlatMarkImageLoadingTests {
                     await loads.record(url)
                     return Image(systemName: "photo.fill")
                 },
-                unsupportedContentPolicy: .custom { payload in
+                unsupportedContentPolicy: .custom(inline: { payload in
                     recorder.payloads.append(payload)
-                    return AnyView(Text("Replacement"))
-                }
+                    return AttributedString("Replacement")
+                })
             ))
             defer { hosted.close() }
             try await waitForImage(in: loads)
@@ -150,10 +150,10 @@ struct FlatMarkImageLoadingTests {
             let control = BlockPayloadRecorder()
             let inlineHosted = await mountTestView(FlatMarkView(
                 markdown: "before <u>x</u> after",
-                unsupportedContentPolicy: .custom { payload in
+                unsupportedContentPolicy: .custom(inline: { payload in
                     control.payloads.append(payload)
-                    return AnyView(Text("Replacement"))
-                }
+                    return AttributedString("Replacement")
+                })
             ))
             defer { inlineHosted.close() }
             await settleMountedRendering()

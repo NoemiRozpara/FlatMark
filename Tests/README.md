@@ -3,6 +3,27 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Issue #19 verification
+
+Custom inline replacements now return attributed text. Arbitrary controls remain
+available only through the block override. The current inline-flow and nested-quote
+captures use a white-on-indigo attributed `BADGE`, not the older 44×30pt view.
+The enabled/disabled unsupported-policy captures now each contain one block control.
+Historical observations below describe the earlier API unless noted otherwise.
+
+On Xcode 27.0 / Swift 6.4 / macOS 27.0.1, the 246-test package run completed with
+40 snapshot failures and one known loader issue in the run summary. No
+non-snapshot test failed. The documented `rtlNestedQuote` mismatch remains.
+Other unchanged references also mismatch in this environment, including isolated
+image-phase and task-marker controls. Some differ only in low-bit color values;
+the full cause is unresolved. Those references were not re-recorded.
+
+Twelve intentionally changed macOS captures were re-recorded and visually inspected:
+five InlineFlow captures, narrow/wide NestedContainers, custom/changedCustom retained
+PolicyTransitions, and custom/enabledHost/disabledHost UnsupportedPolicies. Their
+plain comparisons pass. `rtlNestedQuote` and its reference remain untouched.
+iOS references remain stale for these changes. No demo or simulator run was performed.
+
 ## Issue #4 verification in progress
 
 List nesting now reserves its indentation inside the offered width and follows

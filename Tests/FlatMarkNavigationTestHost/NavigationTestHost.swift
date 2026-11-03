@@ -45,10 +45,20 @@
             let policy: FlatMarkUnsupportedContentPolicy?
             switch policyArgument {
             case "custom":
-                policy = .custom { payload in
+                policy = .custom(inline: { payload in
                     customPayloads.append(payload)
-                    return AnyView(Button("Activate replacement") { customActivations += 1 })
-                }
+                    return AttributedString("Replacement")
+                }, block: { payload in
+                    customPayloads.append(payload)
+                    return AnyView(
+                        Button("Activate replacement") { customActivations += 1 }
+                            .onGeometryChange(for: CGRect.self) { proxy in
+                                proxy.frame(in: .named("navigationHost"))
+                            } action: { frame in
+                                recorder.replacementFrame = frame
+                            }
+                    )
+                })
             case "omit":
                 policy = .omit
             case "default":
@@ -74,7 +84,7 @@
                     linkActivationAction: action
                 )
             }
-            let hosting = NSHostingView(rootView: view.environment(\.openURL, OpenURLAction { url in
+            let hosting = NSHostingView(rootView: view.coordinateSpace(name: "navigationHost").environment(\.openURL, OpenURLAction { url in
                 opened.append(url.absoluteString)
                 return .discarded
             }))
@@ -99,7 +109,8 @@
                 }
                 let beforeActivation = activated
                 let beforeOpening = opened
-                let point = NSPoint(x: 20, y: hosting.bounds.midY)
+                let point = recorder.replacementFrame.map { NSPoint(x: $0.midX, y: $0.midY) }
+                    ?? NSPoint(x: 20, y: hosting.bounds.midY)
                 guard let target = hosting.hitTest(point) else { exit(3) }
 
                 let location = hosting.convert(point, to: nil)
@@ -143,6 +154,7 @@
     @MainActor
     private final class ImageRecorder {
         private(set) var urls: [String] = []
+        var replacementFrame: CGRect?
 
         func record(_ url: URL) {
             urls.append(url.absoluteString)
