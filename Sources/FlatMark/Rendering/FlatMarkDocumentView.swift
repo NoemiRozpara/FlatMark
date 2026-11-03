@@ -1,5 +1,11 @@
 import SwiftUI
 
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
+
 // MARK: - FlatMarkDocumentView
 
 struct FlatMarkDocumentView: View {
@@ -193,12 +199,12 @@ struct FlatMarkInlineView: View {
     enum ImagePhase {
         case placeholder
         case loading
-        case loaded(Image)
+        case loaded(NativeImage)
         case failed
     }
 
     private enum ImageLoadResult: Sendable {
-        case loaded(componentIndex: Int, image: Image)
+        case loaded(componentIndex: Int, image: NativeImage)
         case failed(componentIndex: Int)
         case cancelled(componentIndex: Int)
     }
@@ -360,12 +366,7 @@ struct FlatMarkInlineView: View {
     private func imageView(for image: FlatMarkRenderImage, at index: Int) -> some View {
         switch imagePhases[index] ?? .placeholder {
         case let .loaded(loadedImage):
-            ViewThatFits(in: .horizontal) {
-                loadedImage
-                loadedImage
-                    .resizable()
-                    .scaledToFit()
-            }
+            FlatMarkLoadedImageView(image: loadedImage)
         case .placeholder, .loading, .failed:
             imageText(for: image, at: index)
         }
@@ -602,13 +603,22 @@ private extension AttributedString {
         markdown: "Before ![diagram](image.png) after.",
         baseURL: URL(string: "https://example.com/"),
         imageLoader: FlatMarkImageLoader(configurationID: previewImageLoaderConfigurationID) { _ in
-            Image(systemName: "photo.on.rectangle.angled")
+            previewDiagramImage
         }
     )
     .padding()
 }
 
 private let previewImageLoaderConfigurationID = UUID()
+
+/// Stands in for a host-loaded diagram so the preview needs no fetching.
+private var previewDiagramImage: NativeImage {
+    #if os(macOS)
+        NSImage(systemSymbolName: "photo.on.rectangle.angled", accessibilityDescription: nil) ?? NSImage()
+    #else
+        UIImage(systemName: "photo.on.rectangle.angled") ?? UIImage()
+    #endif
+}
 
 #Preview("Markdown Table") {
     FlatMarkTableView(

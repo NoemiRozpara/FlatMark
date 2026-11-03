@@ -82,15 +82,14 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
             guard url == expectedURL else {
                 throw CaptureError.resource
             }
-            if fallback { return Image(systemName: "leaf.fill") }
+            if fallback { return leafFallbackImage }
             guard let resource = FlatMarkFixtureResources.focacciaURL else { throw CaptureError.resource }
             #if os(macOS)
                 guard let image = NSImage(contentsOf: resource) else { throw CaptureError.resource }
-                return Image(nsImage: image)
             #else
                 guard let image = UIImage(contentsOfFile: resource.path) else { throw CaptureError.resource }
-                return Image(uiImage: image)
             #endif
+            return image
         }
         let document = FlatMarkView(
                 markdown: FlatMarkRecipeSample.markdown,
@@ -190,4 +189,13 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
             image.pngData()
         #endif
     }
+}
+
+/// The image a control recipe returns instead of the photo, so the loaded capture must differ from it.
+private var leafFallbackImage: NativeImage {
+    #if os(macOS)
+        NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: nil) ?? NSImage()
+    #else
+        UIImage(systemName: "leaf.fill") ?? UIImage()
+    #endif
 }

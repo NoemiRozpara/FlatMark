@@ -135,7 +135,7 @@ struct FlatMarkImagePhaseSnapshotTests {
         [view.convert(view.bounds, to: nil)] + view.subviews.flatMap { frames($0) }
     }
 
-    private static func raster(size: CGSize) -> Image {
+    private static func raster(size: CGSize) -> NativeImage {
         let width = Int(size.width), height = Int(size.height)
         var bytes = [UInt8](repeating: 255, count: width * height * 4)
         for y in 0 ..< height {
@@ -151,6 +151,10 @@ struct FlatMarkImagePhaseSnapshotTests {
                          bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
                          bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
                          provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
-        return Image(decorative: cg, scale: 1)
+        #if os(macOS)
+            return NSImage(cgImage: cg, size: CGSize(width: width, height: height))
+        #else
+            return UIImage(cgImage: cg, scale: 1, orientation: .up)
+        #endif
     }
 }

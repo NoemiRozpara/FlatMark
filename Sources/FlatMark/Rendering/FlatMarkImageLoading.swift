@@ -1,6 +1,24 @@
 import Foundation
 import SwiftUI
 
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
+
+// MARK: - NativeImage
+
+/// The native image a host image loader returns: `NSImage` on macOS, `UIImage` on iOS.
+///
+/// FlatMark draws it as-is, so host-side decoding, authentication, and caching stay outside the
+/// renderer. FlatMark adds no rendering attributes of its own.
+#if os(macOS)
+    public typealias NativeImage = NSImage
+#else
+    public typealias NativeImage = UIImage
+#endif
+
 // MARK: - FlatMarkImageLoader
 
 /// A host-provided asynchronous image source for Markdown images.
@@ -11,7 +29,7 @@ import SwiftUI
 /// down to the paragraph's proposed width while preserving their aspect ratio.
 public struct FlatMarkImageLoader: Sendable {
     let configurationID: UUID
-    let load: @Sendable (URL) async throws -> Image
+    let load: @Sendable (URL) async throws -> NativeImage
 
     /// Creates an image loader with an identity for its current configuration.
     ///
@@ -19,10 +37,34 @@ public struct FlatMarkImageLoader: Sendable {
     /// the loader's behavior changes and existing image requests should be restarted.
     public init(
         configurationID: UUID,
-        load: @escaping @Sendable (URL) async throws -> Image
+        load: @escaping @Sendable (URL) async throws -> NativeImage
     ) {
         self.configurationID = configurationID
         self.load = load
+    }
+}
+
+// MARK: - FlatMarkLoadedImageView
+
+/// Draws one host-loaded image at its intrinsic size, scaled down to the proposed width when larger.
+struct FlatMarkLoadedImageView: View {
+    let image: NativeImage
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            rendered
+            rendered
+                .resizable()
+                .scaledToFit()
+        }
+    }
+
+    private var rendered: Image {
+        #if os(macOS)
+            Image(nsImage: image)
+        #else
+            Image(uiImage: image)
+        #endif
     }
 }
 

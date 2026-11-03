@@ -144,19 +144,22 @@ appear actionable before activation. Navigation permission is independent of ima
 ## Images
 
 By default, images are network-free alt-text placeholders (`Image` when alt text is empty).
-Provide an asynchronous loader to fetch native images:
+Provide an asynchronous loader that returns a native image: `UIImage` on iOS, `NSImage` on macOS
+(`NativeImage`).
 
 ```swift
 let loaderID = UUID() // Retain this ID while the loader configuration is unchanged.
 let loader = FlatMarkImageLoader(configurationID: loaderID) { url in
-    try await imageService.image(for: url)
+    try await imageService.image(for: url) // UIImage on iOS, NSImage on macOS.
 }
 
 FlatMarkView(markdown: markdown, imageLoader: loader)
 ```
 
-The host owns fetching, decoding, authentication, and caching. FlatMark manages loading, success,
-failure, and cancellation states. Change the configuration ID only when requests should restart.
+The host owns fetching, decoding, authentication, and caching. FlatMark draws the returned image at
+its intrinsic size and scales larger images down to the paragraph's proposed width. FlatMark also
+manages loading, success, failure, and cancellation states. Change the configuration ID only when
+requests should restart.
 
 Relative image sources use `baseURL`. The default `FlatMarkImageURLPolicy.webOnly` permits only
 HTTP(S); custom policies can allow other schemes. Rejected or unresolved sources never reach the

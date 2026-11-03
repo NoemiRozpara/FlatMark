@@ -254,7 +254,7 @@ private final class ControlledModel {
         }
     }
 
-    private static func raster() -> Image {
+    private static func raster() -> NativeImage {
         let width = 120, height = 60
         var bytes = [UInt8](repeating: 255, count: width * height * 4)
         for y in 0 ..< height {
@@ -270,7 +270,11 @@ private final class ControlledModel {
                             bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
                             bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
                             provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
-        return Image(decorative: image, scale: 1)
+        #if os(macOS)
+            return NSImage(cgImage: image, size: CGSize(width: width, height: height))
+        #else
+            return UIImage(cgImage: image, scale: 1, orientation: .up)
+        #endif
     }
 }
 
