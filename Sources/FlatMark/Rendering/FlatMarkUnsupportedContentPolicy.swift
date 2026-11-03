@@ -13,7 +13,7 @@ import SwiftUI
 ///
 /// - ``literal`` renders unsupported content as inert source text.
 /// - ``omit`` removes unsupported content, layout slot and all.
-/// - ``custom`` hands each unsupported inline or block node to a host-owned native view.
+/// - ``custom`` replaces each unsupported node with attributed text or an optional block view.
 ///
 /// The policy is neither `Equatable` nor `Sendable`: it travels in the non-`Sendable` render
 /// context and is read while views are built, so identity and threading of a host closure are
@@ -33,24 +33,25 @@ public enum FlatMarkUnsupportedContentPolicy {
     /// node never has its descendants re-presented as supported content in its place.
     case omit
 
-    /// Show a host-provided view at each unsupported inline or block node's source position.
+    /// Show host-provided attributed text, with an optional view override for block nodes.
     ///
-    /// `render` is a presentation closure, not an event callback. FlatMark calls it while
-    /// building the view for that node's position and shows the view it returns. It adds no
-    /// literal fallback, diagnostic label, border, or minimum-size box around the view. The
-    /// argument is the same extracted string ``literal`` would show: the parser's raw HTML for
-    /// an HTML node, otherwise the source slice the parser addressed, readable descendants,
-    /// or empty text. An empty extraction still reaches the closure.
+    /// Inline nodes always use `inline`. Block nodes use `block` when supplied, or render
+    /// `inline` output as native text. Both closures receive the same extracted string
+    /// ``literal`` would show: the parser's raw HTML for an HTML node, otherwise the source
+    /// slice the parser addressed, readable descendants, or empty text. An empty extraction
+    /// still reaches the selected closure.
     ///
-    /// The returned view keeps the ambient environment, interaction, and accessibility of the
-    /// position it lands in. FlatMark never inspects it: an erased `EmptyView()` renders nothing.
-    /// Interpretation, sanitization, fetching, and execution inside that view are the
-    /// host's responsibility; FlatMark makes no claim that custom output is inert.
+    /// These are presentation closures, not event callbacks; invocation counts are not
+    /// guaranteed. FlatMark adds no literal fallback, diagnostic label, border, minimum-size
+    /// box, or synthetic spaces. Block views keep their ambient environment, interaction,
+    /// and accessibility. Interpretation, sanitization, fetching, and execution in custom
+    /// output remain the host's responsibility.
     ///
-    /// Inline views inherit ambient SwiftUI styles (including heading fonts), not the inline
-    /// presentation intents on neighboring attributed text. An enclosing Markdown link is not
-    /// wrapped around the host view or installed as its action. Supported neighbors retain their
-    /// attributes and links. Hosts own explicit styles, actions, and accessibility.
+    /// Inline text inherits ambient SwiftUI styles, including heading fonts. Each replacement run
+    /// inherits enclosing Markdown presentation intents and links only where the host omits them.
+    /// An explicit intent replaces the enclosing intent; an empty intent suppresses inheritance.
+    /// A host link overrides the enclosing destination. Replacement links use the existing
+    /// navigation callbacks. Hosts own explicit attributes and block-view actions and accessibility.
     ///
     /// Separate parser nodes remain separate calls: `<u>x</u>` supplies `<u>` and `</u>`, with
     /// supported `x` between the replacements. Known containers recurse; code, escaped HTML,
@@ -59,7 +60,7 @@ public enum FlatMarkUnsupportedContentPolicy {
     ///
     /// Structural identity and ordinary parent spacing remain FlatMark's. Opaque empty output
     /// adds no placeholder or synthetic spaces, but does not request recursive `.omit` collapse.
-    case custom(render: (String) -> AnyView)
+    case custom(inline: (String) -> AttributedString, block: ((String) -> AnyView)? = nil)
 }
 
 // MARK: - Policy interpretation
@@ -82,22 +83,11 @@ extension FlatMarkUnsupportedContentPolicy {
 
     /// The plain text one inline span contributes under this policy.
     ///
-    /// Omitted nodes add no wording; custom nodes expose their host-owned accessibility instead.
+    /// Omitted nodes add no wording; custom nodes contribute their returned text.
     func plainText(for content: FlatMarkRenderInlineContent) -> String {
         FlatMarkRenderInlineContent.plainText(of: content.components) {
-            if case .custom = self {
-                AttributedString()
-            } else {
-                literalText(for: $0)
-            }
+            FlatMarkInlineView.replacementText(for: $0, policy: self)
         }
-    }
-
-    /// Whether native accessibility children must survive instead of a text-only representation.
-    func hasCustomInlineContent(in content: FlatMarkRenderInlineContent) -> Bool {
-        guard case .custom = self else { return false }
-
-        return content.components.contains(where: \.isUnsupported)
     }
 
     /// The supported image retains its normal generic label when omission empties its description.

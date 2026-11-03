@@ -170,24 +170,174 @@ struct FlatMarkCustomRenderingTests {
 /// runs while the view is built rather than while the tree is projected.
 /// VoiceOver semantics still require platform runtime observation.
 #if os(macOS)
+    import AppKit
+
     @MainActor
     struct FlatMarkCustomUnsupportedContentTests {
-        /// Empty output must still dispatch the whole block. Ticket 08 owns appearance and spacing.
+        @Test
+        func `inline replacements compose native paragraph wording at narrow widths`() async throws {
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "before <u>important</u> after",
+                unsupportedContentPolicy: .custom(inline: { source in
+                    AttributedString(source == "<u>" ? "[" : "]")
+                })
+            ).frame(width: 90))
+            defer { hosted.close() }
+            #expect(try await visibleText(matching: "before [important] after", in: hosted)
+                == "before [important] after")
+        }
+
+        @Test
+        func `replacement runs inherit enclosing emphasis`() async throws {
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "**before <u>after**",
+                unsupportedContentPolicy: .custom { _ in AttributedString("Long replacement") }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "Long replacement", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            let index = (exported.string as NSString).range(of: "Long replacement").location
+            let font = try #require(exported.attribute(.font, at: index, effectiveRange: nil) as? NSFont)
+            #expect(NSFontManager.shared.traits(of: font).contains(.boldFontMask))
+        }
+
+        @Test
+        func `host intent and empty intent replace defaults per run`() async throws {
+            var explicit = AttributedString("Italic")
+            explicit.inlinePresentationIntent = .emphasized
+            var empty = AttributedString("Plain")
+            empty.inlinePresentationIntent = []
+            #expect(empty.runs.first?.attributes.inlinePresentationIntent == [])
+            #expect(AttributedString("Missing").runs.first?.attributes.inlinePresentationIntent == nil)
+            let replacement = AttributedString("Inherited") + explicit + empty
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "**before <u>after**",
+                unsupportedContentPolicy: .custom { _ in replacement }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "InheritedItalicPlain", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            var fonts: [NSFont] = []
+            for (word, bold, italic) in [("Inherited", true, false), ("Italic", false, true), ("Plain", false, false)] {
+                let index = (exported.string as NSString).range(of: word).location
+                let font = try #require(exported.attribute(.font, at: index, effectiveRange: nil) as? NSFont)
+                fonts.append(font)
+                let traits = NSFontManager.shared.traits(of: font)
+                #expect(traits.contains(.boldFontMask) == bold)
+                #expect(traits.contains(.italicFontMask) == italic)
+            }
+            #expect(fonts.allSatisfy { $0.pointSize == fonts[0].pointSize })
+        }
+
+        @Test
+        func `replacement retains ambient heading font`() async throws {
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "# Before <u>after",
+                unsupportedContentPolicy: .custom { _ in AttributedString("Replacement") }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "Replacement", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            let before = (exported.string as NSString).range(of: "Before").location
+            let replacement = (exported.string as NSString).range(of: "Replacement").location
+            let expected = try #require(exported.attribute(.font, at: before, effectiveRange: nil) as? NSFont)
+            let actual = try #require(exported.attribute(.font, at: replacement, effectiveRange: nil) as? NSFont)
+            #expect(actual == expected)
+            #expect(actual.pointSize > NSFont.systemFontSize)
+        }
+
+        @Test
+        func `replacement links inherit and override per run`() async throws {
+            let enclosing = try #require(URL(string: "https://example.com/destination"))
+            let override = try #require(URL(string: "https://host.example/explicit"))
+            var explicit = AttributedString("Explicit")
+            explicit.link = override
+            let replacement = AttributedString("Inherited") + explicit + AttributedString("Tail")
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "[before <u>after](https://example.com/destination)",
+                unsupportedContentPolicy: .custom { _ in replacement }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "InheritedExplicitTail", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            for (word, destination) in [("before", enclosing), ("Inherited", enclosing), ("Explicit", override), ("Tail", enclosing), ("after", enclosing)] {
+                let index = (exported.string as NSString).range(of: word).location
+                #expect(exported.attribute(.link, at: index, effectiveRange: nil) as? URL == destination)
+            }
+        }
+
+        @Test
+        func `blocks use attributed inline output unless a block override is supplied`() async throws {
+            let markdown = "before <u>x</u> after\n\n<div>raw</div>"
+            let inlinePayloads = BlockPayloadRecorder()
+            let blockPayloads = BlockPayloadRecorder()
+            let destination = try #require(URL(string: "https://example.com/replacement"))
+            let attributed: (String) -> AttributedString = { payload in
+                inlinePayloads.payloads.append(payload)
+                var text = AttributedString(payload.hasPrefix("<div>") ? "Attributed block" : "Tag")
+                text.link = destination
+                return text
+            }
+            let defaultHosted = await mountTestView(FlatMarkView(
+                markdown: markdown,
+                unsupportedContentPolicy: .custom(inline: attributed)
+            ))
+            defer { defaultHosted.close() }
+            #expect(try await visibleText(showing: "Attributed block", in: defaultHosted)
+                .contains("Attributed block"))
+            let exported = try defaultHosted.visibleAttributedText
+            let range = (exported.string as NSString).range(of: "Attributed block")
+            #expect(range.location != NSNotFound)
+            if range.location != NSNotFound {
+                #expect(exported.attribute(.link, at: range.location, effectiveRange: nil) as? URL == destination)
+            }
+            #expect(Set(inlinePayloads.payloads) == ["<u>", "</u>", "<div>raw</div>\n"])
+
+            inlinePayloads.payloads.removeAll()
+            let overrideHosted = await mountTestView(FlatMarkView(
+                markdown: markdown,
+                unsupportedContentPolicy: .custom(inline: attributed, block: { payload in
+                    blockPayloads.payloads.append(payload)
+                    return AnyView(Text("Block override"))
+                })
+            ))
+            defer { overrideHosted.close() }
+            let overridden = try await visibleText(showing: "Block override", in: overrideHosted)
+            #expect(!overridden.contains("Attributed block"))
+            #expect(overridden.contains("TagxTag"))
+            #expect(Set(inlinePayloads.payloads) == ["<u>", "</u>"])
+            #expect(Set(blockPayloads.payloads) == ["<div>raw</div>\n"])
+        }
+
+        /// An empty override keeps the native empty-view layout, without a placeholder or extra gap.
         @Test
         func `dispatches a block whose host view is empty`() async throws {
             let recorder = BlockPayloadRecorder()
             let hosted = await mountTestView(FlatMarkView(
                 markdown: "Before\n\n<div>raw</div>\n\nAfter",
-                unsupportedContentPolicy: .custom { payload in
+                unsupportedContentPolicy: .custom(inline: { _ in AttributedString() }, block: { payload in
                     recorder.payloads.append(payload)
                     return AnyView(EmptyView())
-                }
+                })
             ))
             defer { hosted.close() }
 
             // One node, asked about at least once: a set here, because the view may present the same
             // document more than once.
             #expect(Set(recorder.payloads) == ["<div>raw</div>\n"])
+
+            let control = await mountTestView(VStack(alignment: .leading, spacing: 16) {
+                SwiftUI.Text("Before")
+                EmptyView()
+                SwiftUI.Text("After")
+            })
+            defer { control.close() }
+            #expect(try await visibleText(matching: "BeforeAfter", in: hosted) == "BeforeAfter")
+            let actual = hosted.view.fittingSize
+            let expected = control.view.fittingSize
+            #expect(expected.height > 0)
+            #expect(abs(actual.height - expected.height) < 0.5)
+            #expect(abs(actual.width - expected.width) < 0.5)
         }
 
         /// The exact text one host closure is handed for every unsupported HTML shape in the corpus.
@@ -232,10 +382,10 @@ struct FlatMarkCustomRenderingTests {
             let recorder = BlockPayloadRecorder()
             let hosted = await mountTestView(FlatMarkView(
                 markdown: markdown,
-                unsupportedContentPolicy: .custom { payload in
+                unsupportedContentPolicy: .custom(inline: { payload in
                     recorder.payloads.append(payload)
-                    return AnyView(Text("Replacement"))
-                }
+                    return AttributedString("Replacement")
+                })
             ))
             defer { hosted.close() }
 
@@ -266,10 +416,10 @@ struct FlatMarkCustomRenderingTests {
             let recorder = BlockPayloadRecorder()
             let hosted = await mountTestView(FlatMarkView(
                 markdown: markdown,
-                unsupportedContentPolicy: .custom { payload in
+                unsupportedContentPolicy: .custom(inline: { payload in
                     recorder.payloads.append(payload)
-                    return AnyView(Text("Replacement"))
-                }
+                    return AttributedString("Replacement")
+                })
             ))
             defer { hosted.close() }
 
@@ -286,10 +436,10 @@ struct FlatMarkCustomRenderingTests {
             let recorder = BlockPayloadRecorder()
             let hosted = await mountTestView(FlatMarkView(
                 markdown: markdown,
-                unsupportedContentPolicy: .custom { payload in
+                unsupportedContentPolicy: .custom(inline: { payload in
                     recorder.payloads.append(payload)
-                    return AnyView(Text(payload == "<u>" ? "[" : payload == "</u>" ? "]" : "Replacement"))
-                }
+                    return AttributedString(payload == "<u>" ? "[" : payload == "</u>" ? "]" : "Replacement")
+                })
             ))
             defer { hosted.close() }
 
@@ -325,26 +475,15 @@ struct FlatMarkCustomRenderingTests {
         }
 
         @Test
-        func `inline host button does not activate its enclosing Markdown link`() async throws {
+        func `block host button does not activate a neighboring Markdown link`() async throws {
             let report = try await navigationReport(
-                markdown: "line\n\n[<u>x](https://example.com/md)\n\nline",
+                markdown: "[neighbor](https://example.com/md)\n\n<div>raw</div>\n\nline",
                 decision: "default", unsupportedPolicy: "custom"
             )
             #expect(report["customActivations"] == ["1"])
             #expect(report["activated"] == [])
             #expect(report["opened"] == [])
-            #expect(Set(report["customPayloads"] ?? []) == ["<u>"])
-        }
-
-        @Test
-        func `supported linked neighbor still activates independently of the host button`() async throws {
-            let report = try await navigationReport(
-                markdown: "line\n\n[linked <u>x](https://example.com/md)\n\nline",
-                decision: "default", unsupportedPolicy: "custom"
-            )
-            #expect(report["customActivations"] == ["0"])
-            #expect(report["activated"] == ["https://example.com/md"])
-            #expect(report["opened"] == ["https://example.com/md"])
+            #expect(Set(report["customPayloads"] ?? []) == ["<div>raw</div>\n"])
         }
 
         @Test
@@ -440,15 +579,15 @@ struct FlatMarkCustomRenderingTests {
         }
 
         @Test
-        func `task checkbox and inline host button activate independently in the same row`() async throws {
-            let markdown = "- [x] untouched task\n- [ ] <u>supported text"
-            let checkedMarkdown = "- [x] untouched task\n- [x] <u>supported text"
+        func `task checkbox and block host button activate independently in the same item`() async throws {
+            let markdown = "- [x] untouched task\n- [ ] supported text\n\n  <div>continuation</div>"
+            let checkedMarkdown = "- [x] untouched task\n- [x] supported text\n\n  <div>continuation</div>"
             let report = try await nativeHostReport(arguments: ["--task-interaction", "custom", markdown])
             #expect(report["completed"] == ["true"])
             #expect(report["initialMarkdown"] == [markdown])
             #expect(report["initialCustomActivations"] == ["0"])
             #expect(report["initialTaskUpdates"] == ["0"])
-            #expect(Set(report["customPayloads"] ?? []) == ["<u>"])
+            #expect(Set(report["customPayloads"] ?? []) == ["<div>continuation</div>\n"])
             #expect(report["customActivations"] == ["1", "1", "2"])
             #expect(report["taskUpdates"] == ["0", "1", "1"])
             #expect(report["markdown"] == [markdown, checkedMarkdown, checkedMarkdown])
@@ -508,8 +647,8 @@ struct FlatMarkCustomRenderingTests {
             ])
             var toggled: [String] = []
             let policies: [FlatMarkUnsupportedContentPolicy] = [
-                .literal, .custom { _ in AnyView(Text("Replacement")) }, .omit,
-                .custom { _ in AnyView(Text("Other replacement")) }, .literal,
+                .literal, .custom(inline: { _ in AttributedString("Replacement") }), .omit,
+                .custom(inline: { _ in AttributedString("Other replacement") }), .literal,
             ]
 
             for policy in policies {
@@ -534,36 +673,29 @@ struct FlatMarkCustomRenderingTests {
             ))
         }
 
-        /// The environment an ancestor's enabled state leaves inside a host view, read at both
-        /// positions a `.custom` replacement can occupy in one unchanged document.
+        /// A block override inherits the ancestor's enabled state.
         ///
         /// Only appearance and a change of the inherited `isEnabled` are recorded, because observing
         /// during ``body`` would report a value the renderer may have rebuilt without any ancestor
         /// changing. Which control a disabled tap really suppresses, and what assistive technology
         /// says about it, is platform runtime observation rather than a fact of this environment.
         @Test
-        func `hands an inline and a whole-block host view the ancestor's own enabled state`() async throws {
-            let inlineProbe = EnabledStateProbe()
+        func `hands a whole-block host view the ancestor's own enabled state`() async throws {
             let blockProbe = EnabledStateProbe()
             let ancestor = EnabledAncestorState()
             let hosted = await mountTestView(EnabledProbeContainer(
                 ancestor: ancestor,
-                inlineProbe: inlineProbe,
                 blockProbe: blockProbe
             ))
             defer { hosted.close() }
 
-            // One unchanged document, read while its ancestor changes under it: both positions get
-            // the same sequence, which is the whole of what an inherited environment can prove.
-            #expect(await observations(of: inlineProbe, expecting: 1) == [true])
+            // The block view stays mounted while its ancestor changes the environment.
             #expect(await observations(of: blockProbe, expecting: 1) == [true])
 
             ancestor.disablesInteraction = true
-            #expect(await observations(of: inlineProbe, expecting: 2) == [true, false])
             #expect(await observations(of: blockProbe, expecting: 2) == [true, false])
 
             ancestor.disablesInteraction = false
-            #expect(await observations(of: inlineProbe, expecting: 3) == [true, false, true])
             #expect(await observations(of: blockProbe, expecting: 3) == [true, false, true])
             #expect(hosted.showsContent)
         }
@@ -608,10 +740,10 @@ struct FlatMarkCustomRenderingTests {
             let recorder = BlockPayloadRecorder()
             let hosted = await mountTestView(FlatMarkDocumentView(
                 document: document,
-                context: FlatMarkRenderContext(unsupportedContentPolicy: .custom { payload in
+                context: FlatMarkRenderContext(unsupportedContentPolicy: .custom(inline: { payload in
                     recorder.payloads.append(payload)
-                    return AnyView(Text("Replacement"))
-                })
+                    return AttributedString("Replacement")
+                }))
             ))
             defer { hosted.close() }
             #expect(
@@ -669,22 +801,19 @@ struct FlatMarkCustomRenderingTests {
 
     // MARK: - EnabledProbeContainer
 
-    /// One unchanged document that carries an unsupported node at both positions a host view can
-    /// occupy: one inline tag beside supported text and one whole HTML block of its own.
+    /// One unchanged document with inline attributed replacements and a block view override.
     private struct EnabledProbeContainer: View {
         static let markdown = "before <img src=\"https://evil.example/x.png\"> after\n\n<div>raw</div>\n\nAfter"
-        static let blockPayload = "<div>raw</div>\n"
 
         let ancestor: EnabledAncestorState
-        let inlineProbe: EnabledStateProbe
         let blockProbe: EnabledStateProbe
 
         var body: some View {
             FlatMarkView(
                 markdown: Self.markdown,
-                unsupportedContentPolicy: .custom { payload in
-                    AnyView(EnabledProbeHostView(probe: payload == Self.blockPayload ? blockProbe : inlineProbe))
-                }
+                unsupportedContentPolicy: .custom(inline: { _ in AttributedString("Replacement") }, block: { _ in
+                    AnyView(EnabledProbeHostView(probe: blockProbe))
+                })
             )
             .disabled(ancestor.disablesInteraction)
         }

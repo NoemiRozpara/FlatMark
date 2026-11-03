@@ -41,7 +41,7 @@ Define one authoritative owner for each responsibility:
 | Navigation permission and application routing | Host callback and inherited SwiftUI `openURL` action |
 | Image fetching, decoding, authentication, and caching | Host image loader |
 | Image loading presentation and cancellation | FlatMark |
-| Custom unsupported-content behavior | Host replacement view |
+| Custom unsupported-content behavior | Host attributed text or block override |
 
 Do not add repositories, authenticated stores, coordinators, global caches, or application navigation infrastructure to satisfy a single host integration. Prefer small explicit inputs and callbacks over a required application environment.
 
@@ -49,7 +49,7 @@ Do not add repositories, authenticated stores, coordinators, global caches, or a
 
 Navigation permission and image-fetch permission are independent. Link activation has no built-in scheme allowlist or same-origin restriction; hosts can route or reject it. Image sources are checked against the image URL policy before reaching the loader.
 
-Built-in unsupported-content policies do not execute HTML or fetch HTML resources. Custom replacement views are host-owned, including interpretation, sanitization, resource access, and navigation. FlatMark is not an HTML sanitizer.
+Built-in unsupported-content policies do not execute HTML or fetch HTML resources. Custom attributed text and block views are host-owned, including interpretation, sanitization, resource access, and navigation. FlatMark is not an HTML sanitizer.
 
 Preserve these separate decisions rather than treating an allowed link, image, or replacement as authorization for another operation. Do not silently change permissive or restrictive defaults; discuss public-contract changes explicitly.
 

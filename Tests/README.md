@@ -3,6 +3,96 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Unsupported-content replacement contract (#18 chunk 1, tickets #19–#21)
+
+`.custom` now takes a `(String) -> AttributedString` inline closure and an optional
+`(String) -> AnyView` block override. Inline replacements compose with supported text as native
+text. A replacement run inherits the enclosing Markdown presentation intent and link when the host
+omits it; an explicit host value wins on its run, and an explicitly empty intent set suppresses
+inheritance. Arbitrary views remain available only through the block override. Extraction,
+`.literal`, and recursive `.omit` behavior are unchanged.
+
+### Automated results
+
+Environment: Xcode 27.0 (27A266a), Swift 6.4, macOS 27.0.1 (26A434), arm64. This is not the minimum
+toolchain (Xcode 26.0+ / Swift 6.2, iOS 17+ / macOS 14+), so these runs do not establish
+minimum-platform support.
+
+- `swift test` after all three tickets: 252 tests in 32 suites. No non-snapshot test failed, plus the
+  one intentional known `LoaderSpy` issue.
+- Focused custom-content and navigation selection: 62 tests in 4 suites passed.
+- Mounted native exports establish composed wording at narrow width, separate parser-node positions,
+  unchanged extractions, bold inheritance, italic precedence, empty-intent suppression, per-run link
+  destinations, and ambient heading fonts.
+- Isolated macOS interaction tests establish that inherited and explicit replacement links activate
+  through the existing host routing path, with handled, rejected, default, and omitted callbacks, and
+  that adjacent supported links stay independent.
+
+### macOS snapshot lane is currently unreliable
+
+The exact-pixel lane fails about 35 captures in this environment, including ImagePhase, TaskMarker,
+Typography, EmptyStructure, RecipeIntegration, LinkedImage, PolicyTransition, and UnsupportedPolicy
+captures. The differences are sub-perceptual: `magick compare -fuzz 0.5% -metric AE` reports zero
+differing pixels. SnapshotTesting demands exact pixels (`precision: 1`), so they fail.
+
+This is machine state, not code. A pristine `git worktree` of the pre-ticket commit fails the same
+captures, and no reference failed that was not already failing there. The qualified environment in
+this file records a 2x macOS hosting display; these runs used only the built-in display. Treat these
+failures as unverified, not as regressions, and do not re-record references to silence them.
+
+### References re-recorded deliberately
+
+The contract change alters the rendered output of the same 16 captures on each platform: 5 InlineFlow,
+3 NestedContainers (including `rtlNestedQuote`, whose capture hosts the custom policy), 4
+PolicyTransitions, and 4 UnsupportedPolicies. All 32 were re-recorded and inspected. The custom
+captures use an attributed `BADGE` and attributed OPEN/CLOSE markers instead of the earlier arbitrary
+inline views; the enabled/disabled captures now carry one block control each.
+
+macOS: re-recorded through the package lane with `FLATMARK_SNAPSHOT_RECORD=all`, then confirmed by
+plain comparison. The other ~35 captures still fail for the environment reason above and were left
+alone.
+
+iOS: re-recorded with the `FlatMarkSnapshots-iOS-Record` scheme on iPhone 18 Pro (iOS 27.0),
+restricted with `-only-testing` to those four suites. Only the expected 16 references changed on
+disk. Two separate `FlatMarkSnapshots-iOS` runs then passed **82/82** with no reference drift, and
+the hash of every reference was unchanged by those runs.
+
+Two review concerns on the new iOS captures are **pre-existing, not introduced here**: the
+consecutive-hard-break capture shows no blank row, and the RTL mixed-flow marker sits at the line
+end. A reviewer compared each new capture against its pre-change reference and found both behaviors
+already present beforehand. The first is open as issue #5; the second is mixed-flow line behavior
+related to open issue #17. These captures record current behavior rather than endorse it.
+
+### Running-app observations
+
+Performed in the shared fixture host on both platforms. Launch it with `scripts/run-fixture-host.sh
+ios|macos`; `Replace tags` in Settings selects the `.custom` policy.
+
+- iOS, iPhone 18 Pro simulator on iOS 27.0, scheme `FlatMarkDemo-iOS`: the block override rendered as
+  a host button with no border or placeholder, and tapping it reported
+  "The recipe: Dimpling tip: oil your fingertips, then press gently into the risen dough." in the
+  activity strip. With the override off, the block rendered as plain native text. With "Replace with
+  nothing" on, the block and inline labels disappeared, surrounding wording stayed intact, and no
+  placeholder or synthetic space appeared. In the narrow column and in right-to-left layout, inline
+  replacements composed with supported text, wrapped completely, and took heading and emphasis styling.
+  Touching replacement text inside a linked note reported
+  "The recipe: Tin note: use a 23 × 33 cm tin and oil the base and corners generously."; a separate
+  supported image link reported its own "Rosemary note" activity. No browser opened.
+- macOS 27.0.1, scheme `FlatMarkDemo-macOS`: the same block override, default native-text block,
+  empty-output, narrow right-to-left composition, and both link activations reproduced, with the same
+  activity-strip wording.
+
+Joined wording such as "tipthe water" is the agreed flat rule: FlatMark adds no synthetic spaces.
+
+### Not verified
+
+Minimum-OS and minimum-toolchain behavior. Live VoiceOver and focus order. Selection gestures and
+copy across replacements. System Dynamic Type (the fixture's size switch is not system settings).
+A supported **text-only** link was not activated in the running app; only the supported image link
+was. The macOS exact-pixel lane above is unverified rather than passing. No capture in this chunk
+places a replacement inside a Markdown heading, so heading-style inheritance rests on the mounted
+attribute checks and the running-app observation, not on a snapshot.
+
 ## Issue #4 verification in progress
 
 List nesting now reserves its indentation inside the offered width and follows

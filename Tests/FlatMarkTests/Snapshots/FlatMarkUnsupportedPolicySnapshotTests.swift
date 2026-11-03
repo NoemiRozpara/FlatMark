@@ -36,11 +36,11 @@ struct FlatMarkUnsupportedPolicySnapshotTests {
 
     @Test func custom() async throws {
         try await capture(Self.styled, policy: .custom { payload in
-            AnyView(Text(payload.hasPrefix("<div>") ? "BLOCK" : payload == "<u>" ? "OPEN ▶" : "◀ CLOSE")
-                .font(.system(size: 12, weight: .regular, design: .monospaced))
-                .foregroundStyle(.white)
-                .padding(3)
-                .background(payload == "<u>" ? Color.indigo : Color.orange))
+            var marker = AttributedString(payload.hasPrefix("<div>") ? "BLOCK" : payload == "<u>" ? "OPEN ▶" : "◀ CLOSE")
+            marker.font = .system(size: 12, weight: .regular, design: .monospaced)
+            marker.foregroundColor = .white
+            marker.backgroundColor = payload == "<u>" ? .indigo : .orange
+            return marker
         }, testName: #function)
     }
 
@@ -56,7 +56,7 @@ struct FlatMarkUnsupportedPolicySnapshotTests {
         let dispatch = EmptyPolicyDispatch()
         try await capture(Self.empty, policy: .custom { payload in
             dispatch.payloads.insert(payload)
-            return AnyView(EmptyView())
+            return AttributedString()
         }, testName: #function)
         // Re-evaluation counts are not a contract; every distinct parser payload must reach the host.
         #expect(dispatch.payloads == ["<u>", "</u>", "<div>whole block</div>\n"])
@@ -70,9 +70,10 @@ struct FlatMarkUnsupportedPolicySnapshotTests {
     @Test func disabledHost() async throws { try await captureHost(disabled: true, testName: #function) }
 
     private func captureHost(disabled: Bool, testName: String) async throws {
-        try await capture("**Before <u>middle</u> after**", policy: .custom { _ in
-            AnyView(PolicyEnvironmentControl())
-        }, disabled: disabled, testName: testName)
+        try await capture("Before the host control.\n\n<div>host control</div>\n\nAfter the host control.", policy: .custom(
+            inline: { _ in AttributedString("INLINE") },
+            block: { _ in AnyView(PolicyEnvironmentControl()) }
+        ), disabled: disabled, testName: testName)
     }
 
     private func capture(

@@ -108,7 +108,11 @@ struct FlatMarkNestedContainerSnapshotTests {
         let view = FlatMarkView(
             markdown: markdown,
             unsupportedContentPolicy: .custom { _ in
-                AnyView(RoundedRectangle(cornerRadius: 4).fill(.indigo).frame(width: 44, height: 30))
+                var marker = AttributedString("BADGE")
+                marker.font = .system(size: 20, weight: .bold, design: .monospaced)
+                marker.foregroundColor = .white
+                marker.backgroundColor = .indigo
+                return marker
             }
         )
         .fixedSize(horizontal: false, vertical: true)

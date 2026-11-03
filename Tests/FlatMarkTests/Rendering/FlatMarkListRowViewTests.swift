@@ -61,7 +61,7 @@ struct FlatMarkListRowViewTests {
             switch policyName {
             case "literal": .literal
             case "omit": .omit
-            default: .custom { _ in AnyView(EmptyView()) }
+            default: .custom(inline: { _ in AttributedString() })
             }
         let rows = try #require(taskRows(in: "- [ ] Buy <u>milk</u>\n- [ ] Call <u>doctor</u>"))
 
