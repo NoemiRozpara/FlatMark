@@ -3,6 +3,56 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Native iOS paragraphs (#25)
+
+Image-free iOS paragraphs now use selectable, noneditable `UITextView` storage. Every paragraph
+containing a Markdown image keeps its existing renderer in all phases. Other inline callers and
+macOS keep their existing presentation.
+
+The agreed font boundary preserves native `UIFont` attributes. SwiftUI `Font` attributes instead
+use semantic native typography. Explicit native foreground/background colors and SwiftUI
+foreground/background colors are preserved per run.
+
+### Verification
+
+Environment: Xcode 27, Swift 6.4, macOS 27.0.1 (26A434), iPhone 18 Pro simulator on iOS 27.0.
+These results do not qualify the minimum toolchain or OS.
+
+- Five iOS test methods cover native Unicode storage, combined intents, consecutive newlines,
+  replacement inheritance and explicit overrides, host fonts/colors, Dynamic Type resolution,
+  direction versus alignment, and mounted initial layout at 140- and 280-point widths.
+  Mounted checks establish inset-free selectable controls, offered widths, sufficient measured
+  heights, and separation from a following paragraph. They do not establish glyph visibility.
+- Visual comparison caught missing SwiftUI background colors. A targeted assertion failed before
+  the fix and passed afterward. All 50 changed iOS references were reviewed at readable scale,
+  then recorded for native typography, wrapping, and paragraph direction. Custom badges remain
+  visible. Image-only references were not changed.
+- The final full iOS snapshot target passed **87/87 twice**. Reference hashes stayed unchanged
+  during both comparison runs.
+- `swift test --skip Snapshot` passed **170 tests in 19 suites**, with the existing known LoaderSpy
+  issue. The full `swift test` run selected **252 tests in 32 suites** and failed on snapshot
+  comparisons (42 reported issues, including the known issue); it was not a green package run.
+- The macOS demo compiled. Its snapshot target passed 52 tests and failed 30. Of 38 mismatching
+  captures, 35 had no differing pixels at ImageMagick fuzz 0.5%. The other three
+  (`retainedPolicyTransitions.custom`, `retainedPolicyTransitions.changedCustom`, `rtlNestedQuote`)
+  remain unqualified. No macOS references were recorded.
+- Running iOS demo inspection at its fixed 240-point column showed complete wrapping, visible
+  styled text, and separation from following blocks in the inspected recipe regions. It did not
+  establish wide-column layout or consecutive blank-line appearance.
+
+### Remaining checks
+
+Live native text-link activation is unverified. The existing controlled demo opener returns handled,
+but the available automation exposes no tappable native text-link targets. No image-link or task
+activation was substituted for text-link evidence. Source inspection confirms the primary-action
+delegate uses the current inherited `openURL`; handled/rejected/default and omitted callbacks were
+not exercised through UIKit gestures. Rendering and measurement are not interaction evidence.
+
+Selection gestures, VoiceOver, live system Dynamic Type changes, minimum-OS behavior, and visual
+wide-column/blank-line checks remain unperformed. Retained-update qualification belongs to #28;
+integrated live accessibility and selection belong to #29. Earlier results below are historical,
+not qualification of the new paragraph path.
+
 ## Unsupported-content replacement contract (#18 chunk 1, tickets #19–#21)
 
 `.custom` now takes a `(String) -> AttributedString` inline closure and an optional

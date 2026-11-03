@@ -56,10 +56,15 @@ struct FlatMarkBlockView: View {
     var body: some View {
         switch block.kind {
         case let .paragraph(content):
-            FlatMarkInlineView(
-                content: content,
-                context: context
-            )
+            #if os(iOS)
+                if content.containsImages {
+                    FlatMarkInlineView(content: content, context: context)
+                } else {
+                    FlatMarkParagraphText(content: content, context: context)
+                }
+            #else
+                FlatMarkInlineView(content: content, context: context)
+            #endif
 
         case let .heading(level, content):
             FlatMarkInlineView(

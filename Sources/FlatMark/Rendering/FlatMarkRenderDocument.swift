@@ -47,6 +47,14 @@ struct FlatMarkRenderInlineContent: Equatable, Sendable, ExpressibleByStringLite
 
     private(set) var components: [Component] = []
 
+    /// Image eligibility does not depend on loading phase or linked-image routing.
+    var containsImages: Bool {
+        components.contains { component in
+            if case .image = component { return true }
+            return false
+        }
+    }
+
     init() {}
 
     init(components: [Component]) {
