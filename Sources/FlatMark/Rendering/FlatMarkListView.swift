@@ -98,10 +98,9 @@ struct FlatMarkListRowView: View {
     }
 
     var body: some View {
-        // Keep the control and paragraph as siblings so links/custom controls remain
-        // independently actionable and inline image identity survives policy changes.
-        // A whole-row accessibilityRepresentation would replace the paragraph's accessible
-        // links/custom controls with a single element.
+        // Keep the control and paragraph as siblings so links remain independently actionable
+        // and inline image identity survives policy changes. A whole-row accessibilityRepresentation
+        // would replace the paragraph's accessible links and image descriptions with one element.
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             leadingElement
             inlineContent

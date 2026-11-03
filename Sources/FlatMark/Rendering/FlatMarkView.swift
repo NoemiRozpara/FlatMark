@@ -26,9 +26,9 @@ public struct FlatMarkView: View {
     ///   - imageLoader: Loads images; when omitted, renders network-free alt-text placeholders.
     ///   - imageURLPolicy: Allowed image schemes, checked before calling the loader.
     ///   - unsupportedContentPolicy: Renders unsupported content as inert text by default.
-    ///     `.omit` removes it and any emptied block's layout slot. `.custom(render:)` supplies
-    ///     host-owned views without literal fallback or an enclosing Markdown link action;
-    ///     the host owns their styling, actions, and accessibility.
+    ///     `.omit` removes it and any emptied block's layout slot. `.custom` supplies attributed
+    ///     text beside supported neighbors, with an optional host-owned block view. FlatMark adds
+    ///     no literal fallback or enclosing Markdown link action.
     ///   - linkActivationAction: Synchronously handles the resolved absolute URL. Handling or
     ///     rejecting prevents opening; default opening calls the inherited SwiftUI opener once.
     ///   - taskToggleAction: Receives the complete updated source after a checkbox toggle,
@@ -84,9 +84,9 @@ public struct FlatMarkView: View {
     ///   - unsupportedContentPolicy: What to render where Markdown carries content that has no
     ///     native view. The default renders inert literal text, so HTML and unknown nodes are
     ///     never replaced by renderer diagnostics; `.omit` removes that content instead, together
-    ///     with the layout slot of a block it leaves empty. `.custom(render:)` replaces unsupported
-    ///     inline and block nodes with host-owned native views, without a literal fallback or an
-    ///     enclosing Markdown link action. Hosts own their views' styling, actions, and accessibility.
+    ///     with the layout slot of a block it leaves empty. `.custom` supplies attributed text
+    ///     beside supported neighbors, with an optional host-owned block view. FlatMark adds no
+    ///     literal fallback or enclosing Markdown link action.
     ///   - linkActivationAction: An optional synchronous action receiving the resolved
     ///     absolute destination on activation. Handling or rejecting suppresses opening;
     ///     default opening delegates once to the inherited SwiftUI environment opener.

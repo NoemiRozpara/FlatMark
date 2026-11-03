@@ -199,10 +199,11 @@ closure. Opening and closing tags are separate nodes, not paired elements. Known
 escaped tags, code, and ordinary text do not invoke either closure.
 
 Replacements keep their structural position and ambient environment. FlatMark adds no literal
-fallback, enclosing Markdown-link action, extra accessibility proxy, or minimum-size box. Block
+fallback, enclosing Markdown-link action, or minimum-size box. Block
 controls remain independently actionable beside tasks and supported links. Inline replacement text
 gets ambient SwiftUI styling, including heading fonts, but not enclosing Markdown presentation
-intents or links. Explicit host attributes are not overridden.
+intents or links. Explicit host attributes are not overridden. Inline replacements compose with
+supported neighbors as native text and contribute their wording to paragraph accessibility text.
 
 Empty attributed output and block overrides returning `AnyView(EmptyView())` do not imply recursive
 omission: parent spacing may remain. No spaces are synthesized. These are presentation closures;
@@ -213,8 +214,9 @@ including interpretation, sanitization, navigation, and resource access. FlatMar
 
 ## Layout and selection limits
 
-Mixed text/image/custom content wraps by native runs rather than character-level typesetting.
-A long text run may wrap internally or move as a whole. Selection works within supported text
+Text-only paragraphs compose supported and custom text in one native text view. Mixed text/image
+content wraps by native runs rather than character-level typesetting. A long text run may wrap
+internally or move as a whole. Selection works within supported text
 regions but is not continuous across arbitrary views. Linked images deliberately separate adjacent
 selectable text regions so the image remains independently actionable. Tables scroll horizontally;
 parsed column alignment does not change native cell alignment.

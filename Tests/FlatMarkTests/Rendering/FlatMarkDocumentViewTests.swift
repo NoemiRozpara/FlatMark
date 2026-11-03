@@ -8,7 +8,7 @@ import Testing
 @MainActor
 struct FlatMarkInlineViewTests {
     @Test
-    func `custom inline flow keeps supported attributes breaks and image positions`() throws {
+    func `custom text keeps supported attributes breaks and image positions`() throws {
         let document = FlatMarkRenderProjector.project(
             markdown: "**before <u>x</u>**\n[linked <u>y</u>](https://example.com/md) ![alt](https://example.com/image.png)"
         )
@@ -17,7 +17,7 @@ struct FlatMarkInlineViewTests {
             return
         }
 
-        let policy = FlatMarkUnsupportedContentPolicy.custom(inline: { _ in AttributedString() })
+        let policy = FlatMarkUnsupportedContentPolicy.custom(inline: { source in AttributedString("custom(\(source))") })
         let view = FlatMarkInlineView(
             content: content,
             context: FlatMarkRenderContext(unsupportedContentPolicy: policy)
@@ -30,15 +30,9 @@ struct FlatMarkInlineViewTests {
                 nil
             }
         }
-        let payloads = elements.compactMap { element -> String? in
-            if case let .custom(value) = element.content {
-                String(value.literalText.characters)
-            } else {
-                nil
-            }
-        }
-        #expect(view.renderingMode == .customInlineFlow)
-        #expect(payloads == ["<u>", "</u>", "<u>", "</u>"])
+        let replacements = text.map { String($0.characters) }.filter { $0.hasPrefix("custom(") }
+        #expect(view.renderingMode == .inlineText)
+        #expect(replacements == ["custom(<u>)", "custom(</u>)", "custom(<u>)", "custom(</u>)"])
         #expect(text.first?
             .runs
             .allSatisfy { $0.inlinePresentationIntent?.contains(.stronglyEmphasized) == true } == true)
@@ -57,8 +51,7 @@ struct FlatMarkInlineViewTests {
     /// Both tags of an HTML pair that carries nothing between them stay two positions under every
     /// policy, with the supported text on either side of them in its own slot.
     ///
-    /// This is composition, not geometry: it says which slots the pair occupies, not what a host view
-    /// that draws nothing leaves in the space where a tag was.
+    /// Empty replacements contribute no element. This checks composition, not visible geometry.
     @Test
     func `keeps an empty HTML pair in two inline positions for every policy`() throws {
         let document = FlatMarkRenderProjector.project(markdown: "a<u></u>b")
@@ -70,11 +63,17 @@ struct FlatMarkInlineViewTests {
         let policies: [(FlatMarkUnsupportedContentPolicy, [String])] = [
             (.literal, ["a", "<u>", "</u>", "b"]),
             (.omit, ["a", "b"]),
-            (.custom(inline: { _ in AttributedString() }), ["a", "custom(<u>)", "custom(</u>)", "b"]),
+            (.custom(inline: { AttributedString("custom(\($0))") }), ["a", "custom(<u>)", "custom(</u>)", "b"]),
+            (.custom(inline: { _ in AttributedString() }), ["a", "b"]),
         ]
 
         for (policy, expected) in policies {
             #expect(FlatMarkInlineView.inlineElements(for: content, policy: policy).map(shaped) == expected)
+            #expect(policy.plainText(for: content) == expected.joined())
+            #expect(FlatMarkInlineView(
+                content: content,
+                context: FlatMarkRenderContext(unsupportedContentPolicy: policy)
+            ).renderingMode == .inlineText)
         }
     }
 
@@ -191,13 +190,11 @@ struct FlatMarkInlineViewTests {
     }
 
     /// What one inline element contributes, spelled so one expectation reads the same way under all
-    /// three policies: supported text by its own wording, a host position by its payload.
+    /// three policies, including host-returned text.
     private func shaped(_ element: FlatMarkInlineView.InlineElement) -> String {
         switch element.content {
         case let .text(text):
             String(text.characters)
-        case let .custom(unsupported):
-            "custom(\(String(unsupported.literalText.characters)))"
         case .lineBreak:
             "line break"
         case .image:

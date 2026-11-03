@@ -175,6 +175,19 @@ struct FlatMarkCustomRenderingTests {
     @MainActor
     struct FlatMarkCustomUnsupportedContentTests {
         @Test
+        func `inline replacements compose native paragraph wording at narrow widths`() async throws {
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "before <u>important</u> after",
+                unsupportedContentPolicy: .custom(inline: { source in
+                    AttributedString(source == "<u>" ? "[" : "]")
+                })
+            ).frame(width: 90))
+            defer { hosted.close() }
+            #expect(try await visibleText(matching: "before [important] after", in: hosted)
+                == "before [important] after")
+        }
+
+        @Test
         func `blocks use attributed inline output unless a block override is supplied`() async throws {
             let markdown = "before <u>x</u> after\n\n<div>raw</div>"
             let inlinePayloads = BlockPayloadRecorder()
@@ -392,17 +405,6 @@ struct FlatMarkCustomRenderingTests {
             #expect(report["activated"] == [])
             #expect(report["opened"] == [])
             #expect(Set(report["customPayloads"] ?? []) == ["<div>raw</div>\n"])
-        }
-
-        @Test
-        func `supported linked neighbor still activates independently of inline replacement text`() async throws {
-            let report = try await navigationReport(
-                markdown: "line\n\n[linked <u>x](https://example.com/md)\n\nline",
-                decision: "default", unsupportedPolicy: "custom"
-            )
-            #expect(report["customActivations"] == ["0"])
-            #expect(report["activated"] == ["https://example.com/md"])
-            #expect(report["opened"] == ["https://example.com/md"])
         }
 
         @Test

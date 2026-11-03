@@ -81,22 +81,11 @@ extension FlatMarkUnsupportedContentPolicy {
 
     /// The plain text one inline span contributes under this policy.
     ///
-    /// Omitted nodes add no wording; custom nodes expose their host-owned accessibility instead.
+    /// Omitted nodes add no wording; custom nodes contribute their returned text.
     func plainText(for content: FlatMarkRenderInlineContent) -> String {
         FlatMarkRenderInlineContent.plainText(of: content.components) {
-            if case .custom = self {
-                AttributedString()
-            } else {
-                literalText(for: $0)
-            }
+            FlatMarkInlineView.replacementText(for: $0, policy: self)
         }
-    }
-
-    /// Whether native accessibility children must survive instead of a text-only representation.
-    func hasCustomInlineContent(in content: FlatMarkRenderInlineContent) -> Bool {
-        guard case .custom = self else { return false }
-
-        return content.components.contains(where: \.isUnsupported)
     }
 
     /// The supported image retains its normal generic label when omission empties its description.

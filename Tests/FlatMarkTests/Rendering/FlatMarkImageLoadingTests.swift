@@ -88,8 +88,7 @@ struct FlatMarkImageLoadingTests {
             markdown: "![<u></u>](image.png)"
         )))
         let erased = try #require(erasedContent.components.compactMap(renderImage).first)
-        // A host view would be handed the same wording the literal policy prints; a `.custom` label
-        // can only carry the text that stays supported.
+        // Custom text also contributes to image-description wording.
         let custom = FlatMarkUnsupportedContentPolicy.custom(inline: { _ in AttributedString("Replacement") })
         let phases: [(FlatMarkInlineView.ImagePhase, String)] = [
             (.placeholder, ", not loaded"),
@@ -104,24 +103,20 @@ struct FlatMarkImageLoadingTests {
             #expect(FlatMarkInlineView.accessibilityLabel(
                 for: image, phase: phase, policy: .literal
             ) == "before <u>x</u> after" + suffix)
-            // Supported wording a reader can reach survives; the part a host view would have owned
-            // is simply absent, because no image label can contain a view.
             #expect(FlatMarkInlineView.accessibilityLabel(
                 for: image, phase: phase, policy: custom
-            ) == "before x after" + suffix)
-            // A description that leaves no supported wording is the generic label, not an empty one.
+            ) == "before ReplacementxReplacement after" + suffix)
+            // A description made entirely of custom output keeps that wording.
             #expect(FlatMarkInlineView.accessibilityLabel(
                 for: erased, phase: phase, policy: custom
-            ) == "Image" + suffix)
+            ) == "ReplacementReplacement" + suffix)
         }
     }
 
     #if os(macOS)
-        /// An image description is metadata, so mounting a document that only carries one dispatches
-        /// nothing while the supported image itself keeps loading. The second mount is the positive
-        /// control on the same recorder and hosting path.
+        /// Custom image-description text does not change supported image loading.
         @Test
-        func `mounts an image description without a host and keeps the image loader`() async throws {
+        func `composes custom image description text and keeps the image loader`() async throws {
             let loads = FlatMarkRecordedImageLoads()
             let recorder = BlockPayloadRecorder()
             let hosted = await mountTestView(FlatMarkView(
@@ -139,13 +134,10 @@ struct FlatMarkImageLoadingTests {
             defer { hosted.close() }
             try await waitForImage(in: loads)
 
-            // The URL the loader was asked for is both the record that the supported image is still
-            // there and the readiness signal: nothing in this test fetches it, and a document whose
-            // body never evaluated would have asked for nothing. An empty payload list then says the
-            // description placed no host view anywhere, which is what a label of plain text must do.
+            // The loader request confirms the supported image survives the text replacement.
             #expect(loads.urls == [try #require(URL(string: "https://example.com/image.png"))])
             #expect(hosted.showsContent)
-            #expect(recorder.payloads.isEmpty)
+            #expect(Set(recorder.payloads) == ["<u>", "</u>"])
 
             let control = BlockPayloadRecorder()
             let inlineHosted = await mountTestView(FlatMarkView(

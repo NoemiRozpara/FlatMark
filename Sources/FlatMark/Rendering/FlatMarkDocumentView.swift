@@ -188,7 +188,6 @@ struct FlatMarkInlineView: View {
         case standaloneLinkedImage(URL)
         case linkedImageFlow
         case responsiveImageFlow
-        case customInlineFlow
     }
 
     enum ImagePhase {
@@ -219,7 +218,6 @@ struct FlatMarkInlineView: View {
             case text(AttributedString)
             case lineBreak
             case image(componentIndex: Int, image: FlatMarkRenderImage)
-            case custom(FlatMarkRenderUnsupportedContent)
         }
 
         let id: Int
@@ -232,10 +230,6 @@ struct FlatMarkInlineView: View {
     @State private var imagePhases: [Int: ImagePhase] = [:]
 
     var renderingMode: RenderingMode {
-        if context.unsupportedContentPolicy.hasCustomInlineContent(in: content) {
-            return .customInlineFlow
-        }
-
         if let destination = content.standaloneLinkedImageDestination {
             return .standaloneLinkedImage(destination)
         }
@@ -258,19 +252,13 @@ struct FlatMarkInlineView: View {
 
     @ContentBuilder
     private var accessibleContent: some View {
-        if renderingMode == .customInlineFlow {
-            // Native children expose supported text/links, images, and host controls once.
-            // A text-only proxy here would hide the host's controls.
-            renderedContent
-        } else {
-            renderedContent.accessibilityRepresentation {
-                if let destination = content.standaloneLinkedImageDestination {
-                    Link(destination: destination) {
-                        accessibilityText
-                    }
-                } else {
+        renderedContent.accessibilityRepresentation {
+            if let destination = content.standaloneLinkedImageDestination {
+                Link(destination: destination) {
                     accessibilityText
                 }
+            } else {
+                accessibilityText
             }
         }
     }
@@ -287,7 +275,7 @@ struct FlatMarkInlineView: View {
                 }
             }
 
-        case .linkedImageFlow, .responsiveImageFlow, .customInlineFlow:
+        case .linkedImageFlow, .responsiveImageFlow:
             FlatMarkInlineFlowLayout {
                 ForEach(inlineElements) { element in
                     inlineView(for: element)
@@ -321,11 +309,7 @@ struct FlatMarkInlineView: View {
                 ))
                 continue
             case let .unsupported(unsupported):
-                if case .custom = policy {
-                    elements.append(InlineElement(id: elements.count, content: .custom(unsupported)))
-                    continue
-                }
-                text = policy.literalText(for: unsupported)
+                text = replacementText(for: unsupported, policy: policy)
             }
 
             for fragment in text.inlineFragments {
@@ -346,7 +330,7 @@ struct FlatMarkInlineView: View {
         switch element.content {
         case let .text(text):
             Text(text)
-                // Selectable native text must not intercept an adjacent host control's hit area.
+                // Selectable native text must not intercept an adjacent image link's hit area.
                 .contentShape(Rectangle())
         case .lineBreak:
             Color.clear
@@ -369,11 +353,6 @@ struct FlatMarkInlineView: View {
                         policy: context.unsupportedContentPolicy
                     ))
             }
-        case let .custom(unsupported):
-            if case let .custom(inline, _) = context.unsupportedContentPolicy {
-                // Enclosing Markdown attributes are not inherited by custom output yet.
-                Text(inline(String(unsupported.literalText.characters)))
-            }
         }
     }
 
@@ -392,6 +371,17 @@ struct FlatMarkInlineView: View {
         }
     }
 
+    /// The single composition point for unsupported inline attributed output.
+    nonisolated static func replacementText(
+        for unsupported: FlatMarkRenderUnsupportedContent,
+        policy: FlatMarkUnsupportedContentPolicy
+    ) -> AttributedString {
+        if case let .custom(inline, _) = policy {
+            return inline(String(unsupported.literalText.characters))
+        }
+        return policy.literalText(for: unsupported)
+    }
+
     private var inlineText: Text {
         content.components.enumerated().reduce(Text("")) { result, item in
             let (index, component) = item
@@ -402,7 +392,7 @@ struct FlatMarkInlineView: View {
             case let .image(image):
                 return result + imageText(for: image, at: index)
             case let .unsupported(unsupported):
-                return result + Text(context.unsupportedContentPolicy.literalText(for: unsupported))
+                return result + Text(Self.replacementText(for: unsupported, policy: context.unsupportedContentPolicy))
             }
         }
     }
@@ -423,7 +413,7 @@ struct FlatMarkInlineView: View {
                 label.link = image.link
                 return result + Text(label)
             case let .unsupported(unsupported):
-                return result + Text(context.unsupportedContentPolicy.literalText(for: unsupported))
+                return result + Text(Self.replacementText(for: unsupported, policy: context.unsupportedContentPolicy))
             }
         }
     }

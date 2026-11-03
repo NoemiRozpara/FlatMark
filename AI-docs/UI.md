@@ -32,7 +32,7 @@ Keep drawing and editing independent: custom markers also apply to read-only and
 
 Keep Markdown-link activation, task activation, and host replacement controls independently actionable. Do not add enclosing actions or accessibility proxies that swallow or duplicate a host control's behavior.
 
-Custom unsupported-content views retain their structural position and ambient environment. Do not synthesize spaces, fallback wording, minimum-size boxes, or copied inline text styling that the public contract does not promise. An empty custom view is not the same as recursive omission.
+Custom unsupported content retains its structural position and ambient environment. Inline attributed output composes with supported text; arbitrary views are block-only overrides. Do not synthesize spaces, fallback wording, minimum-size boxes, or copied inline text styling that the public contract does not promise. Empty custom output is not the same as recursive omission.
 
 Application routing remains host-owned. Do not add navigation containers, choose presentation styles, or turn fragment links into internal document scrolling without an agreed public change.
 

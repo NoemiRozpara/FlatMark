@@ -3,6 +3,33 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Issue #20 verification
+
+Inline custom output now composes with supported neighbors in native text. It contributes to
+paragraph accessibility text, task labels, and image descriptions. Images retain their existing
+flow boundaries. Mounted native exports check complete wording at a 90pt width; this is not
+running-app wrapping, selection, or VoiceOver evidence.
+
+On Xcode 27.0 / Swift 6.4 / macOS 27.0.1 (arm64), `swift test` ran 246 tests in
+32 suites. The summary reported 40 issues including one intentional known loader issue.
+All unexpected issues were snapshot comparisons: 36 distinct reference names, all present in
+`/tmp/head.fails.txt` from clean HEAD. Exact-pixel comparisons remain limited by the current
+hosting-display environment; minimum-platform and iOS behavior are unverified.
+
+Eight macOS references were intentionally re-recorded and opened for inspection:
+- NestedContainers: `narrowNestedQuote`, `wideNestedQuote`. The attributed BADGE sits beside
+  supported wording; complete inner/outer quote text and hard breaks remain visible.
+- PolicyTransitions: `retainedPolicyTransitions.custom`, `.changedCustom`, and
+  `bothInitializerPaths.sourceCustom`, `.documentCustom`. Replacement wording touches `middle`
+  without synthetic spaces. Tasks and the loaded raster remain visible where present.
+- UnsupportedPolicies: `custom`, `emptyCustom`. OPEN/CLOSE markers compose with supported bold
+  and linked wording. Empty output leaves `ab` contiguous and retains parent block spacing.
+
+These eight plain comparisons pass. Existing attributed capture policies remain meaningful;
+no new marker styling was needed. Image-flow references were not re-recorded.
+`rtlNestedQuote` was not recorded; its existing failure remains. No demo, fixture host, or
+simulator was launched. Running-app checks remain with the orchestrator.
+
 ## Issue #19 verification
 
 Custom inline replacements now return attributed text. Arbitrary controls remain

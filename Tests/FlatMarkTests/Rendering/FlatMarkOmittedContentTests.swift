@@ -421,8 +421,5 @@ private func plainFragment(_ element: FlatMarkInlineView.InlineElement) -> Strin
         return "\n"
     case let .image(_, image):
         return FlatMarkUnsupportedContentPolicy.omit.imageLabel(for: image)
-    case .custom:
-        Issue.record("Built-in policy must not produce a custom element")
-        return ""
     }
 }
