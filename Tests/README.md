@@ -3,6 +3,80 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## #34 — native lists, tables, and image routing
+
+Authoritative #34 development evidence. Pickup HEAD: `a1bd49ff6a214ca374ba9dc73a751e933cf2d805`,
+plus this uncommitted test/doc diff. Read the full issue and comments with
+`gh api repos/{owner}/{repo}/issues/34` and `gh api repos/{owner}/{repo}/issues/34/comments`;
+there were zero comments. No production change, reference recording, dependency, public hook,
+or image lifecycle suite was added. #33's owner exception and terminal-line limit remain unchanged.
+
+### Evidence map made at pickup
+
+| Criterion | Existing evidence / pickup status | Essential addition or disposition |
+| --- | --- | --- |
+| AC-26 first-line list markers | Partial: `FlatMarkListRowView` uses `HStack(alignment: .firstTextBaseline)`; task/nested-container references cover wrapped rows. AppKit `inlineTextExportsTheFirstLineBaselineToSwiftUI` compares a short native label with SwiftUI. | Added wrapped native-label baseline comparisons with SwiftUI at 140pt, including an explicit 23pt native host font on both platforms and semantic body at iOS `.accessibility3`. These qualify the native baseline supplied to the row, not every custom marker drawing. |
+| AC-27 multiline table separation | Partial: table references cover long headers/cells, narrow leading/trailing scroll positions, and iOS enlarged text. Native row containment had no direct assertion. | Added one two-column table with a long cell and a following row. Checks native wrapping, allocated frame separation, and active native layout containment at standard size on both platforms and accessibility size on iOS. |
+| AC-37 whole image-containing value stays outside native conversion | Covered by shared routing inspection plus existing `FlatMarkDocumentViewTests`, `FlatMarkImageLoadingTests`, and `FlatMarkImagePhaseSnapshotTests` (placeholder, held loading, failure, loaded). | `containsImages` branches before conversion and before image-phase-dependent `renderingMode`. Every component, including supported neighbors, stays on `imageBearingContent`. No new lifecycle scenarios needed. |
+| AC-38 heading/header neighbors keep styling | Covered by shared code inspection: `imageBearingContent` applies heading font + bold or header bold around the entire `accessibleContent`, not only the image. The native role tests separately cover the image-free path. | Revalidated heading level mapping and table-header role propagation in `FlatMarkDocumentView.swift` (including its `FlatMarkTableView`). This is structural styling evidence, not a fresh image-path pixel comparison. |
+| AC-41 request identity/loading unchanged | Covered: existing loader-configuration, policy-transition, rejection, failure, cancellation, and fresh-mount checks. `FlatMarkPolicyTransitionSnapshotTests` retains image state across render-policy updates. | Existing package routing/loading checks passed below. No request/task/URL-policy/block/control code changed. Historical image pixel limitations under #29 are not waived or re-recorded. |
+
+Scope follows the owner's migration boundary: custom SwiftUI image/element layout is transitional.
+Only essential native responsibilities received new coverage. No new defect was found in these
+checks, and no transitional-layout diagnosis or fix was attempted.
+
+### Reference inspection
+
+Inspected the existing PNGs under `References/Snapshots/`:
+
+- `TaskMarkers/macOS/defaultReadOnly.*`: wrapped nested task marker sits beside its first line.
+- `NestedContainers/iOS/narrowListContinuations.*`: wrapped ordered/bullet rows, continuation,
+  quote, and fenced block remain distinct in the reference.
+- `Tables/iOS/wideLongCells.*`: long headers and body cells end above the next row; final wording
+  is visible in the reference.
+
+These are reviewed static references, not new screenshots of HEAD. No new captures were proposed
+because the missing evidence was native baseline/containment geometry, not a new visual scenario.
+The geometry tests use the existing mounted capture helper but do not save or compare baselines.
+
+### Environment, exact commands, and results
+
+Run date: 2026-11-04. Host: arm64 macOS 27.0.1 (26A434), Xcode 27.0 (27A266a),
+Apple Swift 6.4 (`swiftlang-6.4.0.34.1`), `/Applications/Xcode-27-RC.app/Contents/Developer`.
+iOS destination: booted iPhone 18 Pro / iOS 27.0. Environment discovery used `sw_vers`,
+`swift --version`, and tool discovery. The installed MobileBuildMCP skill was read first;
+`mobilebuildmcp --help`, `tools`, and `simulator test --help` supplied command discovery.
+`project-discovery list-schemes --project-path Demo/FlatMarkDemo.xcodeproj` confirmed the
+non-recording scheme; `simulator list` confirmed the destination. No repository tool defaults
+were found; project, scheme, and simulator were explicit.
+
+```sh
+swift test --filter 'FlatMarkTaskMarkerSnapshotTests/wrappedNativeLabelExportsFirstLineBaseline|FlatMarkTableSnapshotTests/multilineNativeCellsStaySeparateFromNextRow|FlatMarkDocumentViewTests|FlatMarkImageLoadingTests' > /tmp/flatmark34-macos.log 2>&1
+mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTaskMarkerSnapshotTests/wrappedNativeLabelExportsFirstLineBaseline()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTaskMarkerSnapshotTests/accessibilityWrappedNativeLabelExportsFirstLineBaseline()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTableSnapshotTests/multilineNativeCellsStaySeparateFromNextRow()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTableSnapshotTests/accessibilityMultilineNativeCellsStaySeparateFromNextRow()' > /tmp/flatmark34-ios.log 2>&1
+git diff --check
+```
+
+- macOS: **24 tests in four suites passed**, including the two new geometry tests and existing
+  routing/loading checks. `FlatMarkDocumentViewTests.swift` declares `FlatMarkInlineViewTests`,
+  which ran alongside the selected loading suite. No snapshot comparisons were selected.
+- iOS: **4 tests passed, zero failed/skipped**. All four exact geometry selectors ran.
+  Existing iOS phase/routing evidence is reused from #29; those image snapshots were not rerun.
+- Each platform's affected selection ran once. `git diff --check` passed.
+- iOS result: `~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T15-39-36-280Z_pid98797_415d1eeb.xcresult`.
+  Build log: same workspace, `logs/test_sim_2026-11-04T15-39-36-280Z_pid98797_b334fe2f.log`.
+
+### Limits and manual handoff
+
+These results establish native geometry and shared routing structure, not running-app pixels,
+selection gestures, VoiceOver, or full image-path visual qualification. No fresh live UI session
+was available in this stage. Operator handoff: build the current tree on each platform, inspect
+wrapped bullet/ordered/task labels beside their first line and long table cells above the next
+row; on iOS repeat with an accessibility text category. Observe image-containing headings and
+headers through existing fixture loading states if fresh visual qualification is required.
+Record revision/environment/actions rather than treating the historical references as live evidence.
+Minimum iOS 17/macOS 14 and Xcode 26/Swift 6.2 remain unverified. No full suite, demo build,
+image snapshot rerun, or terminal-sizing check ran. No commit, issue closure, or #35 work occurred.
+
 ## #33 handoff — current scope and status
 
 This section is the authoritative #33 handoff. The rounds below retain historical evidence;

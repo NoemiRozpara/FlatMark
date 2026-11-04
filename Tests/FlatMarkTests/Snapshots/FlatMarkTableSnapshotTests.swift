@@ -19,6 +19,77 @@ struct FlatMarkTableSnapshotTests {
     | | Supported **bold**, *italic*, and `code`. | Third body cell. | Last body cell. |
     """
 
+    @Test func multilineNativeCellsStaySeparateFromNextRow() async throws {
+        try await checkNativeRows(enlarged: false)
+    }
+
+    #if os(iOS)
+    @Test func accessibilityMultilineNativeCellsStaySeparateFromNextRow() async throws {
+        try await checkNativeRows(enlarged: true)
+    }
+    #endif
+
+    private func checkNativeRows(enlarged: Bool) async throws {
+        let environment = FlatMarkSnapshotEnvironment(
+            captureSize: CGSize(width: 700, height: 1900), columnWidth: 360,
+            contentInset: 100, pixelScale: 2, appearance: .light,
+            localeIdentifier: "en_US", layoutDirection: .leftToRight,
+            textSize: enlarged ? .enlarged : .body
+        )
+        _ = try await flatMarkSnapshotImage(
+            of: FlatMarkView(markdown: """
+            | Header | Neighbor |
+            | --- | --- |
+            | Long native cell wraps through several lines and ends with FIRST END. | Short cell. |
+            | NEXT ROW | Last cell. |
+            """).fixedSize(horizontal: false, vertical: true),
+            environment: environment,
+            prepareMountedView: { root in
+                #if os(macOS)
+                let texts = Self.descendants(root).compactMap { $0 as? NSTextView }
+                let first = texts.first { $0.string.hasPrefix("Long native") }
+                let next = texts.first { $0.string == "NEXT ROW" }
+                #else
+                let texts = Self.descendants(root).compactMap { $0 as? UITextView }
+                let first = texts.first { $0.text.hasPrefix("Long native") }
+                let next = texts.first { $0.text == "NEXT ROW" }
+                #endif
+                guard let first, let next else {
+                    Issue.record("Expected native cells in both table rows")
+                    return
+                }
+                let firstFrame = first.convert(first.bounds, to: root)
+                let nextFrame = next.convert(next.bounds, to: root)
+                #expect(firstFrame.maxY <= nextFrame.minY)
+                #expect(first.bounds.height > next.bounds.height * 2)
+                #if os(macOS)
+                if let manager = first.layoutManager, let container = first.textContainer {
+                    manager.ensureLayout(for: container)
+                    #expect(manager.usedRect(for: container).maxY <= first.bounds.height + 1)
+                } else {
+                    Issue.record("Expected native table cell layout")
+                }
+                #else
+                if let manager = first.textLayoutManager {
+                    manager.ensureLayout(for: manager.documentRange)
+                    var bottom: CGFloat = 0
+                    manager.enumerateTextLayoutFragments(from: manager.documentRange.location,
+                                                        options: [.ensuresLayout]) { fragment in
+                        bottom = max(bottom, fragment.layoutFragmentFrame.maxY)
+                        return true
+                    }
+                    #expect(bottom > 0)
+                    #expect(bottom <= first.bounds.height + 1)
+                } else {
+                    let manager = first.layoutManager
+                    manager.ensureLayout(for: first.textContainer)
+                    #expect(manager.usedRect(for: first.textContainer).maxY <= first.bounds.height + 1)
+                }
+                #endif
+            }
+        )
+    }
+
     @Test func wideLongCells() async throws {
         try await capture(FlatMarkView(markdown: Self.longTable), column: 700, testName: #function)
     }
