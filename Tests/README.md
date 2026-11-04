@@ -3,6 +3,89 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Attributed content and semantic typography (#32, round 1)
+
+Scope: #32 only. Issues #32 and #31 were read with `gh issue view <number> --repo
+NoemiRozpara/FlatMark --json title,body,comments`; both had no comments. Production code and
+snapshot references are unchanged. This is storage/font evidence, not glyph, gesture, or
+accessibility qualification.
+
+### Coverage inventory
+
+This inventory was made from the existing paragraph, custom-content, mention, and projector
+suites before adding coverage. UIKit/AppKit paragraph suites are abbreviated U/A below.
+
+| Criteria | Pickup evidence | Round 1 coverage |
+| --- | --- | --- |
+| AC-01 Unicode/order | Partial: U/A `combinedIntentsPreserveUnicodeAndConsecutiveNewlines` covered emoji modifiers and CJK, but not decomposed accents or mixed direction. UIKit replacement test covered neighbors. | Extended the existing combined fixture with decomposed `e` + U+0301, Hebrew/Arabic, and a trailing newline. New U/A `literalAndOmittedUnicodeComposeWithoutSpaces` checks exact UTF-16 output and link range, default link color throughout that range, and unlinked neighbors. |
+| AC-02 breaks | Covered across layers: projector formatted-inline and hard-break tests establish soft/hard projection; U/A combined tests establish native consecutive newlines. AppKit `trailingBreaksReserveEmptyNativeLines` covers trailing layout. | New policy composition tests also preserve leading-to-replacement, consecutive, and trailing native newlines. No parser matrix added. |
+| AC-03 inline attributes | Covered: U/A combined tests inspect code/bold/italic/strike at every UTF-16 offset. UIKit replacement tests inspect linked emphasis; AppKit custom tests inspect inherited/explicit links. Mention tests inspect bold tokens and retained neighboring attributes. | Reused those tests; extended Unicode fixture, without adding a parser test per combination. |
+| AC-04 policy composition | Partial: mounted custom-content tests covered multi-run custom output and neighbors; direct native literal/omit composition was missing. | Added one parameterized literal/omit test on each platform, using the same small Unicode fixture. |
+| AC-05 inheritance | Covered: UIKit `replacementInheritsIntentAndLinkWithoutChangingNeighbors`; AppKit mounted `replacement runs inherit enclosing emphasis`, `host intent and empty intent replace defaults per run`, and `replacement links inherit and override per run`. | Reused; selected AppKit tests passed this round. |
+| AC-06 explicit empty intent | Covered: U/A `explicitEmptyIntentAndNativeHostAttributesWinPerRun` and mounted custom per-run intent test. | Reused. |
+| AC-07 native host precedence | Covered: U/A explicit-empty and host-font/color tests, plus mounted custom host-font/color test. | Reused. |
+| AC-08 omitted font defaults | Covered: U/A host-font/color tests inspect default-font neighbors; AppKit multi-run custom test inspects missing-font runs around a native host run. | Reused, plus direct default body-font equality. |
+| AC-09 semantic body/headings | Partial: six heading roles already compare framework semantic sizes and bold traits; body was only indirectly checked. | Added U/A `bodyUsesPreferredSemanticFont`, comparing the complete native body font with the framework preferred font. Reused all six heading cases. |
+| AC-10 table header | Covered: U/A `tableHeaderRoleBoldensBodyTypeWithoutChangingSize`. | Reused. |
+| AC-11 role-derived traits | Covered: U/A `inlineTraitsDeriveFromTheHeadingRoleFont` inspects code/emphasis against semantic title size. | Reused. |
+| AC-16 AppKit semantic fonts | Covered: AppKit semantic heading/header tests and `roleFont` inspection use preferred AppKit fonts, with no iOS scaling environment. | Added direct preferred body-font equality. |
+
+### Environment, commands, and results
+
+Base revision: `6297cafcab1109a22fea7a692db1666ecc363029`, plus this uncommitted test-only diff.
+Run date: 2026-11-04. Host: arm64 macOS 27.0.1 (26A434). Active developer directory:
+`/Applications/Xcode-27-RC.app/Contents/Developer`, Xcode 27.0 (27A266a), Apple Swift 6.4
+(`swiftlang-6.4.0.34.1 clang-2100.3.34.1`). `swift --version`, `sw_vers`,
+`xcode-select -p`, and Xcode's version plist supplied these values.
+
+Build skill read before Apple tooling. Discovery used `mobilebuildmcp --help`,
+`mobilebuildmcp tools`, `mobilebuildmcp simulator list --help`,
+`mobilebuildmcp simulator test --help`, and
+`mobilebuildmcp project-discovery list-schemes --help`. No repository `.mobilebuildmcp`
+configuration was present; project, scheme, and destination were passed explicitly.
+`mobilebuildmcp project-discovery list-schemes --project-path Demo/FlatMarkDemo.xcodeproj`
+confirmed the non-recording `FlatMarkSnapshots-iOS` scheme. `mobilebuildmcp simulator list`
+confirmed booted iPhone 18 Pro, iOS 27.0, UDID `674C04A9-8792-4995-A6A9-66F80E5F96AA`.
+
+Commands run from the repository root:
+
+```sh
+swift test --filter 'FlatMarkAppKitParagraphTextTests/(combinedIntents|literalAndOmitted|bodyUses|explicitEmpty|headingRoles|tableHeaderRole|inlineTraits|hostFont)' > /tmp/flatmark32-macos.log 2>&1
+
+mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests' > /tmp/flatmark32-ios.log 2>&1
+
+# Initial selector matched zero tests. This was not a behavioral pass.
+swift test --filter 'FlatMarkCustomUnsupportedContentTests\.(inline replacements|replacement runs|host intent|replacement uses|host font|replacement links)|FlatMarkMentionTests\.(opted in mentions|mention styling)' > /tmp/flatmark32-composition.log 2>&1
+swift test list > /tmp/flatmark32-test-list.log 2>&1
+# Corrected selector uses the discovered slash/backtick identifiers.
+swift test --filter 'FlatMarkCustomUnsupportedContentTests/`(inline replacements|replacement runs|host intent|replacement uses|host font|replacement links)|FlatMarkMentionTests/`(opted in mentions|mention styling)' > /tmp/flatmark32-composition-selected.log 2>&1
+
+git diff --check
+```
+
+- AppKit attribute selection: **8 test methods passed**, including both policy cases and all six
+  heading cases. An existing unused-variable warning at `hostFontAndColorOverrideTheRoleDefaultWhileNeighborsKeepIt`
+  remains unchanged.
+- UIKit paragraph selection: **14 test methods passed, zero failed/skipped**. The build log confirms
+  both new methods, both policy cases, and all six heading cases ran. The suite also includes its
+  existing retained-update and measurement checks; these were not run separately.
+- Corrected AppKit composition/mention selection: **8 test methods passed** (six custom-content,
+  two mention). CoreText logged fallback-name diagnostics during native export. These passing
+  export assertions do not establish visible glyph/font fidelity.
+- `git diff --check`: passed. Passing checks were not repeated.
+
+UIKit result bundle:
+`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T13-19-33-000Z_pid75126_488276bd.xcresult`.
+Build log in the same workspace:
+`logs/test_sim_2026-11-04T13-19-33-000Z_pid75126_68d3c506.log`.
+Local `/tmp` logs and result bundles are diagnostic artifacts, not committed baselines.
+
+No production defect or execution blocker was found. Minimum iOS 17/macOS 14 and Xcode 26/Swift 6.2
+were not executed; current-runtime results do not qualify minimum runtimes. No snapshots, full
+package suite, demo builds, visible-glyph checks, live accessibility, or selection gestures were
+run for this attribute-only change. Those checks are not replaced by storage/font tests.
+Independent review should inspect this diff and these results without rerunning passing checks.
+
 ## Integrated native text qualification (#29)
 
 This section is the current evidence for #25–#28. Earlier sections are historical reports, not

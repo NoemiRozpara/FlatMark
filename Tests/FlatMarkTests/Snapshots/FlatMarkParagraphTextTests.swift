@@ -10,7 +10,7 @@ import FlatMarkFixtures
 @MainActor
 struct FlatMarkParagraphTextTests {
     @Test func combinedIntentsPreserveUnicodeAndConsecutiveNewlines() throws {
-        var text = AttributedString("👩🏽‍💻 café\n\n漢字")
+        var text = AttributedString("👩🏽‍💻 cafe\u{301}\n\n漢字 English עברית العربية\n")
         text.inlinePresentationIntent = [.code, .stronglyEmphasized, .emphasized, .strikethrough]
         let native = render(.init(text: text))
         #expect(native.string == String(text.characters))
@@ -23,6 +23,37 @@ struct FlatMarkParagraphTextTests {
             #expect(native.attribute(.strikethroughStyle, at: offset, effectiveRange: nil) as? Int
                 == NSUnderlineStyle.single.rawValue)
         }
+    }
+
+    @Test(arguments: [false, true])
+    func literalAndOmittedUnicodeComposeWithoutSpaces(omitted: Bool) throws {
+        let url = try #require(URL(string: "https://example.com/unicode"))
+        var literal = AttributedString("👩🏽‍💻e\u{301}漢字עברית")
+        literal.link = url
+        let native = render(.init(components: [
+            .text(AttributedString("before\n")),
+            .unsupported(.init(literalText: literal)),
+            .text(AttributedString("\n\nafter\n")),
+        ]), policy: omitted ? .omit : .literal)
+        let middle = omitted ? "" : String(literal.characters)
+        #expect(Array(native.string.utf16) == Array("before\n\(middle)\n\nafter\n".utf16))
+        if !omitted {
+            var range = NSRange()
+            #expect(native.attribute(.link, at: 7, effectiveRange: &range) as? URL == url)
+            #expect(range == NSRange(location: 7, length: middle.utf16.count))
+            for offset in range.location..<NSMaxRange(range) {
+                #expect(native.attribute(.foregroundColor, at: offset, effectiveRange: nil) as? UIColor == .link)
+            }
+        }
+        #expect(native.attribute(.link, at: 0, effectiveRange: nil) == nil)
+        #expect(native.attribute(.link, at: native.length - 1, effectiveRange: nil) == nil)
+    }
+
+    @Test func bodyUsesPreferredSemanticFont() throws {
+        let native = render(.init(text: AttributedString("Body")))
+        #expect(native.attribute(.font, at: 0, effectiveRange: nil) as? UIFont
+            == UIFont.preferredFont(forTextStyle: .body,
+                compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)))
     }
 
     @Test func replacementInheritsIntentAndLinkWithoutChangingNeighbors() throws {
