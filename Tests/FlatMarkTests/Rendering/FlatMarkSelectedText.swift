@@ -19,23 +19,40 @@
             let select = #selector(NSText.selectAll(_:))
             let write = #selector(NSServicesMenuRequestor.writeSelection(to:types:))
             if view.responds(to: select), view.responds(to: write) {
-                guard let requestor = view as? any NSServicesMenuRequestor else {
+                // NSTextView exposes selection export without declaring this optional protocol.
+                let export: (NSPasteboard) -> Bool
+                if let textView = view as? NSTextView {
+                    export = { board in
+                        // AppKit advertises legacy pasteboard names, not the equivalent UTI.
+                        return textView.writeSelection(to: board, types: textView.writablePasteboardTypes)
+                    }
+                } else if let requestor = view as? any NSServicesMenuRequestor {
+                    export = { requestor.writeSelection?(to: $0, types: [.rtf, .string]) == true }
+                } else {
                     throw MountedTextObservationError.selectionExportFailed(
                         "Selection view does not conform to NSServicesMenuRequestor: \(type(of: view))"
                     )
                 }
-                view.perform(select, with: nil)
+                if let textView = view as? NSTextView {
+                    textView.selectAll(nil)
+                } else {
+                    view.perform(select, with: nil)
+                }
                 // Never touch the user's general pasteboard, and release this board after each read.
                 let pasteboard = NSPasteboard.withUniqueName()
                 defer { pasteboard.releaseGlobally() }
-                guard requestor.writeSelection?(to: pasteboard, types: [.rtf, .string]) == true,
+                guard export(pasteboard),
                       let data = pasteboard.data(forType: .rtf),
                       let text = NSAttributedString(rtf: data, documentAttributes: nil) else {
                     // A region displaying nothing has no selection to export, and omission leaves
                     // such a region behind on purpose: an emptied list row, item, or cell keeps its
-                    // slot. Report that as blank wording. A region that takes space and still
-                    // refuses to export is a broken lane, and must say so.
-                    guard view.frame.width == 0 else {
+                    // slot. Report that as blank wording. A collapsed SwiftUI region reports zero
+                    // width; a native text view keeps the width it was offered even when its storage
+                    // is empty, so an empty string is the equivalent signal there. A region that
+                    // takes space, carries wording, and still refuses to export is a broken lane.
+                    let isBlankRegion = view.frame.width == 0
+                        || ((view as? NSTextView).map { $0.string.isEmpty } ?? false)
+                    guard isBlankRegion else {
                         throw MountedTextObservationError.selectionExportFailed(
                             "Selection view did not export decodable RTF: \(type(of: view)) frame: \(view.frame)"
                         )

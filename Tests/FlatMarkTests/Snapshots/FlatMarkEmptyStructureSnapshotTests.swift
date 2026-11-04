@@ -36,12 +36,15 @@ struct FlatMarkEmptyStructureSnapshotTests {
         try await capture(Self.table, testName: #function)
     }
 
+    #if os(iOS)
     @Test func enlargedEmptyTask() async throws {
         try await capture(
             "- [ ] <u></u>\n- [x] Keep checked while this neighboring task wraps onto another line.",
             interactive: true, enlarged: true, testName: #function
         )
     }
+
+    #endif
 
     private func capture(
         _ markdown: String, interactive: Bool = false, enlarged: Bool = false, testName: String

@@ -230,20 +230,48 @@ struct FlatMarkCustomRenderingTests {
         }
 
         @Test
-        func `replacement retains ambient heading font`() async throws {
+        func `replacement uses the explicit heading role font`() async throws {
             let hosted = await mountTestView(FlatMarkView(
                 markdown: "# Before <u>after",
                 unsupportedContentPolicy: .custom { _ in AttributedString("Replacement") }
             ))
             defer { hosted.close() }
-            _ = try await visibleText(showing: "Replacement", in: hosted)
+            _ = try await visibleText(showing: "Before Replacement", in: hosted)
             let exported = try hosted.visibleAttributedText
             let before = (exported.string as NSString).range(of: "Before").location
             let replacement = (exported.string as NSString).range(of: "Replacement").location
-            let expected = try #require(exported.attribute(.font, at: before, effectiveRange: nil) as? NSFont)
-            let actual = try #require(exported.attribute(.font, at: replacement, effectiveRange: nil) as? NSFont)
-            #expect(actual == expected)
-            #expect(actual.pointSize > NSFont.systemFontSize)
+            let supported = try #require(exported.attribute(.font, at: before, effectiveRange: nil) as? NSFont)
+            let replacementFont = try #require(exported.attribute(.font, at: replacement, effectiveRange: nil) as? NSFont)
+            // The explicit role is the typography source, not an arbitrary ambient font: supported and
+            // replaced runs resolve to the same heading level 1 semantic font with its bold emphasis.
+            let roleSize = NSFont.preferredFont(forTextStyle: .title1).pointSize
+            #expect(replacementFont == supported)
+            #expect(replacementFont.pointSize == roleSize)
+            #expect(NSFontManager.shared.traits(of: replacementFont).contains(.boldFontMask))
+            #expect(replacementFont.pointSize > NSFont.preferredFont(forTextStyle: .body).pointSize)
+        }
+
+        @Test
+        func `host font and color win over the heading role while neighbors keep it`() async throws {
+            let hostFont = NSFont.monospacedSystemFont(ofSize: 33, weight: .regular)
+            let hostSegment = AttributedString(NSAttributedString(string: "HOST", attributes: [
+                .font: hostFont, .foregroundColor: NSColor.systemPink,
+            ]))
+            let replacement = AttributedString("In") + hostSegment + AttributedString("ted")
+            let hosted = await mountTestView(FlatMarkView(
+                markdown: "# Before <u>after",
+                unsupportedContentPolicy: .custom { _ in replacement }
+            ))
+            defer { hosted.close() }
+            _ = try await visibleText(showing: "Before InHOSTted", in: hosted)
+            let exported = try hosted.visibleAttributedText
+            let hostIndex = (exported.string as NSString).range(of: "HOST").location
+            let beforeIndex = (exported.string as NSString).range(of: "Before").location
+            #expect(exported.attribute(.font, at: hostIndex, effectiveRange: nil) as? NSFont == hostFont)
+            #expect(exported.attribute(.foregroundColor, at: hostIndex, effectiveRange: nil) as? NSColor == .systemPink)
+            let neighborFont = try #require(exported.attribute(.font, at: beforeIndex, effectiveRange: nil) as? NSFont)
+            #expect(neighborFont.pointSize == NSFont.preferredFont(forTextStyle: .title1).pointSize)
+            #expect(NSFontManager.shared.traits(of: neighborFont).contains(.boldFontMask))
         }
 
         @Test

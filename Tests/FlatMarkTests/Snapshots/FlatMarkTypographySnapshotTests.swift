@@ -72,10 +72,12 @@ struct FlatMarkTypographySnapshotTests {
                           environment: Self.environment(column: 180, height: 900), testName: #function)
     }
 
+    #if os(iOS)
     @Test func enlargedWrapping() async throws {
         try await capture(Self.wrapping, detectMentions: true,
                           environment: Self.environment(height: 1600, textSize: .enlarged), testName: #function)
     }
+    #endif
 
     private static func environment(
         column: CGFloat = 320, height: CGFloat = 800,

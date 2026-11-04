@@ -35,6 +35,7 @@ public struct FlatMarkCustomFixture: View {
     @Bindable public var model: FlatMarkCustomFixtureModel
     @State private var settingsExpanded = false
     @State private var sourceExpanded = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(model: FlatMarkCustomFixtureModel) {
         self.model = model
@@ -100,7 +101,7 @@ public struct FlatMarkCustomFixture: View {
                 Divider()
                 FlatMarkCustomDocumentFixture(model: model)
             }
-            .dynamicTypeSize(model.enlargedText ? .accessibility2 : .large)
+            .dynamicTypeSize(model.enlargedText ? .accessibility2 : dynamicTypeSize)
             .environment(\.layoutDirection, model.rightToLeft ? .rightToLeft : .leftToRight)
             #if os(macOS)
             // macOS does not scale body text from Dynamic Type alone.

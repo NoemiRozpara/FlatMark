@@ -26,6 +26,14 @@ Presets: `daylight`, `midnight`, `generous`, `rightToLeft`, `hostMarkers`,
 The existing bundle identifiers are retained for capture tooling. The launcher
 builds a normal app bundle into `.build/demo`; it no longer assembles one by hand.
 
+The fixture's font-size override is not a system Dynamic Type control. It does not
+enlarge semantic native macOS text, which uses AppKit's preferred font sizes.
+With enlarged text off, the iOS recipe inherits system Dynamic Type instead of pinning `.large`.
+The enlarged preset still overrides it with `.accessibility2`.
+To qualify mounted iOS typography updates, turn enlarged text off and change the system text size
+while the app remains mounted, including an accessibility category. A `generous` capture
+or an environment-only test does not establish that behavior.
+
 To capture all presets, choose a platform and output directory:
 
 ```sh

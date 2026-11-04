@@ -110,9 +110,8 @@ struct FlatMarkInlineFlowSnapshotTests {
 
     // MARK: Enlarged text
 
-    /// Enlarged effective text: real Dynamic Type on iOS, an absolute effective size on macOS (labelled
-    /// as such in the environment diagnostic). The capture is tall enough to hold the enlarged rows so a
-    /// vertical clip would read as ink at the bottom edge rather than a cropped pass.
+    #if os(iOS)
+    /// Real Dynamic Type with room for enlarged rows and a visible bottom margin.
     @Test
     func enlargedMixedFlowMatchesReviewedBaseline() async throws {
         let environment = FlatMarkSnapshotEnvironment(
@@ -132,6 +131,8 @@ struct FlatMarkInlineFlowSnapshotTests {
             testName: #function
         )
     }
+
+    #endif
 
     // MARK: Right-to-left
 

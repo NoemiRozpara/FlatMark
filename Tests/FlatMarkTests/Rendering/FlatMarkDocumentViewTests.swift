@@ -31,6 +31,7 @@ struct FlatMarkInlineViewTests {
             }
         }
         let replacements = text.map { String($0.characters) }.filter { $0.hasPrefix("custom(") }
+        #expect(content.containsImages)
         #expect(view.renderingMode == .inlineText)
         #expect(replacements == ["custom(<u>)", "custom(</u>)", "custom(<u>)", "custom(</u>)"])
         #expect(text.first?
@@ -67,6 +68,7 @@ struct FlatMarkInlineViewTests {
             (.custom(inline: { _ in AttributedString() }), ["a", "b"]),
         ]
 
+        #expect(!content.containsImages)
         for (policy, expected) in policies {
             #expect(FlatMarkInlineView.inlineElements(for: content, policy: policy).map(shaped) == expected)
             #expect(policy.plainText(for: content) == expected.joined())

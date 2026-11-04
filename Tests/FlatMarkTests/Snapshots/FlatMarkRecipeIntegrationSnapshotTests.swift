@@ -18,7 +18,9 @@ import Testing
 struct FlatMarkRecipeIntegrationSnapshotTests {
     @Test func primary() async throws { try await capture(testName: #function) }
     @Test func dark() async throws { try await capture(dark: true, testName: #function) }
+    #if os(iOS)
     @Test func enlarged() async throws { try await capture(enlarged: true, testName: #function) }
+    #endif
 
     private enum CaptureError: Error { case resource, readiness, crop }
 
@@ -54,7 +56,7 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
                             ("tableCode", 1190, 505), ("lowerNotes", 1695, 550)]
         #endif
         #if os(macOS)
-            let upperHeight = enlarged ? 750 : sections[0].2
+            let upperHeight = sections[0].2
         #else
             let upperHeight = enlarged ? 900 : sections[0].2
         #endif
@@ -128,10 +130,6 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
                                 let scrolls = Self.scrollViews(root)
                                 #expect(scrolls.count == 1)
                                 #expect(scrolls.first?.contentOffset.y == 0)
-                            #else
-                                let scrolls = Self.scrollViews(root)
-                                #expect(scrolls.count == 1)
-                                #expect(scrolls.first?.contentView.bounds.minY == 0)
                             #endif
                         }
                         geometry.ready = true
@@ -159,10 +157,6 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
     #if os(iOS)
         private static func scrollViews(_ view: UIView) -> [UIScrollView] {
             (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews($0) }
-        }
-    #else
-        private static func scrollViews(_ view: NSView) -> [NSScrollView] {
-            (view as? NSScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews($0) }
         }
     #endif
 

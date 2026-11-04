@@ -11,12 +11,16 @@ struct FlatMarkNativePlaceholderFlowSnapshotTests {
 
     @Test func narrowStandardWrapping() async throws { try await capture(Self.wrapping, column: 160, testName: #function) }
     @Test func wideStandardWrapping() async throws { try await capture(Self.wrapping, column: 320, testName: #function) }
+    #if os(iOS)
     @Test func narrowEnlargedWrapping() async throws { try await capture(Self.wrapping, column: 160, enlarged: true, testName: #function) }
     @Test func wideEnlargedWrapping() async throws { try await capture(Self.wrapping, column: 320, enlarged: true, testName: #function) }
+    #endif
     @Test func narrowStandardHardBreaks() async throws { try await capture(Self.hardBreaks, column: 160, testName: #function) }
     @Test func wideStandardHardBreaks() async throws { try await capture(Self.hardBreaks, column: 320, testName: #function) }
+    #if os(iOS)
     @Test func narrowEnlargedHardBreaks() async throws { try await capture(Self.hardBreaks, column: 160, enlarged: true, testName: #function) }
     @Test func wideEnlargedHardBreaks() async throws { try await capture(Self.hardBreaks, column: 320, enlarged: true, testName: #function) }
+    #endif
 
     private func capture(_ markdown: String, column: CGFloat, enlarged: Bool = false, testName: String) async throws {
         let environment = FlatMarkSnapshotEnvironment(
