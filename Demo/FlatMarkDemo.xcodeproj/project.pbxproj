@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 51;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -115,7 +115,7 @@
 		255326C1A94FAA0C4FB64F0C /* FlatMarkLinkedImageSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkLinkedImageSnapshotTests.swift; sourceTree = "<group>"; };
 		2B52447578BF9B58B7140F42 /* FlatMarkEmptyStructureSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkEmptyStructureSnapshotTests.swift; sourceTree = "<group>"; };
 		2B603C262CD85436FF54FECA /* FlatMarkSnapshotCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkSnapshotCapture.swift; sourceTree = "<group>"; };
-		319812CD76FC3E5B7678A650 /* FlatMarkDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FlatMarkDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		319812CD76FC3E5B7678A650 /* FlatMarkDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlatMarkDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BB7EBB52288C03881D9412A /* FlatMarkRecipeSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkRecipeSample.swift; sourceTree = "<group>"; };
 		3FBD97471AF398B212EB8F40 /* FlatMarkSnapshotAssertions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkSnapshotAssertions.swift; sourceTree = "<group>"; };
 		4141AEF103F788C406165986 /* FlatMarkDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlatMarkDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -632,6 +632,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MJXRVBTNWZ;
 				INFOPLIST_KEY_CFBundleDisplayName = "FlatMark Demo";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -668,6 +669,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MJXRVBTNWZ;
 				INFOPLIST_KEY_CFBundleDisplayName = "FlatMark Demo";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
