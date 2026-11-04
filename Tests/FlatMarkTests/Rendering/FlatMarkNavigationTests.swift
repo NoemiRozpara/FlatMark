@@ -39,6 +39,45 @@
         }
 
         @Test(arguments: [
+            "[Details](details)",
+            "| [Details](details) |\n| --- |",
+            "[![Diagram](image.png)](details)",
+        ], ["retainedCallback", "retainedCallbackHandled", "retainedCallbackRejected", "retainedOpener"])
+        func `retained native controls use current host navigation handlers`(markdown: String, decision: String) async throws {
+            let report = try await navigationReport(markdown: markdown, decision: decision)
+            let destination = "https://example.com/docs/details"
+            #expect(report["beforeActivation"] == [])
+            #expect(report["beforeOpening"] == [])
+            #expect(report["activated"] == [(decision.hasPrefix("retainedCallback") ? "new:" : "") + destination])
+            let suppressesOpening = decision == "retainedCallbackHandled" || decision == "retainedCallbackRejected"
+            #expect(report["opened"] == (suppressesOpening ? [] : [(decision == "retainedOpener" ? "new:" : "") + destination]))
+        }
+
+        @Test(arguments: ["custom", "customLink"],
+              ["retainedCallback", "retainedCallbackHandled", "retainedCallbackRejected", "retainedOpener"])
+        func `retained replacement links use current host navigation handlers`(policy: String, decision: String) async throws {
+            let report = try await navigationReport(
+                markdown: "[<tag>](details)", decision: decision, unsupportedPolicy: policy
+            )
+            let destination = policy == "customLink"
+                ? "https://host.example/explicit" : "https://example.com/docs/details"
+            #expect(report["beforeActivation"] == [])
+            #expect(report["beforeOpening"] == [])
+            #expect(report["activated"] == [(decision.hasPrefix("retainedCallback") ? "new:" : "") + destination])
+            let suppressesOpening = decision == "retainedCallbackHandled" || decision == "retainedCallbackRejected"
+            #expect(report["opened"] == (suppressesOpening ? [] : [(decision == "retainedOpener" ? "new:" : "") + destination]))
+        }
+
+        @Test(arguments: ["[**Details**]()", "[**Details**](<http://[>)", "Plain neighbor [Details](details)"], ["retainedCallback", "retainedOpener"])
+        func `retained inert labels ignore updated handlers`(markdown: String, decision: String) async throws {
+            let report = try await navigationReport(markdown: markdown, decision: decision)
+            #expect(report["beforeActivation"] == [])
+            #expect(report["beforeOpening"] == [])
+            #expect(report["activated"] == [])
+            #expect(report["opened"] == [])
+        }
+
+        @Test(arguments: [
             "[**Details**]()",
             "[**Details**](details)",
             "[**Details**](<http://[>)",

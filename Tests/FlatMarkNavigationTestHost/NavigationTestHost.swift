@@ -31,7 +31,13 @@
             // because no call count is a lifecycle guarantee.
             var customPayloads: [String] = []
             var customActivations = 0
+            let updatesCallback = decision.hasPrefix("retainedCallback")
+            let updatesOpener = decision == "retainedOpener"
             let action: ((URL) -> FlatMarkLinkActivationResult)? = decision == "omitted" ? nil : { url in
+                if updatesCallback {
+                    activated.append("old:" + url.absoluteString)
+                    return .handled
+                }
                 activated.append(url.absoluteString)
                 switch decision {
                 case "handled": return .handled
@@ -70,28 +76,30 @@
             default:
                 policy = .literal
             }
-            let view: FlatMarkView
-            if let policy {
-                view = FlatMarkView(
-                    markdown: markdown,
-                    baseURL: base,
-                    imageLoader: loader,
-                    unsupportedContentPolicy: policy,
-                    linkActivationAction: action
-                )
-            } else {
-                // Keep the public initializer's default distinct from an explicit literal policy.
-                view = FlatMarkView(
-                    markdown: markdown,
-                    baseURL: base,
-                    imageLoader: loader,
-                    linkActivationAction: action
-                )
+            let document = FlatMarkDocument(markdown: markdown, baseURL: base)
+            func root(action: ((URL) -> FlatMarkLinkActivationResult)?, updated: Bool) -> AnyView {
+                let view: FlatMarkView
+                if let policy {
+                    view = FlatMarkView(
+                        document: document,
+                        imageLoader: loader,
+                        unsupportedContentPolicy: policy,
+                        linkActivationAction: action
+                    )
+                } else {
+                    // Keep the public initializer's default distinct from an explicit literal policy.
+                    view = FlatMarkView(
+                        document: document,
+                        imageLoader: loader,
+                        linkActivationAction: action
+                    )
+                }
+                return AnyView(view.coordinateSpace(name: "navigationHost").environment(\.openURL, OpenURLAction { url in
+                    opened.append((updatesOpener ? (updated ? "new:" : "old:") : "") + url.absoluteString)
+                    return .discarded
+                }))
             }
-            let hosting = NSHostingView(rootView: view.coordinateSpace(name: "navigationHost").environment(\.openURL, OpenURLAction { url in
-                opened.append(url.absoluteString)
-                return .discarded
-            }))
+            let hosting = NSHostingView(rootView: root(action: action, updated: false))
             hosting.frame = CGRect(x: 0, y: 0, width: 400, height: hosting.fittingSize.height)
             let window = NSWindow(
                 contentRect: hosting.frame,
@@ -107,6 +115,21 @@
             // Every activation fixture has a leading label or a one-cell table header.
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(100))
+                let originalTarget = hosting.hitTest(NSPoint(x: 20, y: hosting.bounds.midY))
+                if updatesCallback || updatesOpener {
+                    let updatedAction: ((URL) -> FlatMarkLinkActivationResult)? = updatesCallback ? { url in
+                        activated.append("new:" + url.absoluteString)
+                        switch decision {
+                        case "retainedCallbackHandled": return .handled
+                        case "retainedCallbackRejected": return .rejected
+                        default: return .useDefaultOpening
+                        }
+                    } : action
+                    hosting.rootView = root(action: updatedAction, updated: true)
+                    hosting.layoutSubtreeIfNeeded()
+                    hosting.displayIfNeeded()
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
                 // Positive image controls wait for a real loader call, not just a layout delay.
                 for _ in 0 ..< 100 where recorder.urls.count < expectedImageLoads {
                     try? await Task.sleep(for: .milliseconds(10))
@@ -116,9 +139,13 @@
                 let point = recorder.replacementFrame.map { NSPoint(x: $0.midX, y: $0.midY) }
                     ?? NSPoint(x: 20, y: hosting.bounds.midY)
                 guard let target = hosting.hitTest(point) else { exit(3) }
+                if updatesCallback || updatesOpener {
+                    // Replacing the root must update the mounted control, not mount a fresh one.
+                    guard target === originalTarget else { exit(8) }
+                }
                 if let text = target as? NSTextView, let manager = text.layoutManager,
-                   let container = text.textContainer, text.string.isEmpty == false,
-                   let expectedLink = text.textStorage?.attribute(.link, at: 0, effectiveRange: nil) as? URL {
+                   let container = text.textContainer, text.string.isEmpty == false {
+                    let expectedLink = text.textStorage?.attribute(.link, at: 0, effectiveRange: nil) as? URL
                     // Revalidate the fixed click point against glyphs, not just the view's frame.
                     manager.ensureLayout(for: container)
                     let local = text.convert(point, from: hosting)

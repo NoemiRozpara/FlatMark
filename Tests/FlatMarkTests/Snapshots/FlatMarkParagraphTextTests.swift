@@ -109,6 +109,111 @@ struct FlatMarkParagraphTextTests {
         )
     }
 
+    @Test func retainedParagraphUpdatesDynamicTypeAndWidthWithoutOverlap() async throws {
+        let document = FlatMarkDocument(markdown: "A long paragraph with enough words to wrap repeatedly at narrow widths. Unicode café 漢字 and more words for several lines.\n\nFollowing paragraph.")
+        func root(_ size: DynamicTypeSize, width: CGFloat) -> some View {
+            FlatMarkView(document: document)
+                .environment(\.dynamicTypeSize, size)
+                .frame(width: width)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        let host = UIHostingController(rootView: root(.large, width: 140))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 440, height: 1400))
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true; window.rootViewController = nil }
+        await settle(host.view)
+        let original = try #require(textViews(in: host.view).first)
+        var heights: [CGFloat] = []
+        var sizes: [CGFloat] = []
+        for (size, width) in [(DynamicTypeSize.large, CGFloat(140)), (.large, 400),
+                              (.large, 140), (.accessibility3, 140), (.large, 140)] {
+            host.rootView = root(size, width: width)
+            await settle(host.view)
+            let views = textViews(in: host.view)
+            #expect(views.count == 2)
+            let first = try #require(views.first)
+            #expect(first === original)
+            #expect(abs(first.bounds.width - width) < 1)
+            try expectCompleteLayout(views, in: host.view)
+            let font = try #require(first.attributedText.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
+            let category: UIContentSizeCategory = size == .large ? .large : .accessibilityExtraLarge
+            #expect(font.pointSize == UIFont.preferredFont(forTextStyle: .body,
+                compatibleWith: UITraitCollection(preferredContentSizeCategory: category)).pointSize)
+            heights.append(first.bounds.height)
+            sizes.append(font.pointSize)
+        }
+        #expect(heights[0] > heights[1])
+        #expect(heights[0] == heights[2])
+        #expect(heights[3] > heights[2])
+        #expect(heights[4] == heights[0])
+        #expect(sizes[3] > sizes[0])
+    }
+
+    @Test func retainedReplacementUpdatesAttributesDirectionAndHeight() async throws {
+        let document = FlatMarkDocument(markdown: "Before <tag> after.\n\nFollowing paragraph.")
+        let font = UIFont.monospacedSystemFont(ofSize: 23, weight: .medium)
+        func root(_ wording: String, direction: LayoutDirection) -> some View {
+            var replacement = AttributedString(wording)
+            replacement.uiKit.font = font
+            replacement.uiKit.foregroundColor = .systemPurple
+            return FlatMarkView(document: document, unsupportedContentPolicy: .custom { _ in replacement })
+                .environment(\.layoutDirection, direction)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 260)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        let host = UIHostingController(rootView: root("short", direction: .leftToRight))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 340, height: 900))
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true; window.rootViewController = nil }
+        await settle(host.view)
+        let original = try #require(textViews(in: host.view).first)
+        var heights: [CGFloat] = []
+        for (wording, direction) in [("short", LayoutDirection.leftToRight),
+                                     ("café مرحبا 123\nsecond\nthird", .rightToLeft), ("short", .leftToRight)] {
+            host.rootView = root(wording, direction: direction)
+            await settle(host.view)
+            let views = textViews(in: host.view)
+            #expect(views.count == 2)
+            let first = try #require(views.first)
+            #expect(first === original)
+            #expect(first.text == "Before \(wording) after.")
+            let storage = try #require(first.attributedText)
+            let offset = (storage.string as NSString).range(of: wording).location
+            #expect(storage.attribute(.font, at: offset, effectiveRange: nil) as? UIFont == font)
+            #expect(storage.attribute(.foregroundColor, at: offset, effectiveRange: nil) as? UIColor == .systemPurple)
+            let paragraph = try #require(storage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
+            #expect(paragraph.baseWritingDirection == (direction == .rightToLeft ? .rightToLeft : .leftToRight))
+            #expect(paragraph.alignment == (direction == .rightToLeft ? .left : .right))
+            try expectCompleteLayout(views, in: host.view)
+            heights.append(first.bounds.height)
+        }
+        #expect(heights[1] > heights[0])
+        #expect(heights[2] == heights[0])
+    }
+
+    private func textViews(in view: UIView) -> [UITextView] {
+        if let text = view as? UITextView { return [text] }
+        return view.subviews.flatMap { textViews(in: $0) }
+    }
+
+    private func settle(_ view: UIView) async {
+        for _ in 0..<3 { await Task.yield() }
+        try? await Task.sleep(for: .milliseconds(30))
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+    }
+
+    private func expectCompleteLayout(_ views: [UITextView], in root: UIView) throws {
+        let first = try #require(views.first)
+        let second = try #require(views.last)
+        let required = first.sizeThatFits(CGSize(width: first.bounds.width, height: .greatestFiniteMagnitude))
+        #expect(first.bounds.height >= floor(required.height))
+        #expect(first.convert(first.bounds, to: root).maxY <= second.convert(second.bounds, to: root).minY)
+    }
+
     @Test func semanticTypographyScalesAndKeepsDirectionSeparateFromAlignment() throws {
         var text = AttributedString("مرحبا café")
         text.font = .system(size: 99)

@@ -105,6 +105,87 @@ struct FlatMarkAppKitParagraphTextTests {
         )
     }
 
+    @Test func retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() async throws {
+        let document = FlatMarkDocument(markdown: "A long paragraph with enough words to wrap repeatedly at a narrow width. Unicode café 漢字 and more words to establish several native lines.\n\nFollowing paragraph.")
+        let hosted = await mountTestView(FlatMarkView(document: document), size: CGSize(width: 140, height: 800))
+        defer { hosted.close() }
+        func textViews(in view: NSView) -> [NSTextView] {
+            if let text = view as? NSTextView { return [text] }
+            return view.subviews.flatMap { textViews(in: $0) }
+        }
+        let original = try #require(textViews(in: hosted.view).first)
+        var heights: [CGFloat] = []
+        for width in [CGFloat(140), 400, 140] {
+            hosted.view.setFrameSize(CGSize(width: width, height: 800))
+            await settleMountedRendering()
+            hosted.view.layoutSubtreeIfNeeded()
+            hosted.view.displayIfNeeded()
+            let views = textViews(in: hosted.view)
+            #expect(views.count == 2)
+            let first = try #require(views.first)
+            let second = try #require(views.last)
+            #expect(first === original)
+            #expect(abs(first.bounds.width - width) < 1)
+            let manager = try #require(first.layoutManager)
+            let container = try #require(first.textContainer)
+            manager.ensureLayout(for: container)
+            #expect(abs(container.containerSize.width - width) < 1)
+            #expect(first.bounds.height >= ceil(manager.usedRect(for: container).maxY))
+            let firstFrame = first.convert(first.bounds, to: hosted.view)
+            let secondFrame = second.convert(second.bounds, to: hosted.view)
+            if hosted.view.isFlipped {
+                #expect(firstFrame.maxY <= secondFrame.minY)
+            } else {
+                #expect(secondFrame.maxY <= firstFrame.minY)
+            }
+            heights.append(first.bounds.height)
+        }
+        #expect(heights[0] > heights[1])
+        #expect(heights[0] == heights[2])
+    }
+
+    @Test func retainedReplacementUpdatesWordingHeightDirectionAndHostAttributes() async throws {
+        let document = FlatMarkDocument(markdown: "Before <tag> after.\n\nFollowing paragraph.")
+        let font = NSFont.monospacedSystemFont(ofSize: 23, weight: .medium)
+        func replacement(_ wording: String) -> AttributedString {
+            AttributedString(NSAttributedString(string: wording, attributes: [
+                .font: font, .foregroundColor: NSColor.systemPurple
+            ]))
+        }
+        func root(_ wording: String, direction: LayoutDirection) -> some View {
+            FlatMarkView(document: document, unsupportedContentPolicy: .custom { _ in replacement(wording) })
+                .environment(\.layoutDirection, direction)
+        }
+        let hosted = await mountTestView(root("short", direction: .leftToRight), size: CGSize(width: 260, height: 800))
+        defer { hosted.close() }
+        func textViews(in view: NSView) -> [NSTextView] {
+            if let text = view as? NSTextView { return [text] }
+            return view.subviews.flatMap { textViews(in: $0) }
+        }
+        let original = try #require(textViews(in: hosted.view).first)
+        var heights: [CGFloat] = []
+        for (wording, direction) in [("short", LayoutDirection.leftToRight), ("café مرحبا 123\nsecond\nthird", .rightToLeft), ("short", .leftToRight)] {
+            hosted.view.rootView = root(wording, direction: direction)
+            await settleMountedRendering()
+            hosted.view.layoutSubtreeIfNeeded()
+            let views = textViews(in: hosted.view)
+            #expect(views.count == 2)
+            let first = try #require(views.first)
+            #expect(first === original)
+            #expect(first.string == "Before \(wording) after.")
+            let storage = try #require(first.textStorage)
+            let offset = (first.string as NSString).range(of: wording).location
+            #expect(storage.attribute(.font, at: offset, effectiveRange: nil) as? NSFont == font)
+            #expect(storage.attribute(.foregroundColor, at: offset, effectiveRange: nil) as? NSColor == .systemPurple)
+            let paragraph = try #require(storage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
+            #expect(paragraph.baseWritingDirection == (direction == .rightToLeft ? .rightToLeft : .leftToRight))
+            #expect(paragraph.alignment == (direction == .rightToLeft ? .right : .left))
+            heights.append(first.bounds.height)
+        }
+        #expect(heights[1] > heights[0])
+        #expect(heights[2] == heights[0])
+    }
+
     @Test func trailingBreaksReserveEmptyNativeLines() async throws {
         let environment = FlatMarkSnapshotEnvironment(
             captureSize: CGSize(width: 220, height: 200), columnWidth: 140, contentInset: 20,
