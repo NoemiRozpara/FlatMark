@@ -2,10 +2,17 @@
 import SwiftUI
 import UIKit
 
-/// Native text for image-free paragraphs. Image routing remains the caller's responsibility.
+/// Native text for image-free inline content. Image routing remains the caller's responsibility.
 struct FlatMarkParagraphText: UIViewRepresentable {
     let content: FlatMarkRenderInlineContent
+    let role: FlatMarkTextRole
     let context: FlatMarkRenderContext
+
+    init(content: FlatMarkRenderInlineContent, role: FlatMarkTextRole, context: FlatMarkRenderContext) {
+        self.content = content
+        self.role = role
+        self.context = context
+    }
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.layoutDirection) private var layoutDirection
@@ -35,6 +42,7 @@ struct FlatMarkParagraphText: UIViewRepresentable {
         view.attributedText = Self.attributedText(
             for: content,
             policy: self.context.unsupportedContentPolicy,
+            role: role,
             dynamicTypeSize: dynamicTypeSize,
             layoutDirection: layoutDirection,
             alignment: alignment
@@ -51,6 +59,7 @@ struct FlatMarkParagraphText: UIViewRepresentable {
     static func attributedText(
         for content: FlatMarkRenderInlineContent,
         policy: FlatMarkUnsupportedContentPolicy,
+        role: FlatMarkTextRole = .body,
         dynamicTypeSize: DynamicTypeSize,
         layoutDirection: LayoutDirection,
         alignment: TextAlignment
@@ -71,10 +80,7 @@ struct FlatMarkParagraphText: UIViewRepresentable {
         case .accessibility5: category = .accessibilityExtraExtraExtraLarge
         @unknown default: category = .large
         }
-        let body = UIFont.preferredFont(
-            forTextStyle: .body,
-            compatibleWith: UITraitCollection(preferredContentSizeCategory: category)
-        )
+        let roleFont = Self.roleFont(for: role, category: category)
         let result = NSMutableAttributedString(string: "")
         for component in content.components {
             let text: AttributedString
@@ -93,9 +99,10 @@ struct FlatMarkParagraphText: UIViewRepresentable {
                 let intents = run.inlinePresentationIntent ?? []
                 // Native host fonts are authoritative. SwiftUI fonts use semantic native typography.
                 if native.attribute(.font, at: 0, effectiveRange: nil) == nil {
-                    var font = body
+                    var font = roleFont
                     if intents.contains(.code) {
-                        font = .monospacedSystemFont(ofSize: body.pointSize, weight: .regular)
+                        let weight: UIFont.Weight = role.includesBoldEmphasis ? .bold : .regular
+                        font = .monospacedSystemFont(ofSize: roleFont.pointSize, weight: weight)
                     }
                     var traits = font.fontDescriptor.symbolicTraits
                     if intents.contains(.stronglyEmphasized) { traits.insert(.traitBold) }
@@ -136,6 +143,30 @@ struct FlatMarkParagraphText: UIViewRepresentable {
             }
         }
         return result
+    }
+
+    /// The role's semantic font at the given Dynamic Type size, without hardcoded point sizes.
+    static func roleFont(for role: FlatMarkTextRole, category: UIContentSizeCategory) -> UIFont {
+        let style: UIFont.TextStyle
+        switch role {
+        case .body, .tableHeader:
+            style = .body
+        case let .heading(level):
+            switch level {
+            case 1: style = .title1
+            case 2: style = .title2
+            case 3: style = .title3
+            default: style = .headline
+            }
+        }
+        let base = UIFont.preferredFont(
+            forTextStyle: style,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: category)
+        )
+        guard role.includesBoldEmphasis else { return base }
+        let traits = base.fontDescriptor.symbolicTraits.union(.traitBold)
+        let descriptor = base.fontDescriptor.withSymbolicTraits(traits) ?? base.fontDescriptor
+        return UIFont(descriptor: descriptor, size: base.pointSize)
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {

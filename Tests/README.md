@@ -3,6 +3,43 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Native inline roles and macOS baseline correction (#27)
+
+Image-free headings, list labels, and table cells now share the paragraph bridges. Headings resolve
+semantic level fonts; table headers resolve bold body typography. Image-containing values retain
+the complete SwiftUI path. The macOS inline entry supplies a first-text-baseline alignment guide
+from TextKit glyph geometry. Overriding the native view's baseline alone did not affect SwiftUI.
+Markers and task controls remain siblings of the text.
+
+Verification environment: Xcode 27.0 (27A266a), Swift 6.4, macOS 27.0.1 (26A434), arm64,
+and iPhone 18 Pro simulator on iOS 27.0. Minimum OS/toolchain behavior remains unverified.
+
+- A mounted baseline test compares the inline entry with SwiftUI body text. Removing the alignment
+  guide fails with a 13-point baseline difference; restoring it passes. Fresh macOS task captures
+  show aligned first lines for default/custom markers and RTL rows, including wrapped labels.
+- Re-recorded nine affected namespaces: Typography, Tables, NestedContainers, TaskMarkers,
+  UnsupportedPolicies, PolicyTransitions, Recipe, OmissionSpacing, and EmptyStructures. Relative to
+  the preceding commit, 72 macOS and 45 iOS PNGs changed. Image-only suites and three image-only
+  macOS PolicyTransitions references remain unchanged. No comparison tolerance changed.
+- Inspected all changed captures in trimmed contact sheets, plus the full-size macOS baseline
+  capture. Text, table endpoints, nested list labels, custom replacements, and recipe sections remain
+  visible in the inspected captures. This is static capture review, not live interaction evidence.
+- The affected macOS selection passes 54 tests in nine suites twice. It excludes the unchanged
+  image-description and fresh-image-mount cases. `swift test --skip Snapshot` passes 181 tests in
+  20 suites, with one known LoaderSpy issue. Focused bridge/custom-content checks pass 35 tests.
+- The full iOS target passes 91/91 on two runs. An intervening run passes 89 tests but reports a
+  killed fresh-mount test and a runner bootstrap failure; a later full run passes 91/91.
+- The final full package run selects 263 tests and reports 11 issues, including the known issue:
+  nine comparisons in unchanged image paths and one image-loader confirmation timeout. The isolated
+  loader test passes afterward. The full package suite is not green; image-path failures were not
+  hidden by re-recording those references.
+- Reference SHA-256 manifests remain identical through final verification. `git diff --check` passes.
+  Logs, pre-record references, manifests, and review sheets are under `/tmp/flatmark27-review/`.
+
+The earlier demo builds/launches do not qualify the corrected macOS baseline in a running app.
+Independent live task/link/block activation, selection, VoiceOver, and minimum-platform checks
+remain unperformed for this correction.
+
 ## Native macOS paragraphs (#26)
 
 Image-free macOS paragraphs now use selectable, noneditable `NSTextView` storage with AppKit's

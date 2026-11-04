@@ -17,7 +17,7 @@ Status meanings:
 | Construct | Status | Notes |
 | --- | --- | --- |
 | Paragraphs | Fully rendered | Native `Text`. |
-| ATX headings (`#`) | Fully rendered | Native heading text with level-specific font and header accessibility trait. |
+| ATX headings (`#`) | Fully rendered | Native heading text in a semantic level role (levels 1–3 title/title2/title3, 4–6 headline) with header accessibility trait. |
 | Setext headings (`===` / `---`) | Fully rendered | Parsed as the same heading node as ATX headings and given the same native treatment. |
 | Thematic breaks | Fully rendered | Native `Divider`. |
 | Indented code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; the source indentation is not reproduced. |
@@ -31,7 +31,7 @@ Status meanings:
 | Ordered lists, including start number | Fully rendered | Native rows retain their authored starting number. |
 | List items with continuation blocks | Fully rendered | Paragraphs, quotes, code blocks, and nested lists following an item remain ordered child content. |
 | Nested containers (quotes, lists, and blocks within list items) | Fully rendered | Containers are recursively projected; list rows use a flat rendering sequence with indentation. |
-| GFM tables | Rendered with documented policy | Header and body cells render in a horizontally scrollable native grid. |
+| GFM tables | Rendered with documented policy | Header and body cells render in a horizontally scrollable native grid; image-free cells use native attributed text and headers keep native emphasis. |
 | GFM table column alignment | Parsed but omitted | Alignment delimiters are parsed as table metadata but do not affect native cell alignment. |
 | GFM task-list items | Fully rendered | Checked and unchecked markers render as task rows; supplying `taskToggleAction` makes an addressable marker interactive, and an unaddressable task stays static content that keeps its state. |
 
@@ -54,7 +54,7 @@ Status meanings:
 | CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links and use the same absolute-URL policy. |
 | GFM extended autolinks (`www.` and bare email forms) | Unsupported | The parser is not configured with GFM's extended-autolink extension, so these forms remain text rather than link nodes. |
 | Images | Rendered with documented policy | The network-free default is a native alt-text placeholder. Hosts can supply an async loader returning `UIImage` (iOS) or `NSImage` (macOS); relative sources use `baseURL`, and the image scheme policy is applied before loading. Loading failures use a native unavailable placeholder, cancellation is not presented as failure, and titles are omitted. |
-| Inline raw HTML | Rendered with documented policy | Inert literal source text under `.literal`, keeping enclosing Markdown styling and links; absent under `.omit`, with authored spaces and surrounding structure retained. Under `.custom`, each parser node contributes host-returned attributed text beside supported neighbors, inheriting enclosing Markdown intents and links per run where the host omits them. Explicit host intents (including an empty set) replace the default; host links override the enclosing destination. Replacement links use the existing host navigation path. Image-free iOS paragraphs use semantic UIKit typography, preserve explicit native `UIFont` and foreground-color attributes, and do not inherit arbitrary ambient SwiftUI styles. SwiftUI `Font` attributes use semantic native typography in that path. Other inline callers retain ambient SwiftUI styling. |
+| Inline raw HTML | Rendered with documented policy | Inert literal source text under `.literal`, keeping enclosing Markdown styling and links; absent under `.omit`, with authored spaces and surrounding structure retained. Under `.custom`, each parser node contributes host-returned attributed text beside supported neighbors, inheriting enclosing Markdown intents and links per run where the host omits them. Explicit host intents (including an empty set) replace the default; host links override the enclosing destination. Replacement links use the existing host navigation path. Image-free paragraphs, headings, list text, and table cells use semantic UIKit or AppKit typography for their role, preserve explicit native `UIFont`/`NSFont` and foreground-color attributes, and do not inherit arbitrary ambient SwiftUI styles. SwiftUI `Font` attributes use semantic native typography in that path. Values containing a Markdown image keep ambient SwiftUI styling. |
 
 ### Parsing and GitHub-web behaviors
 

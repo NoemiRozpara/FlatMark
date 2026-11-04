@@ -46,9 +46,13 @@
                       let text = NSAttributedString(rtf: data, documentAttributes: nil) else {
                     // A region displaying nothing has no selection to export, and omission leaves
                     // such a region behind on purpose: an emptied list row, item, or cell keeps its
-                    // slot. Report that as blank wording. A region that takes space and still
-                    // refuses to export is a broken lane, and must say so.
-                    guard view.frame.width == 0 else {
+                    // slot. Report that as blank wording. A collapsed SwiftUI region reports zero
+                    // width; a native text view keeps the width it was offered even when its storage
+                    // is empty, so an empty string is the equivalent signal there. A region that
+                    // takes space, carries wording, and still refuses to export is a broken lane.
+                    let isBlankRegion = view.frame.width == 0
+                        || ((view as? NSTextView).map { $0.string.isEmpty } ?? false)
+                    guard isBlankRegion else {
                         throw MountedTextObservationError.selectionExportFailed(
                             "Selection view did not export decodable RTF: \(type(of: view)) frame: \(view.frame)"
                         )

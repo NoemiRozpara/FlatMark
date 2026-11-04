@@ -112,7 +112,7 @@ struct FlatMarkAppKitParagraphTextTests {
             layoutDirection: .leftToRight, textSize: .body
         )
         _ = try await flatMarkSnapshotImage(
-            of: FlatMarkParagraphText(content: .init(text: AttributedString("one\n\n")), context: .readOnly),
+            of: FlatMarkParagraphText(content: .init(text: AttributedString("one\n\n")), role: .body, context: .readOnly),
             environment: environment,
             prepareMountedView: { root in
                 @MainActor func findText(in view: NSView) -> NSTextView? {
@@ -130,12 +130,92 @@ struct FlatMarkAppKitParagraphTextTests {
         )
     }
 
+    /// A SwiftUI `Font` attribute never drives the native path: each heading level resolves its own
+    /// semantic system font, and the role adds bold emphasis on top.
+    @Test(arguments: [
+        (1, NSFont.TextStyle.title1), (2, .title2), (3, .title3),
+        (4, .headline), (5, .headline), (6, .headline),
+    ] as [(Int, NSFont.TextStyle)])
+    func headingRolesResolveSemanticBoldTypeWithoutFixedSizes(level: Int, style: NSFont.TextStyle) throws {
+        let native = render(.init(text: AttributedString("Head")), role: .heading(level: level))
+        let font = try #require(native.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        let expected = NSFont.preferredFont(forTextStyle: style)
+        #expect(font.pointSize == expected.pointSize)
+        #expect(NSFontManager.shared.traits(of: font).contains(.boldFontMask))
+    }
+
+    @Test func tableHeaderRoleBoldensBodyTypeWithoutChangingSize() throws {
+        let native = render(.init(text: AttributedString("Owner")), role: .tableHeader)
+        let font = try #require(native.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(font.pointSize == NSFont.preferredFont(forTextStyle: .body).pointSize)
+        #expect(NSFontManager.shared.traits(of: font).contains(.boldFontMask))
+    }
+
+    /// Emphasis, strong text, and inline code derive their typography from the resolved heading role.
+    @Test func inlineTraitsDeriveFromTheHeadingRoleFont() throws {
+        var code = AttributedString("code")
+        code.inlinePresentationIntent = .code
+        var emphasis = AttributedString("em")
+        emphasis.inlinePresentationIntent = .emphasized
+        let native = render(.init(components: [.text(code), .text(emphasis)]), role: .heading(level: 1))
+        let titleSize = NSFont.preferredFont(forTextStyle: .title1).pointSize
+        let codeFont = try #require(native.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(codeFont.pointSize == titleSize)
+        #expect(codeFont.fontDescriptor.symbolicTraits.contains(.monoSpace))
+        let emphasisFont = try #require(native.attribute(.font, at: 5, effectiveRange: nil) as? NSFont)
+        #expect(emphasisFont.pointSize == titleSize)
+        #expect(NSFontManager.shared.traits(of: emphasisFont).contains(.italicFontMask))
+    }
+
+    @Test func hostFontAndColorOverrideTheRoleDefaultWhileNeighborsKeepIt() throws {
+        let hostFont = NSFont.boldSystemFont(ofSize: 21)
+        var host = AttributedString(NSAttributedString(string: "host", attributes: [
+            .font: hostFont, .foregroundColor: NSColor.systemTeal
+        ]))
+        let native = render(.init(components: [.text(host), .text(AttributedString(" x"))]), role: .heading(level: 1))
+        #expect(native.attribute(.font, at: 0, effectiveRange: nil) as? NSFont == hostFont)
+        #expect(native.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor == .systemTeal)
+        let titleSize = NSFont.preferredFont(forTextStyle: .title1).pointSize
+        let neighborFont = try #require(native.attribute(.font, at: 5, effectiveRange: nil) as? NSFont)
+        #expect(neighborFont.pointSize == titleSize)
+        #expect(NSFontManager.shared.traits(of: neighborFont).contains(.boldFontMask))
+    }
+
+    @Test func inlineTextExportsTheFirstLineBaselineToSwiftUI() async throws {
+        _ = try await flatMarkSnapshotImage(
+            of: NativeBaselineProbe {
+                Text("First").font(.body)
+                FlatMarkInlineView(content: "First\nSecond", context: .readOnly)
+            },
+            environment: .standard
+        )
+    }
+
     private func render(
         _ content: FlatMarkRenderInlineContent,
-        policy: FlatMarkUnsupportedContentPolicy = .literal
+        policy: FlatMarkUnsupportedContentPolicy = .literal,
+        role: FlatMarkTextRole = .body
     ) -> NSAttributedString {
-        FlatMarkParagraphText.attributedText(for: content, policy: policy,
+        FlatMarkParagraphText.attributedText(for: content, policy: policy, role: role,
                                             layoutDirection: .leftToRight, alignment: .leading)
+    }
+}
+
+/// Compare the bridge with SwiftUI's own baseline, not a fixture point-size constant.
+private struct NativeBaselineProbe: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let proposal = ProposedViewSize(width: 100, height: nil)
+        let reference = subviews[0].dimensions(in: proposal)
+        let native = subviews[1].dimensions(in: proposal)
+        #expect(abs(reference[.firstTextBaseline] - native[.firstTextBaseline]) < 1)
+        return CGSize(width: 200, height: max(reference.height, native.height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for (index, view) in subviews.enumerated() {
+            view.place(at: CGPoint(x: bounds.minX + CGFloat(index) * 100, y: bounds.minY),
+                       proposal: ProposedViewSize(width: 100, height: nil))
+        }
     }
 }
 #endif

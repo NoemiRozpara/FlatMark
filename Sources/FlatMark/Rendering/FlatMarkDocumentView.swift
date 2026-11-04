@@ -56,20 +56,11 @@ struct FlatMarkBlockView: View {
     var body: some View {
         switch block.kind {
         case let .paragraph(content):
-            if content.containsImages {
-                FlatMarkInlineView(content: content, context: context)
-            } else {
-                FlatMarkParagraphText(content: content, context: context)
-            }
+            FlatMarkInlineView(content: content, context: context)
 
         case let .heading(level, content):
-            FlatMarkInlineView(
-                content: content,
-                context: context
-            )
-            .font(font(for: level))
-            .bold()
-            .accessibilityAddTraits(.isHeader)
+            FlatMarkInlineView(content: content, context: context, role: .heading(level: level))
+                .accessibilityAddTraits(.isHeader)
 
         case let .codeBlock(content):
             Text(content)
@@ -113,19 +104,6 @@ struct FlatMarkBlockView: View {
             }
         }
     }
-
-    private func font(for level: Int) -> Font {
-        switch level {
-        case 1:
-            .title
-        case 2:
-            .title2
-        case 3:
-            .title3
-        default:
-            .headline
-        }
-    }
 }
 
 // MARK: - FlatMarkTableView
@@ -150,8 +128,7 @@ struct FlatMarkTableView: View {
                 ) {
                     GridRow {
                         ForEach(table.header) { cell in
-                            adaptivelySized(inlineView(for: cell.content))
-                                .bold()
+                            adaptivelySized(inlineView(for: cell.content, role: .tableHeader))
                                 .accessibilityAddTraits(.isHeader)
                         }
                     }
@@ -162,7 +139,7 @@ struct FlatMarkTableView: View {
                             .background(.secondary)
                         GridRow {
                             ForEach(row.cells) { cell in
-                                adaptivelySized(inlineView(for: cell.content))
+                                adaptivelySized(inlineView(for: cell.content, role: .body))
                                     .gridCellColumns(cell.colspan)
                             }
                         }
@@ -182,8 +159,11 @@ struct FlatMarkTableView: View {
             .frame(width: cellWidth, alignment: .topLeading)
     }
 
-    private func inlineView(for content: FlatMarkRenderInlineContent) -> some View {
-        FlatMarkInlineView(content: content, context: context)
+    private func inlineView(
+        for content: FlatMarkRenderInlineContent,
+        role: FlatMarkTextRole
+    ) -> some View {
+        FlatMarkInlineView(content: content, context: context, role: role)
     }
 }
 
@@ -233,6 +213,7 @@ struct FlatMarkInlineView: View {
 
     let content: FlatMarkRenderInlineContent
     let context: FlatMarkRenderContext
+    var role: FlatMarkTextRole = .body
 
     @State private var imagePhases: [Int: ImagePhase] = [:]
 
@@ -251,10 +232,52 @@ struct FlatMarkInlineView: View {
     }
 
     var body: some View {
-        accessibleContent
-            .task(id: imageTaskID) {
-                await loadImages()
+        // Image-free values use the native text bridge; any value containing a Markdown image keeps
+        // the whole existing renderer, in every loading phase, with its role styling applied here.
+        if content.containsImages {
+            imageBearingContent
+                .task(id: imageTaskID) {
+                    await loadImages()
+                }
+        } else {
+            #if os(macOS)
+            let text = FlatMarkParagraphText(content: content, role: role, context: context)
+            text.alignmentGuide(.firstTextBaseline) { dimensions in
+                text.firstBaseline(width: dimensions.width)
             }
+            #else
+            FlatMarkParagraphText(content: content, role: role, context: context)
+            #endif
+        }
+    }
+
+    /// The image-bearing SwiftUI path, with the role typography the native bridge otherwise supplies.
+    @ViewBuilder
+    private var imageBearingContent: some View {
+        switch role {
+        case let .heading(level):
+            accessibleContent
+                .font(headingFont(for: level))
+                .bold()
+        case .tableHeader:
+            accessibleContent
+                .bold()
+        case .body:
+            accessibleContent
+        }
+    }
+
+    private func headingFont(for level: Int) -> Font {
+        switch level {
+        case 1:
+            .title
+        case 2:
+            .title2
+        case 3:
+            .title3
+        default:
+            .headline
+        }
     }
 
     @ContentBuilder

@@ -133,11 +133,78 @@ struct FlatMarkParagraphTextTests {
         #expect(paragraph.alignment == .left)
     }
 
+    /// A SwiftUI `Font` attribute never drives the native path: each heading level resolves its own
+    /// semantic system font, and the role adds bold emphasis on top.
+    @Test(arguments: [
+        (1, UIFont.TextStyle.title1), (2, .title2), (3, .title3),
+        (4, .headline), (5, .headline), (6, .headline),
+    ] as [(Int, UIFont.TextStyle)])
+    func headingRolesResolveSemanticBoldTypeWithoutFixedSizes(level: Int, style: UIFont.TextStyle) throws {
+        var text = AttributedString("Head")
+        text.font = .system(size: 1)
+        let native = render(.init(text: text), role: .heading(level: level))
+        let font = try #require(native.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
+        let expected = UIFont.preferredFont(
+            forTextStyle: style,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)
+        )
+        #expect(font.pointSize == expected.pointSize)
+        #expect(font.fontDescriptor.symbolicTraits.contains(.traitBold))
+    }
+
+    @Test func tableHeaderRoleBoldensBodyTypeWithoutChangingSize() throws {
+        let native = render(.init(text: AttributedString("Owner")), role: .tableHeader)
+        let font = try #require(native.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
+        let body = UIFont.preferredFont(
+            forTextStyle: .body,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)
+        )
+        #expect(font.pointSize == body.pointSize)
+        #expect(font.fontDescriptor.symbolicTraits.contains(.traitBold))
+    }
+
+    /// Emphasis, strong text, and inline code derive their typography from the resolved heading role.
+    @Test func inlineTraitsDeriveFromTheHeadingRoleFont() throws {
+        var code = AttributedString("code")
+        code.inlinePresentationIntent = .code
+        var emphasis = AttributedString("em")
+        emphasis.inlinePresentationIntent = .emphasized
+        let native = render(.init(components: [.text(code), .text(emphasis)]), role: .heading(level: 1))
+        let title = UIFont.preferredFont(
+            forTextStyle: .title1,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)
+        )
+        let codeFont = try #require(native.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
+        #expect(codeFont.pointSize == title.pointSize)
+        #expect(codeFont.fontDescriptor.symbolicTraits.contains(.traitMonoSpace))
+        let emphasisFont = try #require(native.attribute(.font, at: 5, effectiveRange: nil) as? UIFont)
+        #expect(emphasisFont.pointSize == title.pointSize)
+        #expect(emphasisFont.fontDescriptor.symbolicTraits.contains(.traitItalic))
+    }
+
+    @Test func hostFontAndColorOverrideTheRoleDefaultWhileNeighborsKeepIt() throws {
+        var host = AttributedString("host")
+        let hostFont = UIFont.boldSystemFont(ofSize: 21)
+        host.uiKit.font = hostFont
+        host.uiKit.foregroundColor = .systemTeal
+        let native = render(.init(components: [.text(host), .text(AttributedString(" x"))]), role: .heading(level: 1))
+        #expect(native.attribute(.font, at: 0, effectiveRange: nil) as? UIFont == hostFont)
+        #expect(native.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor == .systemTeal)
+        let title = UIFont.preferredFont(
+            forTextStyle: .title1,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)
+        )
+        let neighborFont = try #require(native.attribute(.font, at: 5, effectiveRange: nil) as? UIFont)
+        #expect(neighborFont.pointSize == title.pointSize)
+        #expect(neighborFont.fontDescriptor.symbolicTraits.contains(.traitBold))
+    }
+
     private func render(
         _ content: FlatMarkRenderInlineContent,
-        policy: FlatMarkUnsupportedContentPolicy = .literal
+        policy: FlatMarkUnsupportedContentPolicy = .literal,
+        role: FlatMarkTextRole = .body
     ) -> NSAttributedString {
-        FlatMarkParagraphText.attributedText(for: content, policy: policy,
+        FlatMarkParagraphText.attributedText(for: content, policy: policy, role: role,
                                             dynamicTypeSize: .large,
                                             layoutDirection: .leftToRight, alignment: .leading)
     }

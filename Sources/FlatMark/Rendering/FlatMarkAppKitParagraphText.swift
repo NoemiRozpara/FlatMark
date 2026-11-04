@@ -2,11 +2,12 @@
 import AppKit
 import SwiftUI
 
-/// Native text for image-free paragraphs. Image routing remains the caller's responsibility.
+/// Native text for image-free inline content. Image routing remains the caller's responsibility.
 struct FlatMarkParagraphText: NSViewRepresentable {
     let content: FlatMarkRenderInlineContent
+    let role: FlatMarkTextRole
 
-    init(content: FlatMarkRenderInlineContent, context: FlatMarkRenderContext) {
+    init(content: FlatMarkRenderInlineContent, role: FlatMarkTextRole, context: FlatMarkRenderContext) {
         // Resolve host output with this render value, not during later native layout updates.
         self.content = FlatMarkRenderInlineContent(components: content.components.map { component in
             if case let .unsupported(value) = component {
@@ -14,6 +15,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
             }
             return component
         })
+        self.role = role
     }
 
     @Environment(\.layoutDirection) private var layoutDirection
@@ -43,7 +45,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
     func updateNSView(_ view: NSTextView, context: Context) {
         context.coordinator.openURL = openURL
         view.textStorage?.setAttributedString(Self.attributedText(
-            for: content, policy: .literal,
+            for: content, policy: .literal, role: role,
             layoutDirection: layoutDirection, alignment: alignment
         ))
         view.invalidateIntrinsicContentSize()
@@ -73,10 +75,11 @@ struct FlatMarkParagraphText: NSViewRepresentable {
     static func attributedText(
         for content: FlatMarkRenderInlineContent,
         policy: FlatMarkUnsupportedContentPolicy,
+        role: FlatMarkTextRole = .body,
         layoutDirection: LayoutDirection,
         alignment: TextAlignment
     ) -> NSAttributedString {
-        let body = NSFont.preferredFont(forTextStyle: .body)
+        let roleFont = Self.roleFont(for: role)
         let result = NSMutableAttributedString(string: "")
         for component in content.components {
             let text: AttributedString
@@ -94,9 +97,10 @@ struct FlatMarkParagraphText: NSViewRepresentable {
                 let intents = run.inlinePresentationIntent ?? []
                 // Native host fonts are authoritative. SwiftUI fonts use semantic native typography.
                 if native.attribute(.font, at: 0, effectiveRange: nil) == nil {
-                    var font = body
+                    var font = roleFont
                     if intents.contains(.code) {
-                        font = .monospacedSystemFont(ofSize: body.pointSize, weight: .regular)
+                        let weight: NSFont.Weight = role.includesBoldEmphasis ? .bold : .regular
+                        font = .monospacedSystemFont(ofSize: roleFont.pointSize, weight: weight)
                     }
                     var traits = font.fontDescriptor.symbolicTraits
                     if intents.contains(.stronglyEmphasized) { traits.insert(.bold) }
@@ -132,6 +136,46 @@ struct FlatMarkParagraphText: NSViewRepresentable {
             }
         }
         return result
+    }
+
+    /// SwiftUI does not read NSTextView's native baseline through NSViewRepresentable.
+    /// Resolve the first glyph's baseline from the displayed typography and offered width.
+    func firstBaseline(width: CGFloat) -> CGFloat {
+        let storage = NSTextStorage(attributedString: Self.attributedText(
+            for: content, policy: .literal, role: role,
+            layoutDirection: .leftToRight, alignment: .leading
+        ))
+        guard storage.length > 0 else { return 0 }
+        let manager = NSLayoutManager()
+        let container = NSTextContainer(containerSize: CGSize(width: width, height: .greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        storage.addLayoutManager(manager)
+        manager.addTextContainer(container)
+        manager.ensureLayout(for: container)
+        let glyph = manager.glyphIndexForCharacter(at: 0)
+        let line = manager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+        return withExtendedLifetime(storage) { line.minY + manager.location(forGlyphAt: glyph).y }
+    }
+
+    /// The role's semantic AppKit font, without hardcoded point sizes.
+    static func roleFont(for role: FlatMarkTextRole) -> NSFont {
+        let style: NSFont.TextStyle
+        switch role {
+        case .body, .tableHeader:
+            style = .body
+        case let .heading(level):
+            switch level {
+            case 1: style = .title1
+            case 2: style = .title2
+            case 3: style = .title3
+            default: style = .headline
+            }
+        }
+        let base = NSFont.preferredFont(forTextStyle: style)
+        guard role.includesBoldEmphasis else { return base }
+        let traits = base.fontDescriptor.symbolicTraits.union(.bold)
+        let descriptor = base.fontDescriptor.withSymbolicTraits(traits)
+        return NSFont(descriptor: descriptor, size: base.pointSize) ?? base
     }
 
     /// Commits the allocated width to native layout before AppKit draws cached glyphs.

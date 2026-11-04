@@ -203,9 +203,9 @@ escaped tags, code, and ordinary text do not invoke either closure.
 
 Replacements keep their structural position and ambient environment. FlatMark adds no literal
 fallback or minimum-size box. Block controls remain independently actionable beside tasks and
-supported links. Inline replacement text outside image-free paragraphs gets ambient SwiftUI
-styling, including heading fonts. Image-free paragraphs use semantic UIKit or AppKit typography.
-They preserve explicit native font and color attributes per run. SwiftUI `Font` attributes
+supported links. Inline replacement text inside image-free content uses semantic UIKit or AppKit
+typography for its role. Image-free paragraphs, headings, list text, and table cells use that native
+path. They preserve explicit native font and color attributes per run. SwiftUI `Font` attributes
 use semantic native typography instead. Host-supplied fixed fonts remain host-owned.
 Each run inherits enclosing Markdown presentation intents and links when the host omits those
 attributes. An explicit host intent replaces the enclosing intent, including an empty intent set
@@ -223,15 +223,19 @@ including interpretation, sanitization, navigation, and resource access. FlatMar
 
 ## Layout and selection limits
 
-Image-free paragraphs compose supported and custom text in a noneditable, selectable
-`UITextView` on iOS or `NSTextView` on macOS. They use system-preferred body typography and measure
-the offered width without a fixed reading width. iOS responds to Dynamic Type; macOS uses AppKit's
-preferred semantic fonts without iOS scaling. Ambient SwiftUI font, foreground style, and tint are
-not styling contracts for this path. Selection may reset on updates; selection is not continuous
-across blocks. Headings, list labels, and table cells retain the existing SwiftUI path.
+Image-free paragraphs, headings, list text, and table cells compose supported and custom text in a
+noneditable, selectable `UITextView` on iOS or `NSTextView` on macOS. Each uses system-preferred
+semantic typography for its role — body, heading level 1–3 (title/title2/title3), heading level 4–6
+(headline), or bold table header — with no fixed point size. Inline emphasis, strong text, mentions,
+and inline code derive their traits from the resolved role font. Each measures the offered width
+without a fixed reading width. iOS responds to Dynamic Type; macOS
+uses AppKit's preferred semantic fonts without iOS scaling. Ambient SwiftUI font, foreground style,
+and tint are not styling contracts for this path. Selection may reset on updates; selection is not
+continuous across blocks.
 
-Any paragraph containing a Markdown image keeps the entire existing renderer in every loading
-phase. Mixed text/image content wraps by native runs rather than character-level typesetting. A long text run may wrap
+Any value containing a Markdown image keeps the entire existing renderer in every loading phase,
+with its existing heading or table-header SwiftUI styling. Mixed text/image content wraps by native
+runs rather than character-level typesetting. A long text run may wrap
 internally or move as a whole. Selection works within supported text
 regions but is not continuous across arbitrary views. Linked images deliberately separate adjacent
 selectable text regions so the image remains independently actionable. Tables scroll horizontally;
