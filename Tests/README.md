@@ -3,6 +3,43 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## AppKit baseline actor isolation (fix2)
+
+Base: fix1 commit `c320753`, with the separate uncommitted #33 qualification changes
+retained. Environment: macOS 27.0.1 (26A434), arm64, Xcode 27 RC / Apple Swift 6.4
+(swiftlang-6.4.0.34.1). Minimum supported OS/toolchain versions remain unverified.
+
+SDK inspection found that SwiftUI's `alignmentGuide` closure is `@Sendable` and
+nonisolated, while `NSViewRepresentable` is main-actor isolated. The baseline helper
+and its stateless attributed-text/font helpers now opt out of inferred isolation.
+Each baseline call owns its TextKit graph and disables background layout. This follows
+Apple's documented [layout-manager thread-safety contract](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/TextLayout/Concepts/LayoutManager.html).
+No displayed native view is accessed, no actor assertion or warning suppression is used,
+and the width-dependent glyph-layout algorithm is unchanged.
+
+```sh
+swift test --filter 'FlatMarkAppKitBaselineIsolationTests|FlatMarkAppKitParagraphTextTests/inlineTextExportsTheFirstLineBaselineToSwiftUI'
+mobilebuildmcp --log-level debug macos build --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-macOS --configuration Debug --arch arm64 --derived-data-path .build/demo --prefer-xcodebuild --verbose
+```
+
+- Focused automated checks: exit 0, **2 tests passed**. The existing mounted SwiftUI
+  check compares the exported baseline with `Text`. The new detached-task check exercises
+  synchronous nonisolated measurement, mixed-font wrapping at 50pt versus 300pt, body
+  versus heading typography, and empty content. Log: `/tmp/flatmark-fix2-baseline.log`.
+  An existing test's unused `var host` warning remains unchanged.
+- Exactly one demo build ran, using the script's actual scheme, also confirmed by
+  `mobilebuildmcp macos list-schemes`. Explicit arm64 destination; no repository defaults
+  file found. CLI exit 0 and raw log ends with `BUILD SUCCEEDED`. The raw log confirms
+  both `FlatMarkAppKitParagraphText.swift` and `FlatMarkDocumentView.swift` compiled.
+  No baseline actor warning or SwiftCompile failure appears. The reported exit-0
+  SwiftCompile failure was **not reproduced**. The unrelated AppIntents metadata-extraction
+  warning remains. CLI log: `/tmp/flatmark-fix2-demo-arm64.log`; complete 628-line build
+  log: `/tmp/flatmark-fix2-demo-arm64-full.log` (copied from MobileBuildMCP's retained
+  `build_macos_2026-11-04T14-56-33-660Z_pid92421_76dfdb3b.log`).
+- `git diff --check` passed. No passing suite was rerun. No running-app pixels, selection,
+  window resizing, iOS behavior, or minimum-toolchain behavior was observed by this fix.
+  The separate #33 terminal-empty-line discrepancy remains unresolved and untouched.
+
 ## AppKit zero-width minimum proposal (fix1)
 
 Environment: macOS 27.0.1 (26A434), arm64, Apple Swift 6.4
