@@ -12,11 +12,20 @@ Status meanings:
 - **Unsupported:** not projected as that construct.
 - **Not applicable:** a source-processing or GitHub-web behavior, rather than a native-preview construct.
 
+Image-free paragraphs, headings, list text, and table cells use noneditable, selectable
+`UITextView`/`NSTextView` controls by default. System semantic fonts resolve body and heading roles;
+table headers use bold body text. Explicit host native fonts and colors win per run. Fixed host
+fonts remain host-owned. iOS follows Dynamic Type; macOS uses AppKit's preferred sizes, not iOS
+scaling. Arbitrary ambient SwiftUI font, foreground style, and tint are not styling contracts.
+Selection may reset on content, styling, or measurement updates; cross-block selection is not
+promised. Values containing Markdown images retain their whole existing renderer in every phase.
+See [layout and selection limits](README.md#layout-and-selection-limits).
+
 ### Block constructs
 
 | Construct | Status | Notes |
 | --- | --- | --- |
-| Paragraphs | Fully rendered | Native `Text`. |
+| Paragraphs | Fully rendered | Native selectable text; image-free content uses `UITextView`/`NSTextView`. |
 | ATX headings (`#`) | Fully rendered | Native heading text in a semantic level role (levels 1–3 title/title2/title3, 4–6 headline) with header accessibility trait. |
 | Setext headings (`===` / `---`) | Fully rendered | Parsed as the same heading node as ATX headings and given the same native treatment. |
 | Thematic breaks | Fully rendered | Native `Divider`. |

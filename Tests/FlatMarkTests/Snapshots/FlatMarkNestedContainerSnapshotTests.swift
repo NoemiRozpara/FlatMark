@@ -64,10 +64,12 @@ struct FlatMarkNestedContainerSnapshotTests {
         try await capture(Self.list, column: 480, height: 750, testName: #function)
     }
 
+    #if os(iOS)
     @Test
     func enlargedListContinuations() async throws {
         try await capture(Self.list, column: 320, height: 2100, textSize: .enlarged, testName: #function)
     }
+    #endif
 
     // The mixed list and nested quote mirrored, so RTL nesting and column fit get the same
     // reviewed coverage as the left-to-right cases.

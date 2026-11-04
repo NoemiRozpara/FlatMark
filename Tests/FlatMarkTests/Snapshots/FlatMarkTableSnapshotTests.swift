@@ -31,9 +31,11 @@ struct FlatMarkTableSnapshotTests {
         try await capture(FlatMarkView(markdown: Self.longTable), column: 240, trailing: true, testName: #function)
     }
 
+    #if os(iOS)
     @Test func enlargedLongCells() async throws {
         try await capture(FlatMarkView(markdown: Self.longTable), column: 320, textSize: .enlarged, testName: #function)
     }
+    #endif
 
     @Test func headerOnly() async throws {
         try await capture(FlatMarkView(markdown: """

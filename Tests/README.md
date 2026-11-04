@@ -3,6 +3,110 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Integrated native text qualification (#29)
+
+This section is the current evidence for #25–#28. Earlier sections are historical reports, not
+qualification of later code. In particular, historical macOS enlarged-text observations and
+reference counts below no longer describe the registered snapshot inventory.
+
+### Boundary and inspection
+
+Image-free paragraphs, headings, list labels, and table cells use selectable, noneditable native
+text by default. Their supported and replacement runs share storage, without synthetic spaces.
+Body/headings use semantic system fonts; table headers use bold body text. Explicit host native
+fonts/colors win per run, including fixed fonts. Missing replacement intents/links inherit; explicit
+values and explicit empty intents win. Arbitrary ambient SwiftUI font/foreground-style/tint
+inheritance is not promised. Selection may reset on content, styling, or measurement updates.
+Neither selection preservation nor cross-block selection is promised. See the authoritative
+[layout contract](../README.md#layout-and-selection-limits) and [support matrix](../SUPPORT.md).
+
+Inspection confirms that `containsImages` selects the whole old renderer before native conversion,
+in every image phase. Block overrides, task controls, and fenced code remain outside conversion.
+Finite positive offered widths control native measurement; other proposals retain native sizing.
+Writing direction and leading/trailing alignment resolve separately. Native delegates refresh their
+opener on updates. `activationOpenURL(inheriting:)` calls the host decision and delegates default
+opening once to the inherited opener, not a browser-opening substitute.
+
+### Environment and automated results
+
+Run on 2026-11-04: Xcode 27.0 (27A266a), Swift 6.4, arm64, macOS 27.0.1 (26A434), built-in
+3456×2234 Retina display; iPhone 18 Pro simulator on iOS 27.0. These are not minimum-platform results.
+Build/test commands used MobileBuildMCP with `Demo/FlatMarkDemo.xcodeproj`, discovered schemes,
+and the booted simulator. No reference recording or comparison-tolerance changes were made.
+
+- `swift test`: 254 tests in 33 suites, **not green**. Ten issues include the known LoaderSpy issue
+  and nine image-path pixel comparisons. The same comparison failures occur before and after the
+  fixture change. No native text behavior assertion failed.
+- `swift test --skip Snapshot`: 186 tests in 20 suites passed, with the known LoaderSpy issue.
+- `FlatMarkSnapshots-iOS`: 93/93 passed before the new fixture test; **94/94 passed twice** after its fix.
+  The test first failed at 17pt versus the expected 40pt for `.accessibility3`. Normal Recipe Lab
+  mode now inherits ambient Dynamic Type; the explicit enlarged preset still uses `.accessibility2`.
+  This mounted environment test is not an actual system Settings transition.
+- Regeneration exposed an omitted AppKit test source in the checked-in project. The macOS target
+  now includes it and the existing mounted/selection helpers. `FlatMarkSnapshots-macOS` runs
+  **80 tests: 74 pass, six fail**, all in image snapshot tests. The earlier 68-test run omitted the
+  twelve AppKit test methods and must not be used as complete native-output evidence.
+- The failing macOS methods are `linkedImagePresentationMatchesReviewedBaseline`,
+  `smallIntrinsicRaster`, `oversizedRaster`, `mixedLoadedText`,
+  `loadedImageDescriptionDoesNotReload`, and `freshMountsStartNewRequests`.
+  Comparisons include repeated phase/mount captures. An ImageMagick 0.5% fuzz diagnostic found
+  zero differing pixels in the seven reference/actual pairs printed by the initial macOS result.
+  That diagnostic supports the documented exact-pixel environment limitation; it does not make
+  the exact suite green or qualify every image phase visually. References were not recorded away.
+- Both `FlatMarkDemo-iOS` and `FlatMarkDemo-macOS` build and launch with the changed fixture.
+  `cd Demo && xcodegen generate` regenerated the project, including the previously omitted tests.
+- `swift test list` confirms the removed macOS snapshot methods no longer register. Fourteen
+  iOS-only enlarged methods retain their source and all fifteen iOS PNGs. All fifteen artificial
+  enlarged macOS PNGs are deleted. The inventory includes `enlargedEmptyTask` and
+  `enlargedNarrowNeighborsKeepTheirSpacing`, beyond the issue's initial anchors.
+  Standard-size, narrow/wide, RTL, image-phase, task, and navigation cases remain. Shared iOS sizing
+  support and the separate enlarged image-flow behavior test remain.
+
+### Evidence by lane
+
+| Lane | Current evidence | Limits |
+| --- | --- | --- |
+| Native output | UIKit/AppKit paragraph tests cover combined traits, Unicode/order, consecutive/trailing breaks, semantic roles, per-run host precedence, and direction versus alignment. Shared custom-content tests plus UIKit replacement tests cover multi-run inheritance/overrides without changing neighbors. | Exports/attributes are not glyph visibility or live accessibility. |
+| Mounted updates | Retained UIKit/AppKit tests cover width/content/direction/attributes and following-block separation; UIKit also covers mounted environment Dynamic Type changes. AppKit tests verify the first baseline. | Actual system-driven iOS Dynamic Type transitions, including accessibility categories, remain unverified. |
+| Navigation | Package navigation tests pass, including retained callback/opener replacement, supported/replacement links, handled/rejected/default/omitted callbacks, independent links, and inert neighbors. UIKit's primary-action delegate is covered by its existing test. | macOS uses the controlled isolated click host; iOS delegate tests are not native link gestures. Live demo link activation remains unverified on both platforms. |
+| Image/control preservation | Existing image lifecycle, custom block, task, and navigation tests remain; iOS production snapshots pass. Routing inspection preserves image-containing values as a whole. | macOS image pixel failures remain as reported above. No new blanket image qualification. |
+| Selection — iOS / macOS | Native selectability and macOS selection exports are automated. | Actual selection gestures/copy and selection-reset observations are unverified on both platforms. |
+| VoiceOver — iOS / macOS | No new accessibility wrapper was added. | No live VoiceOver operator session was available. Wording/order, independent supported/replacement link reachability/activation, and absence of duplicate announcements remain unverified on both platforms. Semantic exports and screenshots are not substitutes. |
+
+### Running-host observations and rendering costs
+
+Both Recipe Lab apps were launched, not just compiled. iOS at its existing 240pt reading column
+shows the title, wrapped bold/italic/strike/mention paragraph, literal HTML fallback, photo, and
+following Ingredients heading with clear separation in the inspected viewport. Scrolling changes
+the visible region normally. The macOS recipe at a 1325pt window shows the same upper structure,
+complete paragraph wording, photo, and following heading. These are limited viewport observations,
+not full-document, table/task, blank-line, RTL-transition, or link-interaction qualification.
+
+For a proportionate macOS cost check, the existing Markdown source editor received a heading and
+200 copies of this paragraph, separated by blank lines:
+
+```markdown
+A **bold** café 👩🏽‍💻 paragraph with *italic* wording and English עברית العربية. A wrapping sentence that ends with END.
+```
+
+The mounted host accepted the update and exposed 200 native paragraph controls. Its window was
+resized 763 → 1325 → 763pt, then the source was replaced with a heading, one longer mixed-direction
+paragraph ending `THIRD END.`, and `Following paragraph.`. The inspected final capture shows the
+longer paragraph wrapping completely with its following block separate. The host remained responsive
+to these editor/window operations; no hang or overlap appeared in the inspected upper regions.
+This is an uninstrumented smoke assessment, not latency/allocation measurement or a performance
+promise. It does not establish long-document iOS rendering cost, sustained scrolling cost, or the
+visibility of all 200 paragraphs. No construction benchmark was substituted for native rendering.
+
+### Outstanding qualification
+
+The ticket's runtime acceptance is incomplete: live VoiceOver, actual selection/copy gestures,
+live independent text links, system-driven iOS text-size changes, visual consecutive blank lines,
+and the full two-platform direction/container/update matrix still need operator checks. Long-text
+iOS rendering cost is unassessed. Minimum iOS 17, macOS 14, and Xcode 26/Swift 6.2 execution remain
+unverified. Local logs/captures are under `/tmp/flatmark29`; MobileBuildMCP logs/result bundles live
+under its reported workspace paths. Temporary artifacts are not durable reference baselines.
+
 ## Native inline roles and macOS baseline correction (#27)
 
 Image-free headings, list labels, and table cells now share the paragraph bridges. Headings resolve

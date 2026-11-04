@@ -50,6 +50,8 @@ targets:
     platform: macOS
     sources:
       - path: ../Tests/FlatMarkTests/Snapshots
+      - path: ../Tests/FlatMarkTests/Rendering/FlatMarkMountedView.swift
+      - path: ../Tests/FlatMarkTests/Rendering/FlatMarkSelectedText.swift
       - path: ../Support/FlatMarkFixtures
     dependencies:
       - target: FlatMarkDemo-macOS

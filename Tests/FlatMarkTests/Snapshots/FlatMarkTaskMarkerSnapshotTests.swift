@@ -20,11 +20,15 @@ struct FlatMarkTaskMarkerSnapshotTests {
     @Test func customReadOnly() async throws { try await capture(custom: true, interactive: false, testName: #function) }
     @Test func customDisabled() async throws { try await capture(custom: true, disabled: true, testName: #function) }
     @Test func customRetainedDocument() async throws { try await capture(custom: true, retained: true, testName: #function) }
+    #if os(iOS)
     @Test func enlargedDefault() async throws { try await capture(enlarged: true, testName: #function) }
     @Test func enlargedCustom() async throws { try await capture(custom: true, enlarged: true, testName: #function) }
+    #endif
     @Test func rtlDefaultInteractive() async throws { try await capture(direction: .rightToLeft, testName: #function) }
     @Test func rtlCustomInteractive() async throws { try await capture(custom: true, direction: .rightToLeft, testName: #function) }
+    #if os(iOS)
     @Test func rtlEnlargedDefault() async throws { try await capture(enlarged: true, direction: .rightToLeft, testName: #function) }
+    #endif
 
     private func capture(
         custom: Bool = false, interactive: Bool = true, disabled: Bool = false,

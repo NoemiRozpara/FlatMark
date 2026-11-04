@@ -54,6 +54,7 @@ struct FlatMarkOmissionSpacingSnapshotTests {
         )
     }
 
+    #if os(iOS)
     @Test
     func enlargedNarrowNeighborsKeepTheirSpacing() async throws {
         let before = "Before omission the supported neighbors wrap."
@@ -75,6 +76,8 @@ struct FlatMarkOmissionSpacingSnapshotTests {
             testName: #function
         )
     }
+
+    #endif
 
     // Independent references keep a change affecting both documents from passing unnoticed.
     private func assertPair(

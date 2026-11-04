@@ -3,6 +3,9 @@ import SwiftUI
 import Testing
 import UIKit
 @testable import FlatMark
+#if SWIFT_PACKAGE
+import FlatMarkFixtures
+#endif
 
 @MainActor
 struct FlatMarkParagraphTextTests {
@@ -107,6 +110,28 @@ struct FlatMarkParagraphTextTests {
                 #expect(first.convert(first.bounds, to: root).maxY <= second.convert(second.bounds, to: root).minY)
             }
         )
+    }
+
+    @Test func recipeNormalTextFollowsMountedAmbientDynamicType() async throws {
+        let model = FlatMarkCustomFixtureModel()
+        model.markdown = "System size probe."
+        func root(_ size: DynamicTypeSize) -> some View {
+            FlatMarkCustomFixture(model: model).environment(\.dynamicTypeSize, size)
+        }
+        let host = UIHostingController(rootView: root(.large))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 440, height: 2400))
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true; window.rootViewController = nil }
+        for (size, category) in [(DynamicTypeSize.large, UIContentSizeCategory.large),
+                                 (.accessibility3, .accessibilityExtraLarge), (.large, .large)] {
+            host.rootView = root(size)
+            await settle(host.view)
+            let text = try #require(textViews(in: host.view).first { $0.text == "System size probe." })
+            let font = try #require(text.attributedText.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
+            #expect(font.pointSize == UIFont.preferredFont(forTextStyle: .body,
+                compatibleWith: UITraitCollection(preferredContentSizeCategory: category)).pointSize)
+        }
     }
 
     @Test func retainedParagraphUpdatesDynamicTypeAndWidthWithoutOverlap() async throws {

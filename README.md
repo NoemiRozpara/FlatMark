@@ -228,10 +228,12 @@ noneditable, selectable `UITextView` on iOS or `NSTextView` on macOS. Each uses 
 semantic typography for its role — body, heading level 1–3 (title/title2/title3), heading level 4–6
 (headline), or bold table header — with no fixed point size. Inline emphasis, strong text, mentions,
 and inline code derive their traits from the resolved role font. Each measures the offered width
-without a fixed reading width. iOS responds to Dynamic Type; macOS
+at each finite positive offered width without a fixed reading width. Other proposals use native
+sizing behavior. Content, typography, and direction changes refresh layout. Paragraph writing
+direction and leading/trailing alignment remain separate. iOS responds to Dynamic Type; macOS
 uses AppKit's preferred semantic fonts without iOS scaling. Ambient SwiftUI font, foreground style,
-and tint are not styling contracts for this path. Selection may reset on updates; selection is not
-continuous across blocks.
+and tint are not styling contracts for this path. Selection may reset on any update, including
+styling and measurement. Selection preservation and cross-block selection are not promised.
 
 Any value containing a Markdown image keeps the entire existing renderer in every loading phase,
 with its existing heading or table-header SwiftUI styling. Mixed text/image content wraps by native
