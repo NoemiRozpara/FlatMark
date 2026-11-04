@@ -60,7 +60,8 @@ struct FlatMarkParagraphText: NSViewRepresentable {
         container.lineFragmentPadding = 0
         storage.addLayoutManager(manager)
         manager.addTextContainer(container)
-        let width = proposal.width.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        // Zero asks for minimum width; only an unspecified or unbounded proposal asks for ideal width.
+        let width = proposal.width.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
         container.containerSize = CGSize(width: width ?? .greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
         manager.ensureLayout(for: container)
         let used = manager.usedRect(for: container)

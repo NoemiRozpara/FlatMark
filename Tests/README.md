@@ -3,6 +3,34 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## AppKit zero-width minimum proposal (fix1)
+
+Environment: macOS 27.0.1 (26A434), arm64, Apple Swift 6.4
+(swiftlang-6.4.0.34.1). This does not qualify minimum supported OS/toolchain versions.
+
+The new Swift Testing example mounts FlatMark's AppKit paragraph in a SwiftUI layout.
+It checks that zero requests minimum width (0), unspecified requests a nonzero ideal width,
+and a finite 140pt proposal retains that width. It asserts FlatMark's sizing contract,
+not exact AppKit glyph metrics.
+
+```sh
+swift test --filter 'FlatMarkAppKitMinimumProposalTests/zeroWidthProposalDoesNotReportUnwrappedIdealWidth'
+swift test --filter 'FlatMarkAppKitParagraphTextTests/(unchosenProposalsDoNotChangeCommittedNativeWidth|nativeParagraphsMeasureOfferedWidthWithoutOverlappingFollowingText)'
+```
+
+- Red, before the production change: first command exited 1; 1 test selected, 4 issues
+  across repeated layout probes. Zero and unspecified both returned 369pt.
+  Log: `/tmp/flatmark-fix1-red.log`.
+- Green, after accepting finite zero separately from ideal sizing: first command exited 0;
+  1 test passed. Log: `/tmp/flatmark-fix1-green.log`.
+- Affected existing checks: second command exited 0; 2 test methods passed, including
+  the offered-width method's 140pt and 280pt cases. Log: `/tmp/flatmark-fix1-affected.log`.
+
+These are automated mounted sizing checks, not running-app observations of window resizing
+or pixels. No iOS checks or unrelated suites ran. The deferred baseline actor issue was not
+changed and did not block these commands. The separate #33 terminal-empty-line failure below
+remains unresolved and was not rerun or fixed by this change.
+
 ## Attributed content and semantic typography (#32, round 1)
 
 Scope: #32 only. Issues #32 and #31 were read with `gh issue view <number> --repo
