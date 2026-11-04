@@ -210,10 +210,46 @@ struct FlatMarkAppKitParagraphTextTests {
             let paragraph = try #require(storage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
             #expect(paragraph.baseWritingDirection == (direction == .rightToLeft ? .rightToLeft : .leftToRight))
             #expect(paragraph.alignment == (direction == .rightToLeft ? .right : .left))
+            let manager = try #require(first.layoutManager)
+            let container = try #require(first.textContainer)
+            manager.ensureLayout(for: container)
+            let glyphs = manager.boundingRect(forGlyphRange: manager.glyphRange(for: container), in: container)
+            #expect(first.bounds.height >= ceil(max(manager.usedRect(for: container).maxY,
+                                                    glyphs.maxY, manager.extraLineFragmentRect.maxY)))
+            let second = try #require(views.last)
+            let firstFrame = first.convert(first.bounds, to: hosted.view)
+            let secondFrame = second.convert(second.bounds, to: hosted.view)
+            if hosted.view.isFlipped {
+                #expect(firstFrame.maxY <= secondFrame.minY)
+            } else {
+                #expect(secondFrame.maxY <= firstFrame.minY)
+            }
             heights.append(first.bounds.height)
         }
         #expect(heights[1] > heights[0])
         #expect(heights[2] == heights[0])
+    }
+
+    @Test func unchosenProposalsDoNotChangeCommittedNativeWidth() async throws {
+        _ = try await flatMarkSnapshotImage(
+            of: AppKitParagraphProposalProbe {
+                FlatMarkParagraphText(content: .init(text: AttributedString("A paragraph with enough words to wrap repeatedly at a narrow committed width.")), role: .body, context: .readOnly)
+            }, environment: .standard,
+            prepareMountedView: { root in
+                @MainActor func find(_ view: NSView) -> NSTextView? {
+                    if let text = view as? NSTextView { return text }
+                    return view.subviews.lazy.compactMap { find($0) }.first
+                }
+                guard let view = find(root), let container = view.textContainer,
+                      let manager = view.layoutManager else {
+                    Issue.record("Paragraph must expose native layout")
+                    return
+                }
+                manager.ensureLayout(for: container)
+                #expect(abs(view.bounds.width - 140) < 1)
+                #expect(abs(container.containerSize.width - 140) < 1)
+                #expect(view.bounds.height >= ceil(manager.usedRect(for: container).maxY))
+            })
     }
 
     @Test func trailingBreaksReserveEmptyNativeLines() async throws {
@@ -309,6 +345,24 @@ struct FlatMarkAppKitParagraphTextTests {
     ) -> NSAttributedString {
         FlatMarkParagraphText.attributedText(for: content, policy: policy, role: role,
                                             layoutDirection: .leftToRight, alignment: .leading)
+    }
+}
+
+private struct AppKitParagraphProposalProbe: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        for probe in [ProposedViewSize.unspecified, ProposedViewSize(width: .infinity, height: nil),
+                      ProposedViewSize(width: 320, height: nil)] {
+            let size = subviews[0].sizeThatFits(probe)
+            #expect(size.width.isFinite && size.height.isFinite)
+        }
+        let size = subviews[0].sizeThatFits(ProposedViewSize(width: 140, height: nil))
+        #expect(abs(size.width - 140) < 1)
+        return size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews[0].place(at: bounds.origin, proposal: ProposedViewSize(width: 140, height: nil))
+        _ = subviews[0].sizeThatFits(ProposedViewSize(width: 320, height: nil))
     }
 }
 

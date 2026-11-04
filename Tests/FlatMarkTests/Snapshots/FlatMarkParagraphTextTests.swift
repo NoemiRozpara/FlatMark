@@ -209,12 +209,13 @@ struct FlatMarkParagraphTextTests {
     @Test func retainedReplacementUpdatesAttributesDirectionAndHeight() async throws {
         let document = FlatMarkDocument(markdown: "Before <tag> after.\n\nFollowing paragraph.")
         let font = UIFont.monospacedSystemFont(ofSize: 23, weight: .medium)
-        func root(_ wording: String, direction: LayoutDirection) -> some View {
+        func root(_ wording: String, direction: LayoutDirection, size: DynamicTypeSize = .large) -> some View {
             var replacement = AttributedString(wording)
             replacement.uiKit.font = font
             replacement.uiKit.foregroundColor = .systemPurple
             return FlatMarkView(document: document, unsupportedContentPolicy: .custom { _ in replacement })
                 .environment(\.layoutDirection, direction)
+                .environment(\.dynamicTypeSize, size)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 260)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -229,7 +230,8 @@ struct FlatMarkParagraphTextTests {
         var heights: [CGFloat] = []
         for (wording, direction) in [("short", LayoutDirection.leftToRight),
                                      ("café مرحبا 123\nsecond\nthird", .rightToLeft), ("short", .leftToRight)] {
-            host.rootView = root(wording, direction: direction)
+            host.rootView = root(wording, direction: direction,
+                                 size: direction == .rightToLeft ? .accessibility3 : .large)
             await settle(host.view)
             let views = textViews(in: host.view)
             #expect(views.count == 2)
@@ -250,6 +252,40 @@ struct FlatMarkParagraphTextTests {
         #expect(heights[2] == heights[0])
     }
 
+    @Test(arguments: [TextAlignment.leading, .center, .trailing])
+    func writingDirectionIsSeparateFromAlignment(alignment: TextAlignment) throws {
+        let native = FlatMarkParagraphText.attributedText(
+            for: .init(text: AttributedString("café مرحبا 123")), policy: .literal,
+            dynamicTypeSize: .large, layoutDirection: .rightToLeft, alignment: alignment)
+        let paragraph = try #require(native.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
+        #expect(native.string == "café مرحبا 123")
+        #expect(paragraph.baseWritingDirection == .rightToLeft)
+        let expected: NSTextAlignment = alignment == .leading ? .right : alignment == .trailing ? .left : .center
+        #expect(paragraph.alignment == expected)
+    }
+
+    @Test func proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor() async throws {
+        let host = UIHostingController(rootView: VStack(spacing: 0) {
+            ParagraphProposalProbe {
+                FlatMarkParagraphText(content: .init(text: AttributedString("A paragraph with enough words to wrap at the committed width.\n\n")), role: .body, context: .readOnly)
+            }
+            FlatMarkParagraphText(content: .init(text: AttributedString("Following paragraph.")), role: .body, context: .readOnly)
+        }.frame(width: 140))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 340, height: 900))
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true; window.rootViewController = nil }
+        await settle(host.view)
+        let views = textViews(in: host.view)
+        #expect(views.count == 2)
+        let first = try #require(views.first)
+        #expect(first.text.hasSuffix("\n\n"))
+        #expect(abs(first.bounds.width - 140) < 1)
+        let font = try #require(first.attributedText.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
+        #expect(first.bounds.height >= 3 * font.lineHeight)
+        try expectCompleteLayout(views, in: host.view, knownTerminalLineIssue: true)
+    }
+
     private func textViews(in view: UIView) -> [UITextView] {
         if let text = view as? UITextView { return [text] }
         return view.subviews.flatMap { textViews(in: $0) }
@@ -262,11 +298,52 @@ struct FlatMarkParagraphTextTests {
         view.layoutIfNeeded()
     }
 
-    private func expectCompleteLayout(_ views: [UITextView], in root: UIView) throws {
+    private func expectCompleteLayout(_ views: [UITextView], in root: UIView, knownTerminalLineIssue: Bool = false) throws {
         let first = try #require(views.first)
         let second = try #require(views.last)
-        let required = first.sizeThatFits(CGSize(width: first.bounds.width, height: .greatestFiniteMagnitude))
-        #expect(first.bounds.height >= floor(required.height))
+        #expect(first.isSelectable && !first.isEditable && !first.isScrollEnabled)
+        #expect(first.backgroundColor == .clear)
+        #expect(first.textContainerInset == .zero)
+        #expect(first.textContainer.lineFragmentPadding == 0)
+        let container = first.textContainer
+        #expect(abs(container.size.width - first.bounds.width) < 1)
+        let bottom: CGFloat
+        var sourceBottom: CGFloat = 0
+        if let manager = first.textLayoutManager {
+            manager.ensureLayout(for: manager.documentRange)
+            var laidOutBottom: CGFloat = 0
+            manager.enumerateTextLayoutFragments(from: manager.documentRange.location,
+                                                 options: [.ensuresLayout, .ensuresExtraLineFragment]) { fragment in
+                laidOutBottom = max(laidOutBottom, fragment.layoutFragmentFrame.maxY)
+                for line in fragment.textLineFragments {
+                    if line.characterRange.length > 0 {
+                        sourceBottom = max(sourceBottom,
+                            fragment.layoutFragmentFrame.minY + line.typographicBounds.maxY)
+                    }
+                    laidOutBottom = max(laidOutBottom,
+                        fragment.layoutFragmentFrame.minY + line.typographicBounds.maxY)
+                }
+                return true
+            }
+            bottom = laidOutBottom
+        } else {
+            // Accessing layoutManager is safe only when TextKit 2 is already absent.
+            let manager = first.layoutManager
+            manager.ensureLayout(for: container)
+            let used = manager.usedRect(for: container)
+            let glyphs = manager.boundingRect(forGlyphRange: manager.glyphRange(for: container), in: container)
+            sourceBottom = max(used.maxY, glyphs.maxY)
+            bottom = max(sourceBottom, manager.extraLineFragmentRect.maxY)
+        }
+        #expect(first.bounds.height >= ceil(sourceBottom))
+        if knownTerminalLineIssue {
+            // Owner accepts the #33 terminal-empty-line qualification gap, not a sizing fix.
+            withKnownIssue("#33: terminal-empty-line bottom exceeds the allocation; AC-24 failed, AC-25 partial") {
+                #expect(first.bounds.height >= ceil(bottom))
+            }
+        } else {
+            #expect(first.bounds.height >= ceil(bottom))
+        }
         #expect(first.convert(first.bounds, to: root).maxY <= second.convert(second.bounds, to: root).minY)
     }
 
@@ -368,6 +445,28 @@ struct FlatMarkParagraphTextTests {
         FlatMarkParagraphText.attributedText(for: content, policy: policy, role: role,
                                             dynamicTypeSize: .large,
                                             layoutDirection: .leftToRight, alignment: .leading)
+    }
+}
+
+/// Probe unchosen widths, then place the native bridge at a different width.
+private struct ParagraphProposalProbe: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        for probe in [ProposedViewSize.unspecified, ProposedViewSize(width: .infinity, height: nil),
+                      ProposedViewSize(width: 320, height: nil)] {
+            let size = subviews[0].sizeThatFits(probe)
+            // UIKit declines unconstrained widths; SwiftUI's fallback may preserve infinity.
+            if probe.width != .infinity {
+                #expect(size.width.isFinite && size.height.isFinite)
+            }
+        }
+        let size = subviews[0].sizeThatFits(ProposedViewSize(width: 140, height: nil))
+        #expect(abs(size.width - 140) < 1)
+        return size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews[0].place(at: bounds.origin, proposal: ProposedViewSize(width: 140, height: nil))
+        _ = subviews[0].sizeThatFits(ProposedViewSize(width: 320, height: nil))
     }
 }
 #endif
