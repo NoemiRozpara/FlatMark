@@ -42,7 +42,7 @@ esac
 MACOS_WIDTHS="${MACOS_WIDTHS:-480x900 850x1040 1200x900}"
 IOS_WIDTHS="${IOS_WIDTHS:-320x700 390x844 430x932 430x1280}"
 SEED_SIZE=390x844     # geometry an iOS session starts at, used to calibrate the capture scale
-CAPTURES="${CAPTURES:-daylight midnight generous rightToLeft hostMarkers readOnly literal omission}"
+CAPTURES="${CAPTURES:-daylight midnight generous rightToLeft hostMarkers readOnly omission}"
 BUNDLE=dev.flatmark.FlatMarkFixtureHost
 MANIFEST="$OUTPUT/$PLATFORM-widths.tsv"
 printf 'platform\tpreset\tscroll\trequested\tpoints\tpixels\tscale\tscaleSource\tfile\tnote\n' \
@@ -279,8 +279,8 @@ APPLESCRIPT
         rejected=$((rejected + 1))
       fi
       # Three scroll positions. The initial viewport cannot reach the tasks, task markers, or
-      # HTML-policy content, which is how hostMarkers, readOnly, and literal came out byte-identical
-      # to daylight. Home, two pages down, then End.
+      # HTML-policy content, which is how hostMarkers and readOnly came out byte-identical to
+      # daylight. Home, two pages down, then End.
       for scroll in top middle end; do
         case "$scroll" in
           top) send_keys 115 1 ;;     # Home

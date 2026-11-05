@@ -5,12 +5,12 @@ unsupported-content policies, and retained-document controls. See the
 [test guide](../../README.md) for setup and manual checks.
 
 **Captures were regenerated on 2026-11-05** on macOS 27.0.1 (26A434) with Xcode 27.0 (27A266a),
-against an iPhone 18 Pro simulator running iOS 27: 104 PNGs plus `macos-widths.tsv`,
+against an iPhone 18 Pro simulator running iOS 27: 91 PNGs plus `macos-widths.tsv`,
 `ios-widths.tsv`, and two environment files.
 
-- macOS: 72 captures — 3 widths × 3 scroll positions (`top`, `middle`, `end`) × 8 presets. Scroll is
+- macOS: 63 captures — 3 widths × 3 scroll positions (`top`, `middle`, `end`) × 7 presets. Scroll is
   driven with Home, Page Down twice, and End.
-- iOS: 32 captures — 4 geometries × 8 presets, all initial viewport. There is no scroll control for a
+- iOS: 28 captures — 4 geometries × 7 presets, all initial viewport. There is no scroll control for a
   simulator, so the manifest records `top` for every iOS row.
 
 Every macOS row reached its requested size. iOS clamped 320 to 375, and 430x1280 to 591x1280; the
@@ -21,16 +21,14 @@ is what finally separates `omission` from `daylight` on iOS.
 
 | Preset | macOS | iOS |
 | --- | --- | --- |
-| `midnight`, `rightToLeft` | differs at every geometry | differs at every geometry |
+| `midnight` | differs at every geometry | differs at every geometry |
+| `rightToLeft` | differs at every geometry | differs except at 375x700 |
 | `generous` | differs except at 480x900/top | differs except at 375x700 |
 | `hostMarkers`, `omission` | differs once scrolled; identical at 480x900/top | identical at every geometry (`omission` excepted: differs at 430x1280) |
-| `readOnly`, `literal` | no reliable difference | identical at every geometry |
+| `readOnly` | no reliable difference | identical at every geometry |
 
-Those last two are not capture failures:
+That last preset is not a capture failure:
 
-- `literal` is redundant with `daylight` by construction. `FlatMarkRecipeCapture.apply` sets
-  `policyKind = self == .omission ? .omit : .literal`, so every preset except `omission` already uses
-  the literal policy, and no other field distinguishes `literal`. The two models are identical.
 - `readOnly` only sets `allowsTaskEditing`, which changes behaviour, not pixels. Verifying it needs
   interaction or accessibility evidence, not a screenshot.
 
@@ -106,7 +104,6 @@ The local rosemary illustration uses an SF Symbol whose appearance depends on th
 | `rightToLeft` | RTL with English content |
 | `hostMarkers` | Custom task markers |
 | `readOnly` | Static tasks |
-| `literal` | Show HTML |
 | `omission` | Hide HTML |
 
 Generated filenames follow `ios-<preset>-<width>x<height>.png` and
@@ -127,11 +124,10 @@ Keep the following checks open:
 
 - Capture and visually review every preset for the current content. The previous capture pass was
   not visually reviewed; generating artifacts alone does not verify them.
-- Scroll the iOS fixture by hand. There is no scroll control for a simulator, so `hostMarkers`,
-  `readOnly`, and `literal` have no iOS capture that reaches their content, and `omission` is reached
+- Scroll the iOS fixture by hand. There is no scroll control for a simulator, so `hostMarkers`
+  and `readOnly` have no iOS capture that reaches their content, and `omission` is reached
   only at the tallest geometry.
-- Decide what `readOnly` and `literal` are for. `literal` selects the same policy `daylight` already
-  uses, so it is redundant; `readOnly` changes editability only, so no screenshot can verify it.
+- Decide what `readOnly` is for. It changes editability only, so no screenshot can verify it.
 - Exercise settings and inline replacement buttons with real input. The previous automation attempt
   reported taps but did not change their state; this established neither working nor broken behavior.
 - Inspect lower scroll content, tables, code, mixed-content wrapping, and selection gestures.

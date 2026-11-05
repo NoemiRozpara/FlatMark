@@ -53,15 +53,6 @@ macos	readOnly	end	850x1040	850x1040	1700x2080	2	window-server	macos-readOnly-85
 macos	readOnly	top	1200x900	1200x900	2400x1800	2	window-server	macos-readOnly-1200x900-top.png	exact
 macos	readOnly	middle	1200x900	1200x900	2400x1800	2	window-server	macos-readOnly-1200x900-middle.png	exact
 macos	readOnly	end	1200x900	1200x900	2400x1800	2	window-server	macos-readOnly-1200x900-end.png	exact
-macos	literal	top	480x900	480x900	960x1800	2	window-server	macos-literal-480x900-top.png	exact
-macos	literal	middle	480x900	480x900	960x1800	2	window-server	macos-literal-480x900-middle.png	exact
-macos	literal	end	480x900	480x900	960x1800	2	window-server	macos-literal-480x900-end.png	exact
-macos	literal	top	850x1040	850x1040	1700x2080	2	window-server	macos-literal-850x1040-top.png	exact
-macos	literal	middle	850x1040	850x1040	1700x2080	2	window-server	macos-literal-850x1040-middle.png	exact
-macos	literal	end	850x1040	850x1040	1700x2080	2	window-server	macos-literal-850x1040-end.png	exact
-macos	literal	top	1200x900	1200x900	2400x1800	2	window-server	macos-literal-1200x900-top.png	exact
-macos	literal	middle	1200x900	1200x900	2400x1800	2	window-server	macos-literal-1200x900-middle.png	exact
-macos	literal	end	1200x900	1200x900	2400x1800	2	window-server	macos-literal-1200x900-end.png	exact
 macos	omission	top	480x900	480x900	960x1800	2	window-server	macos-omission-480x900-top.png	exact
 macos	omission	middle	480x900	480x900	960x1800	2	window-server	macos-omission-480x900-middle.png	exact
 macos	omission	end	480x900	480x900	960x1800	2	window-server	macos-omission-480x900-end.png	exact

@@ -22,7 +22,7 @@ scripts/run-fixture-host.sh macos --capture hostMarkers
 ```
 
 Presets: `daylight`, `midnight`, `generous`, `rightToLeft`, `hostMarkers`,
-`readOnly`, `literal`, `omission`. Unknown or missing values fall back to daylight.
+`readOnly`, `omission`. Unknown or missing values fall back to daylight.
 The existing bundle identifiers are retained for capture tooling. The launcher
 builds a normal app bundle into `.build/demo`; it no longer assembles one by hand.
 

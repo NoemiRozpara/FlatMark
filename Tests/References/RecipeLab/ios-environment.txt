@@ -1,4 +1,4 @@
-Thu Nov  5 10:16:33 UTC 2026
+Thu Nov  5 10:39:03 UTC 2026
 ProductName:		macOS
 ProductVersion:		27.0.1
 BuildVersion:		26A434
@@ -21,7 +21,7 @@ Target: arm64-apple-macosx27.0.0
 -- iOS 27.0 --
     iPhone 18 Pro (674C04A9-8792-4995-A6A9-66F80E5F96AA) (Booted) 
 -- watchOS 10.2 --
-CAPTURES=daylight midnight generous rightToLeft hostMarkers readOnly literal omission
+CAPTURES=daylight midnight generous rightToLeft hostMarkers readOnly omission
 MACOS_WIDTHS=480x900 850x1040 1200x900
 IOS_WIDTHS=320x700 390x844 430x932 430x1280
 SEED_SIZE=390x844

@@ -3,7 +3,7 @@ import SwiftUI
 /// Stable names are also accepted by the host as `--capture <name>`.
 /// Presets select display settings and HTML handling for the shared recipe.
 public enum FlatMarkRecipeCapture: String, CaseIterable, Identifiable {
-    case daylight, midnight, generous, rightToLeft, hostMarkers, readOnly, literal, omission
+    case daylight, midnight, generous, rightToLeft, hostMarkers, readOnly, omission
 
     public var id: String { rawValue }
 

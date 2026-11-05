@@ -23,10 +23,6 @@ ios	readOnly	top	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-readO
 ios	readOnly	top	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-readOnly-390x844.png	exact
 ios	readOnly	top	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-readOnly-430x932.png	exact
 ios	readOnly	top	430x1280	591x1280	1773x3840	3	calibrated at 390.0x844.0	ios-readOnly-591x1280.png	clamped
-ios	literal	top	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-literal-375x700.png	clamped
-ios	literal	top	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-literal-390x844.png	exact
-ios	literal	top	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-literal-430x932.png	exact
-ios	literal	top	430x1280	591x1280	1773x3840	3	calibrated at 390.0x844.0	ios-literal-591x1280.png	clamped
 ios	omission	top	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-omission-375x700.png	clamped
 ios	omission	top	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-omission-390x844.png	exact
 ios	omission	top	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-omission-430x932.png	exact
