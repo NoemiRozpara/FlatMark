@@ -9,6 +9,8 @@ public enum FlatMarkRecipeSample {
 
     [![Freshly baked focaccia — open the herb note](focaccia.jpeg)](herbs)
 
+    Compare the golden crust [![Focaccia crust — open the herb note](focaccia.jpeg)](herbs) before adding the final drizzle of olive oil.
+
     <div>Print this recipe · Subscribe to the newsletter</div>
 
     ## Ingredients

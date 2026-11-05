@@ -2,20 +2,45 @@
 import AppKit
 import SwiftUI
 
-/// Native text for image-free inline content. Image routing remains the caller's responsibility.
+extension NSAttributedString.Key {
+    static let flatMarkImage = NSAttributedString.Key("FlatMarkImageAccessibility")
+}
+
+/// Each composed image owns one metadata value, even when destinations repeat.
+final class FlatMarkImageAccessibility: NSObject {
+    let label: String
+    let linkLabel: String?
+    let url: URL?
+
+    init(label: String, linkLabel: String?, url: URL?) {
+        self.label = label
+        self.linkLabel = linkLabel
+        self.url = url
+    }
+}
+
+/// Selectable native inline content with component-owned image phases.
 struct FlatMarkParagraphText: NSViewRepresentable {
     let content: FlatMarkRenderInlineContent
     let role: FlatMarkTextRole
+    let imagePhases: [Int: FlatMarkInlineView.ImagePhase]
 
-    init(content: FlatMarkRenderInlineContent, role: FlatMarkTextRole, context: FlatMarkRenderContext) {
+    init(content: FlatMarkRenderInlineContent, role: FlatMarkTextRole, context: FlatMarkRenderContext,
+         imagePhases: [Int: FlatMarkInlineView.ImagePhase] = [:]) {
         // Resolve host output with this render value, not during later native layout updates.
         self.content = FlatMarkRenderInlineContent(components: content.components.map { component in
-            if case let .unsupported(value) = component {
+            switch component {
+            case let .unsupported(value):
                 return .text(FlatMarkInlineView.replacementText(for: value, policy: context.unsupportedContentPolicy))
+            case let .image(image):
+                return .image(FlatMarkRenderImage(url: image.url,
+                    altText: context.unsupportedContentPolicy.imageLabel(for: image), link: image.link))
+            case .text:
+                return component
             }
-            return component
         })
         self.role = role
+        self.imagePhases = imagePhases
     }
 
     @Environment(\.layoutDirection) private var layoutDirection
@@ -44,24 +69,32 @@ struct FlatMarkParagraphText: NSViewRepresentable {
 
     func updateNSView(_ view: NSTextView, context: Context) {
         context.coordinator.openURL = openURL
-        view.textStorage?.setAttributedString(Self.attributedText(
+        let paragraph = view as! ParagraphTextView
+        paragraph.compose = { width in Self.attributedText(
             for: content, policy: .literal, role: role,
-            layoutDirection: layoutDirection, alignment: alignment
-        ))
+            layoutDirection: layoutDirection, alignment: alignment,
+            imagePhases: imagePhases, width: width
+        ) }
+        paragraph.invalidateComposition()
+        paragraph.refresh(width: view.bounds.width)
         view.invalidateIntrinsicContentSize()
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSTextView, context: Context) -> CGSize? {
         // SwiftUI can probe several widths without committing a frame. Keep probes off the
         // displayed container so an unchosen proposal cannot change visible wrapping.
-        let storage = NSTextStorage(attributedString: nsView.attributedString())
+        let width = proposal.width.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
+        let storage = NSTextStorage(attributedString: Self.attributedText(
+            for: content, policy: .literal, role: role,
+            layoutDirection: layoutDirection, alignment: alignment,
+            imagePhases: imagePhases, width: width ?? .greatestFiniteMagnitude
+        ))
         let manager = NSLayoutManager()
         let container = NSTextContainer()
         container.lineFragmentPadding = 0
         storage.addLayoutManager(manager)
         manager.addTextContainer(container)
         // Zero asks for minimum width; only an unspecified or unbounded proposal asks for ideal width.
-        let width = proposal.width.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
         container.containerSize = CGSize(width: width ?? .greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
         manager.ensureLayout(for: container)
         let used = manager.usedRect(for: container)
@@ -78,18 +111,39 @@ struct FlatMarkParagraphText: NSViewRepresentable {
         policy: FlatMarkUnsupportedContentPolicy,
         role: FlatMarkTextRole = .body,
         layoutDirection: LayoutDirection,
-        alignment: TextAlignment
+        alignment: TextAlignment,
+        imagePhases: [Int: FlatMarkInlineView.ImagePhase] = [:],
+        width: CGFloat = .greatestFiniteMagnitude
     ) -> NSAttributedString {
         let roleFont = Self.roleFont(for: role)
         let result = NSMutableAttributedString(string: "")
-        for component in content.components {
+        func append(_ native: NSMutableAttributedString) {
+            let range = NSRange(location: 0, length: native.length)
+            guard range.length > 0 else { return }
+            let paragraph = (native.attribute(.paragraphStyle, at: 0, effectiveRange: nil)
+                as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle
+                ?? NSMutableParagraphStyle()
+            paragraph.baseWritingDirection = layoutDirection == .rightToLeft ? .rightToLeft : .leftToRight
+            switch alignment {
+            case .center: paragraph.alignment = .center
+            case .leading: paragraph.alignment = layoutDirection == .rightToLeft ? .right : .left
+            case .trailing: paragraph.alignment = layoutDirection == .rightToLeft ? .left : .right
+            }
+            native.addAttribute(.paragraphStyle, value: paragraph, range: range)
+            result.append(native)
+        }
+        for (index, component) in content.components.enumerated() {
             let text: AttributedString
             switch component {
             case let .text(value): text = value
             case let .unsupported(value):
                 text = FlatMarkInlineView.replacementText(for: value, policy: policy)
-            case .image:
-                preconditionFailure("Image-containing content must use the existing image renderer")
+            case let .image(image):
+                let native = NSMutableAttributedString(attributedString:
+                    FlatMarkImagePresentation(image: image, phase: imagePhases[index] ?? .placeholder, policy: policy)
+                        .attributedText(width: width, font: roleFont))
+                append(native)
+                continue
             }
             for run in text.runs {
                 let native = NSMutableAttributedString(attributedString: NSAttributedString(AttributedString(text[run.range])))
@@ -123,17 +177,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
                    native.attribute(.strikethroughStyle, at: 0, effectiveRange: nil) == nil {
                     native.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: range)
                 }
-                let paragraph = (native.attribute(.paragraphStyle, at: 0, effectiveRange: nil)
-                    as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle
-                    ?? NSMutableParagraphStyle()
-                paragraph.baseWritingDirection = layoutDirection == .rightToLeft ? .rightToLeft : .leftToRight
-                switch alignment {
-                case .center: paragraph.alignment = .center
-                case .leading: paragraph.alignment = layoutDirection == .rightToLeft ? .right : .left
-                case .trailing: paragraph.alignment = layoutDirection == .rightToLeft ? .left : .right
-                }
-                native.addAttribute(.paragraphStyle, value: paragraph, range: range)
-                result.append(native)
+                append(native)
             }
         }
         return result
@@ -147,7 +191,8 @@ struct FlatMarkParagraphText: NSViewRepresentable {
     nonisolated func firstBaseline(width: CGFloat) -> CGFloat {
         let storage = NSTextStorage(attributedString: Self.attributedText(
             for: content, policy: .literal, role: role,
-            layoutDirection: .leftToRight, alignment: .leading
+            layoutDirection: .leftToRight, alignment: .leading,
+            imagePhases: imagePhases, width: width
         ))
         guard storage.length > 0 else { return 0 }
         let manager = NSLayoutManager()
@@ -185,18 +230,141 @@ struct FlatMarkParagraphText: NSViewRepresentable {
 
     /// Commits the allocated width to native layout before AppKit draws cached glyphs.
     final class ParagraphTextView: NSTextView {
+        var compose: ((CGFloat) -> NSAttributedString)?
+        private var composedWidth: CGFloat?
+        private var needsComposition = true
+        private var revision = 0
+        private var retainedChildren: [Any] = []
+        private var nativeChildren: [Any] = []
+        private var imageLinks: [(NSRange, ImageLink)] = []
+        private var childrenRevision = -1
+        private var queryingChildren = false
+
+        func refresh(width: CGFloat) {
+            guard needsComposition || composedWidth != width, let compose else { return }
+            needsComposition = false
+            composedWidth = width
+            revision += 1
+            textStorage?.setAttributedString(compose(width))
+        }
+
+        func invalidateComposition() {
+            needsComposition = true
+        }
+
+        private var standaloneImageLink: FlatMarkImageAccessibility? {
+            guard let storage = textStorage, storage.length > 0 else { return nil }
+            var range = NSRange()
+            guard let image = storage.attribute(.flatMarkImage, at: 0, longestEffectiveRange: &range,
+                                                in: NSRange(location: 0, length: storage.length))
+                as? FlatMarkImageAccessibility,
+                range == NSRange(location: 0, length: storage.length), image.url != nil else { return nil }
+            return image
+        }
+
+        override func accessibilityRole() -> NSAccessibility.Role? {
+            standaloneImageLink == nil ? super.accessibilityRole() : .link
+        }
+
+        override func accessibilityValue() -> String? {
+            standaloneImageLink == nil ? super.accessibilityValue() : nil
+        }
+
+        override func accessibilityURL() -> URL? {
+            standaloneImageLink?.url ?? super.accessibilityURL()
+        }
+
+        override func accessibilityPerformPress() -> Bool {
+            guard let url = standaloneImageLink?.url else { return super.accessibilityPerformPress() }
+            guard window != nil else { return false }
+            return delegate?.textView?(self, clickedOnLink: url, at: 0) ?? false
+        }
+
+        override func accessibilityLabel() -> String? {
+            // Native text already supplies the paragraph's value. Repeating it as a label
+            // makes VoiceOver announce both versions before reaching the link children.
+            guard let image = standaloneImageLink else { return super.accessibilityLabel() }
+            return image.linkLabel ?? image.label
+        }
+
+        override func accessibilityChildren() -> [Any]? {
+            // An image-only paragraph is itself the link, not a text area containing links.
+            if standaloneImageLink != nil { return [] }
+            // AppKit may query recursively while constructing its native children.
+            guard !queryingChildren else { return retainedChildren }
+            queryingChildren = true
+            defer { queryingChildren = false }
+            if childrenRevision != revision {
+                childrenRevision = revision
+                for (_, link) in imageLinks { link.press = nil }
+                imageLinks = []
+                nativeChildren = super.accessibilityChildren() ?? []
+                guard let storage = textStorage else { return nativeChildren }
+                var images: [(NSRange, FlatMarkImageAccessibility)] = []
+                storage.enumerateAttribute(.flatMarkImage, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
+                    if let image = value as? FlatMarkImageAccessibility, image.url != nil { images.append((range, image)) }
+                }
+                let currentRevision = revision
+                for (range, image) in images {
+                    let link = ImageLink()
+                    link.setAccessibilityParent(self)
+                    link.setAccessibilityRole(.link)
+                    link.setAccessibilityTitle(image.linkLabel)
+                    link.setAccessibilityURL(image.url)
+                    link.press = { [weak self] in
+                        guard let self, self.window != nil, self.revision == currentRevision,
+                              let url = image.url else { return false }
+                        return self.delegate?.textView?(self, clickedOnLink: url, at: range.location) ?? false
+                    }
+                    imageLinks.append((range, link))
+                }
+                // Replace only native image-link children. Keep native ordinary links and text.
+                var remaining = imageLinks
+                retainedChildren = []
+                for child in nativeChildren {
+                    if let native = child as? NSAccessibilityProtocol,
+                       native.accessibilityRole() == .link,
+                       native.accessibilityTitle()?.contains("\u{FFFC}") == true {
+                        let url = native.accessibilityURL()
+                        let attachmentCount = native.accessibilityTitle()?.filter { $0 == "\u{FFFC}" }.count ?? 0
+                        let matching = Array(remaining.filter { item in
+                            item.1.accessibilityURL() == url
+                        }.prefix(attachmentCount))
+                        retainedChildren.append(contentsOf: matching.map(\.1))
+                        remaining.removeAll { item in matching.contains { $0.1 === item.1 } }
+                    } else {
+                        retainedChildren.append(child)
+                    }
+                }
+                retainedChildren.append(contentsOf: remaining.map(\.1))
+            }
+            for (range, link) in imageLinks { link.setAccessibilityFrame(accessibilityFrame(for: range)) }
+            return retainedChildren
+        }
+
+        final class ImageLink: NSAccessibilityElement {
+            var press: (@MainActor @Sendable () -> Bool)?
+
+            override func accessibilityPerformPress() -> Bool {
+                guard let press else { return false }
+                return MainActor.assumeIsolated { press() }
+            }
+        }
+
         override func draw(_ dirtyRect: NSRect) {
             if let container = textContainer { layoutManager?.ensureLayout(for: container) }
             super.draw(dirtyRect)
         }
 
         override func layout() {
+            refresh(width: bounds.width)
             textContainer?.containerSize = CGSize(width: bounds.width, height: .greatestFiniteMagnitude)
             super.layout()
         }
 
         override func setFrameSize(_ newSize: NSSize) {
             super.setFrameSize(newSize)
+            refresh(width: newSize.width)
             textContainer?.containerSize = CGSize(width: newSize.width, height: .greatestFiniteMagnitude)
         }
     }

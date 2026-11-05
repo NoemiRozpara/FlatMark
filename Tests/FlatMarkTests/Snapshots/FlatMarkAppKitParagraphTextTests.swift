@@ -6,6 +6,124 @@ import Testing
 
 @MainActor
 struct FlatMarkAppKitParagraphTextTests {
+    @Test func imagePlaceholderSharesNativeParagraphWithProse() async throws {
+        let hosted = await mountTestView(
+            FlatMarkView(markdown: "Before ![diagram](https://example.com/image.png) after."),
+            size: CGSize(width: 180, height: 300)
+        )
+        defer { hosted.close() }
+        let text = try #require(firstTextView(in: hosted.view))
+        #expect(text.string == "Before \u{FFFC} diagram after.")
+        let storage = try #require(text.textStorage)
+        #expect(storage.attribute(.attachment, at: 7, effectiveRange: nil) is NSTextAttachment)
+        #expect(text.isSelectable && !text.isEditable)
+    }
+
+    @Test func imageOnlyParagraphExposesOneLinkWithoutTextAreaChildren() async throws {
+        let url = try #require(URL(string: "https://example.com/details"))
+        var activated: [URL] = []
+        let content = FlatMarkRenderInlineContent(components: [
+            .image(.init(url: nil, altText: "diagram", link: url))
+        ])
+        for phase in [FlatMarkInlineView.ImagePhase.placeholder, .loading, .failed,
+                      .loaded(NSImage(size: CGSize(width: 40, height: 20)))] {
+            let hosted = await mountTestView(
+                FlatMarkParagraphText(content: content, role: .body, context: .readOnly,
+                                      imagePhases: [0: phase])
+                    .environment(\.openURL, OpenURLAction { activated.append($0); return .handled }),
+                size: CGSize(width: 180, height: 100)
+            )
+            let text = try #require(firstTextView(in: hosted.view))
+            #expect(text.accessibilityRole() == .link)
+            #expect(text.accessibilityLabel() == url.absoluteString + phase.accessibilitySuffix)
+            #expect(text.accessibilityURL() == url)
+            #expect(text.accessibilityValue() == nil)
+            #expect(text.accessibilityChildren()?.isEmpty == true)
+            #expect(text.accessibilityPerformPress())
+            hosted.close()
+        }
+        #expect(activated == Array(repeating: url, count: 4))
+    }
+
+    @Test func repeatedImageDestinationsKeepCurrentSeparateAccessibilityTargets() async throws {
+        let url = try #require(URL(string: "https://example.com/details"))
+        var ordinary = AttributedString(" between ")
+        ordinary.link = URL(string: "https://example.com/page")
+        let content = FlatMarkRenderInlineContent(components: [
+            .text(AttributedString("Before ")),
+            .image(.init(url: nil, altText: "A very long first description", link: url)),
+            .text(ordinary),
+            .image(.init(url: nil, altText: "second", link: url)),
+            .text(AttributedString(" after")),
+        ])
+        var activated: [URL] = []
+        func root(_ phase: FlatMarkInlineView.ImagePhase) -> some View {
+            FlatMarkParagraphText(content: content, role: .body, context: .readOnly,
+                                  imagePhases: [1: phase, 3: .failed])
+                .environment(\.openURL, OpenURLAction { activated.append($0); return .handled })
+        }
+        let hosted = await mountTestView(root(.loading), size: CGSize(width: 180, height: 500))
+        defer { hosted.close() }
+        let text = try #require(firstTextView(in: hosted.view))
+        let children = (text.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityProtocol }
+        #expect(children.filter { $0.accessibilityRole() == .link }.map { $0.accessibilityTitle() } == [
+            url.absoluteString + ", loading", " between ", url.absoluteString + ", failed to load"
+        ])
+        let links = (text.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
+            .filter { $0.accessibilityURL() == url }
+        #expect(links.map { $0.accessibilityTitle() } == [url.absoluteString + ", loading", url.absoluteString + ", failed to load"])
+        #expect(links.count == 2)
+        guard links.count == 2 else { return }
+        #expect(links[0].accessibilityFrame() != links[1].accessibilityFrame())
+        #expect(links[0].accessibilityPerformPress())
+        #expect(activated == [url])
+        hosted.view.rootView = root(.placeholder)
+        await settleMountedRendering()
+        #expect(!links[0].accessibilityPerformPress())
+        let updated = (text.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
+            .filter { $0.accessibilityURL() == url }
+        #expect(updated.first?.accessibilityTitle() == url.absoluteString + ", not loaded")
+        #expect(text.accessibilityLabel() == nil)
+        #expect(text.accessibilityValue() == "Before \u{FFFC} A very long first description between \u{FFFC} second after")
+        hosted.view.rootView = root(.loaded(NSImage(size: CGSize(width: 300, height: 150))))
+        await settleMountedRendering()
+        let loaded = (text.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
+            .filter { $0.accessibilityURL() == url }
+        #expect(loaded.first?.accessibilityTitle() == url.absoluteString)
+        let previousFrame = loaded.first?.accessibilityFrame()
+        hosted.view.setFrameSize(CGSize(width: 320, height: 500))
+        await settleMountedRendering()
+        hosted.view.layoutSubtreeIfNeeded()
+        let resized = (text.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
+            .filter { $0.accessibilityURL() == url }
+        #expect(resized.count == 2)
+        #expect(resized.first?.accessibilityFrame() != previousFrame)
+        #expect(resized.first?.accessibilityPerformPress() == true)
+        #expect(activated == [url, url])
+    }
+
+    @Test func attachmentProbesDoNotMutateDisplayedBounds() async throws {
+        let large = NSImage(size: CGSize(width: 600, height: 300))
+        let small = NSImage(size: CGSize(width: 20, height: 10))
+        let content = FlatMarkRenderInlineContent(components: [
+            .image(.init(url: nil, altText: "large")),
+            .text(AttributedString(" after\n")),
+            .image(.init(url: nil, altText: "small")),
+        ])
+        let hosted = await mountTestView(AppKitParagraphProposalProbe {
+            FlatMarkParagraphText(content: content, role: .body, context: .readOnly,
+                                  imagePhases: [0: .loaded(large), 2: .loaded(small)])
+        }, size: CGSize(width: 400, height: 600))
+        defer { hosted.close() }
+        let text = try #require(firstTextView(in: hosted.view))
+        let storage = try #require(text.textStorage)
+        let first = try #require(storage.attribute(.attachment, at: 0, effectiveRange: nil) as? NSTextAttachment)
+        let last = try #require(storage.attribute(.attachment, at: storage.length - 1, effectiveRange: nil) as? NSTextAttachment)
+        #expect(first.bounds.size == CGSize(width: 140, height: 70))
+        #expect(last.bounds.size == CGSize(width: 20, height: 10))
+        #expect(text.textContainer?.containerSize.width == 140)
+    }
+
     @Test func combinedIntentsPreserveUnicodeAndConsecutiveNewlines() throws {
         var text = AttributedString("👩🏽‍💻 cafe\u{301}\n\n漢字 English עברית العربية\n")
         text.inlinePresentationIntent = [.code, .stronglyEmphasized, .emphasized, .strikethrough]

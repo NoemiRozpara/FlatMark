@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 #if os(macOS)
     import AppKit
@@ -41,30 +40,6 @@ public struct FlatMarkImageLoader: Sendable {
     ) {
         self.configurationID = configurationID
         self.load = load
-    }
-}
-
-// MARK: - FlatMarkLoadedImageView
-
-/// Draws one host-loaded image at its intrinsic size, scaled down to the proposed width when larger.
-struct FlatMarkLoadedImageView: View {
-    let image: NativeImage
-
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            rendered
-            rendered
-                .resizable()
-                .scaledToFit()
-        }
-    }
-
-    private var rendered: Image {
-        #if os(macOS)
-            Image(nsImage: image)
-        #else
-            Image(uiImage: image)
-        #endif
     }
 }
 

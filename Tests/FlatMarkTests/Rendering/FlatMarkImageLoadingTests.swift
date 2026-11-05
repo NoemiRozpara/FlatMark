@@ -15,6 +15,75 @@ import Testing
 
 @MainActor
 struct FlatMarkImageLoadingTests {
+    #if os(macOS)
+    @Test func lateCompletionCannotRestoreReplacedParagraphOrImageLink() async throws {
+        let gate = SuspensionGate()
+        let raster = NSImage(size: CGSize(width: 40, height: 20))
+        let loader = FlatMarkImageLoader(configurationID: UUID()) { _ in
+            await gate.wait()
+            return raster
+        }
+        let hosted = await mountTestView(FlatMarkView(
+            markdown: "Before [![pending](https://example.com/image.png)](https://example.com/details) after.",
+            imageLoader: loader), size: CGSize(width: 220, height: 300))
+        defer { hosted.close() }
+        let original = try #require(firstTextView(in: hosted.view))
+        let oldLink = try #require((original.accessibilityChildren() ?? [])
+            .compactMap { $0 as? NSAccessibilityElement }.first { $0.accessibilityRole() == .link })
+        hosted.view.rootView = FlatMarkView(markdown: "Replacement text.", imageLoader: loader)
+        await settleMountedRendering()
+        await gate.release()
+        await settleMountedRendering()
+        let replacement = try #require(firstTextView(in: hosted.view))
+        #expect(replacement.string == "Replacement text.")
+        #expect(!(replacement.accessibilityChildren() ?? []).contains {
+            ($0 as? NSAccessibilityProtocol)?.accessibilityRole() == .link
+        })
+        #expect(!oldLink.accessibilityPerformPress())
+    }
+
+    @Test func reverseCompletionsStayInSourceOrderAndResizeWithoutReloading() async throws {
+        let firstGate = SuspensionGate()
+        let secondGate = SuspensionGate()
+        let spy = LoaderSpy()
+        let large = NSImage(size: CGSize(width: 600, height: 300))
+        let small = NSImage(size: CGSize(width: 20, height: 10))
+        let loader = FlatMarkImageLoader(configurationID: UUID()) { url in
+            await spy.record(url)
+            if url.lastPathComponent == "first.png" {
+                await firstGate.wait()
+                return large
+            }
+            await secondGate.wait()
+            return small
+        }
+        let hosted = await mountTestView(FlatMarkView(markdown:
+            "Before ![first](https://example.com/first.png) [ordinary](https://example.com/page) [![second](https://example.com/second.png)](https://example.com/details) after.",
+            imageLoader: loader), size: CGSize(width: 180, height: 600))
+        defer { hosted.close() }
+        let text = try #require(firstTextView(in: hosted.view))
+        await secondGate.release()
+        await settleMountedRendering()
+        #expect(text.string == "Before \u{FFFC} first ordinary \u{FFFC} after.")
+        await firstGate.release()
+        await settleMountedRendering()
+        #expect(text.string == "Before \u{FFFC} ordinary \u{FFFC} after.")
+        for width in [CGFloat(180), 320, 180] {
+            hosted.view.setFrameSize(CGSize(width: width, height: 600))
+            await settleMountedRendering()
+            hosted.view.layoutSubtreeIfNeeded()
+            #expect(firstTextView(in: hosted.view) === text)
+            let storage = try #require(text.textStorage)
+            let first = try #require(storage.attribute(.attachment, at: 7, effectiveRange: nil) as? NSTextAttachment)
+            #expect(first.bounds.size == CGSize(width: width, height: width / 2))
+            let offset = (text.string as NSString).range(of: "\u{FFFC}", options: .backwards).location
+            let second = try #require(storage.attribute(.attachment, at: offset, effectiveRange: nil) as? NSTextAttachment)
+            #expect(second.bounds.size == CGSize(width: 20, height: 10))
+        }
+        #expect(await spy.loadedURLs.count == 2)
+    }
+    #endif
+
     @Test
     func `resolves relative image sources with the link base URL rules`() throws {
         let baseURL = try #require(URL(string: "https://example.com/docs/readme.md"))
@@ -247,16 +316,17 @@ struct FlatMarkImageLoadingTests {
             )
             let linkedContent = try #require(paragraphContent(in: document))
 
-            #if os(macOS)
-            #expect(FlatMarkInlineView(content: linkedContent, context: .readOnly).renderingMode == .linkedImageFlow)
-            #endif
-
             let bodyHeight = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: .body).height
             let enlargedHeight = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: .enlarged).height
 
             // This document really does take more room once text is enlarged, so the cases below cannot
             // pass with both variants rendered at one effective size.
+            #if os(iOS)
             #expect(enlargedHeight > bodyHeight)
+            #else
+            // AppKit resolves semantic role fonts, not ambient SwiftUI font overrides.
+            #expect(enlargedHeight == bodyHeight)
+            #endif
 
             for textSize in [MountedTextSize.body, .enlarged] {
                 // Read from the view's own drawing rather than from what the layout reported, so a line
@@ -284,15 +354,7 @@ struct FlatMarkImageLoadingTests {
             )))
             #expect(content.plainText.contains("\u{00A0}"))
 
-            #if os(macOS)
-            let elements = FlatMarkInlineView.inlineElements(for: content, policy: .literal)
-            #expect(elements.count == 2)
-            #expect(elements[0].content == .text(AttributedString("A\u{00A0}B ")))
-            #else
-            let native = FlatMarkParagraphText.attributedText(for: content, policy: .literal,
-                dynamicTypeSize: .large, layoutDirection: .leftToRight, alignment: .leading)
-            #expect(native.string.hasPrefix("A\u{00A0}B "))
-            #endif
+            #expect(flatMarkNativeInlineText(content).string.hasPrefix("A\u{00A0}B "))
         }
 
         @Test

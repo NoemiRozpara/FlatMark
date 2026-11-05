@@ -170,13 +170,6 @@ struct FlatMarkTableView: View {
 // MARK: - FlatMarkInlineView
 
 struct FlatMarkInlineView: View {
-    enum RenderingMode: Equatable {
-        case inlineText
-        case standaloneLinkedImage(URL)
-        case linkedImageFlow
-        case responsiveImageFlow
-    }
-
     enum ImagePhase: Equatable {
         case placeholder
         case loading
@@ -195,12 +188,7 @@ struct FlatMarkInlineView: View {
         var placeholderSymbolName: String? {
             switch self {
             case .placeholder: "photo"
-            case .loading:
-                #if os(iOS)
-                "hourglass"
-                #else
-                "clock"
-                #endif
+            case .loading: "hourglass"
             case .loaded: nil
             case .failed: "exclamationmark.triangle"
             }
@@ -223,36 +211,11 @@ struct FlatMarkInlineView: View {
         let loaderConfigurationID: UUID?
     }
 
-    struct InlineElement: Identifiable, Equatable {
-        enum Content: Equatable {
-            case text(AttributedString)
-            case lineBreak
-            case image(componentIndex: Int, image: FlatMarkRenderImage)
-        }
-
-        let id: Int
-        let content: Content
-    }
-
     let content: FlatMarkRenderInlineContent
     let context: FlatMarkRenderContext
     var role: FlatMarkTextRole = .body
 
     @State private var imagePhases: [Int: ImagePhase] = [:]
-
-    var renderingMode: RenderingMode {
-        if let destination = content.standaloneLinkedImageDestination {
-            return .standaloneLinkedImage(destination)
-        }
-
-        if content.components.contains(where: \.isLinkedImage) {
-            return .linkedImageFlow
-        }
-
-        return imagePhases.values.contains(where: \.isLoaded)
-            ? .responsiveImageFlow
-            : .inlineText
-    }
 
     var body: some View {
         #if os(iOS)
@@ -261,167 +224,14 @@ struct FlatMarkInlineView: View {
                 await loadImages()
             }
         #else
-        if content.containsImages {
-            imageBearingContent
-                .task(id: imageTaskID) {
-                    await loadImages()
-                }
-        } else {
-            #if os(macOS)
-            let text = FlatMarkParagraphText(content: content, role: role, context: context)
-            text.alignmentGuide(.firstTextBaseline) { dimensions in
-                text.firstBaseline(width: dimensions.width)
-            }
-            #else
-            FlatMarkParagraphText(content: content, role: role, context: context)
-            #endif
+        let text = FlatMarkParagraphText(content: content, role: role, context: context, imagePhases: imagePhases)
+        text.alignmentGuide(.firstTextBaseline) { dimensions in
+            text.firstBaseline(width: dimensions.width)
+        }
+        .task(id: imageTaskID) {
+            await loadImages()
         }
         #endif
-    }
-
-    /// The image-bearing SwiftUI path, with the role typography the native bridge otherwise supplies.
-    @ViewBuilder
-    private var imageBearingContent: some View {
-        switch role {
-        case let .heading(level):
-            accessibleContent
-                .font(headingFont(for: level))
-                .bold()
-        case .tableHeader:
-            accessibleContent
-                .bold()
-        case .body:
-            accessibleContent
-        }
-    }
-
-    private func headingFont(for level: Int) -> Font {
-        switch level {
-        case 1:
-            .title
-        case 2:
-            .title2
-        case 3:
-            .title3
-        default:
-            .headline
-        }
-    }
-
-    @ContentBuilder
-    private var accessibleContent: some View {
-        renderedContent.accessibilityRepresentation {
-            if let destination = content.standaloneLinkedImageDestination {
-                Link(destination: destination) {
-                    accessibilityText
-                }
-            } else {
-                accessibilityText
-            }
-        }
-    }
-
-    @ContentBuilder
-    private var renderedContent: some View {
-        switch renderingMode {
-        case let .standaloneLinkedImage(destination):
-            Link(destination: destination) {
-                FlatMarkInlineFlowLayout {
-                    ForEach(inlineElements) { element in
-                        inlineView(for: element)
-                    }
-                }
-            }
-
-        case .linkedImageFlow, .responsiveImageFlow:
-            FlatMarkInlineFlowLayout {
-                ForEach(inlineElements) { element in
-                    inlineView(for: element)
-                }
-            }
-
-        case .inlineText:
-            inlineText
-        }
-    }
-
-    private var inlineElements: [InlineElement] {
-        Self.inlineElements(for: content, policy: context.unsupportedContentPolicy)
-    }
-
-    static func inlineElements(
-        for content: FlatMarkRenderInlineContent,
-        policy: FlatMarkUnsupportedContentPolicy
-    ) -> [InlineElement] {
-        var elements: [InlineElement] = []
-
-        for (componentIndex, component) in content.components.enumerated() {
-            let text: AttributedString
-            switch component {
-            case let .text(supportedText):
-                text = supportedText
-            case let .image(image):
-                elements.append(InlineElement(
-                    id: elements.count,
-                    content: .image(componentIndex: componentIndex, image: image)
-                ))
-                continue
-            case let .unsupported(unsupported):
-                text = replacementText(for: unsupported, policy: policy)
-            }
-
-            for fragment in text.inlineFragments {
-                let content: InlineElement.Content =
-                    switch fragment {
-                    case let .text(text): .text(text)
-                    case .lineBreak: .lineBreak
-                    }
-                elements.append(InlineElement(id: elements.count, content: content))
-            }
-        }
-
-        return elements
-    }
-
-    @ContentBuilder
-    private func inlineView(for element: InlineElement) -> some View {
-        switch element.content {
-        case let .text(text):
-            Text(text)
-                // Selectable native text must not intercept an adjacent image link's hit area.
-                .contentShape(Rectangle())
-        case .lineBreak:
-            Color.clear
-                .frame(width: 0, height: 0)
-                .layoutValue(key: FlatMarkInlineFlowLayout.LineBreakKey.self, value: true)
-                .accessibilityHidden(true)
-        case let .image(index, image):
-            if let destination = image.link {
-                Link(destination: destination) {
-                    imageView(for: image, at: index)
-                }
-                .accessibilityLabel(Self.accessibilityLabel(
-                    for: image, phase: imagePhases[index] ?? .placeholder,
-                    policy: context.unsupportedContentPolicy
-                ))
-            } else {
-                imageView(for: image, at: index)
-                    .accessibilityLabel(Self.accessibilityLabel(
-                        for: image, phase: imagePhases[index] ?? .placeholder,
-                        policy: context.unsupportedContentPolicy
-                    ))
-            }
-        }
-    }
-
-    @ContentBuilder
-    private func imageView(for image: FlatMarkRenderImage, at index: Int) -> some View {
-        switch imagePhases[index] ?? .placeholder {
-        case let .loaded(loadedImage):
-            FlatMarkLoadedImageView(image: loadedImage)
-        case .placeholder, .loading, .failed:
-            imageText(for: image, at: index)
-        }
     }
 
     /// The single composition point for unsupported inline attributed output.
@@ -444,42 +254,6 @@ struct FlatMarkInlineView: View {
             return replacement
         }
         return policy.literalText(for: unsupported)
-    }
-
-    private var inlineText: Text {
-        content.components.enumerated().reduce(Text("")) { result, item in
-            let (index, component) = item
-
-            switch component {
-            case let .text(text):
-                return result + Text(text)
-            case let .image(image):
-                return result + imageText(for: image, at: index)
-            case let .unsupported(unsupported):
-                return result + Text(Self.replacementText(for: unsupported, policy: context.unsupportedContentPolicy))
-            }
-        }
-    }
-
-    private var accessibilityText: Text {
-        content.components.enumerated().reduce(Text("")) { result, item in
-            let (index, component) = item
-
-            switch component {
-            case let .text(text):
-                return result + Text(text)
-            case let .image(image):
-                let phase = imagePhases[index] ?? .placeholder
-                let labelText = Self.accessibilityLabel(
-                    for: image, phase: phase, policy: context.unsupportedContentPolicy
-                )
-                var label = AttributedString(labelText)
-                label.link = image.link
-                return result + Text(label)
-            case let .unsupported(unsupported):
-                return result + Text(Self.replacementText(for: unsupported, policy: context.unsupportedContentPolicy))
-            }
-        }
     }
 
     private var imageRequests: [ImageRequest] {
@@ -505,15 +279,6 @@ struct FlatMarkInlineView: View {
         )
     }
 
-    private func imageText(for image: FlatMarkRenderImage, at index: Int) -> Text {
-        let label = context.unsupportedContentPolicy.imageLabel(for: image)
-        let phase = imagePhases[index] ?? .placeholder
-        if let symbol = phase.placeholderSymbolName {
-            return labeledImageText(systemName: symbol, label: label)
-        }
-        return Text(label)
-    }
-
     static func accessibilityLabel(
         for image: FlatMarkRenderImage,
         phase: ImagePhase,
@@ -521,10 +286,6 @@ struct FlatMarkInlineView: View {
     ) -> String {
         let label = policy.imageLabel(for: image)
         return label + phase.accessibilitySuffix
-    }
-
-    private func labeledImageText(systemName: String, label: String) -> Text {
-        Text(Image(systemName: systemName)) + Text(" \(label)")
     }
 
     @MainActor
@@ -585,52 +346,6 @@ struct FlatMarkInlineView: View {
                 }
             }
         }
-    }
-}
-
-private extension FlatMarkInlineView.ImagePhase {
-    var isLoaded: Bool {
-        if case .loaded = self {
-            return true
-        }
-
-        return false
-    }
-}
-
-private extension FlatMarkRenderInlineContent.Component {
-    var isLinkedImage: Bool {
-        guard case let .image(image) = self else {
-            return false
-        }
-
-        return image.link != nil
-    }
-}
-
-private extension AttributedString {
-    enum InlineFragment {
-        case text(AttributedString)
-        case lineBreak
-    }
-
-    var inlineFragments: [InlineFragment] {
-        var fragments: [InlineFragment] = []
-        var fragmentStart = startIndex
-
-        for index in characters.indices where characters[index].isNewline {
-            if fragmentStart < index {
-                fragments.append(.text(AttributedString(self[fragmentStart ..< index])))
-            }
-            fragments.append(.lineBreak)
-            fragmentStart = characters.index(after: index)
-        }
-
-        if fragmentStart < endIndex {
-            fragments.append(.text(AttributedString(self[fragmentStart ..< endIndex])))
-        }
-
-        return fragments
     }
 }
 

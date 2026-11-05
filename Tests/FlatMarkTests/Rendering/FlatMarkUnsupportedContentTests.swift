@@ -339,17 +339,7 @@ struct FlatMarkUnsupportedContentTests {
     @Test
     func `renders literal inline HTML through native text elements`() throws {
         let content = try #require(paragraphContent(in: "before <u>important</u> after"))
-        let view = FlatMarkInlineView(content: content, context: .readOnly)
-        let elements = FlatMarkInlineView.inlineElements(for: content, policy: .literal)
-
-        #expect(view.renderingMode == .inlineText)
-        #expect(elements.map(plainFragment) == [
-            "before ",
-            "<u>",
-            "important",
-            "</u>",
-            " after",
-        ])
+        #expect(flatMarkNativeInlineText(content).string == "before <u>important</u> after")
     }
 
     @MainActor
@@ -607,17 +597,6 @@ private func unsupportedValues(
     }
 
     return [content]
-}
-
-private func plainFragment(_ element: FlatMarkInlineView.InlineElement) -> String {
-    switch element.content {
-    case let .text(text):
-        return String(text.characters)
-    case .lineBreak:
-        return "\n"
-    case let .image(_, image):
-        return FlatMarkUnsupportedContentPolicy.literal.imageLabel(for: image)
-    }
 }
 
 private extension FlatMarkRenderInlineContent.Component {
