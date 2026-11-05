@@ -27,9 +27,8 @@ struct FlatMarkParagraphText: UIViewRepresentable {
         Coordinator(openURL: openURL)
     }
 
-    func makeUIView(context: Context) -> FlatMarkAccessibleParagraphView {
-        let wrapper = FlatMarkAccessibleParagraphView()
-        let view = wrapper.textView
+    func makeUIView(context: Context) -> UITextView {
+        let view = UITextView()
         view.isEditable = false
         view.isSelectable = true
         view.isScrollEnabled = false
@@ -39,12 +38,11 @@ struct FlatMarkParagraphText: UIViewRepresentable {
         // Native storage owns link colors, including explicit host overrides.
         view.linkTextAttributes = [:]
         view.delegate = context.coordinator
-        return wrapper
+        return view
     }
 
-    func updateUIView(_ view: FlatMarkAccessibleParagraphView, context: Context) {
+    func updateUIView(_ view: UITextView, context: Context) {
         context.coordinator.openURL = openURL
-        view.activateLink = { [weak coordinator = context.coordinator] url in coordinator?.openURL(url) }
         let policyKey: Int? = switch self.context.unsupportedContentPolicy {
         case .literal: 0
         case .omit: 1
@@ -56,7 +54,8 @@ struct FlatMarkParagraphText: UIViewRepresentable {
         // Custom closures have no comparable identity and may capture changed host state.
         if policyKey == nil || context.coordinator.compositionInputs != inputs {
             context.coordinator.compositionInputs = inputs
-            view.compose = { width in Self.attributedText(
+            context.coordinator.composedWidth = nil
+            context.coordinator.compose = { width in Self.attributedText(
                 for: content,
                 policy: self.context.unsupportedContentPolicy,
                 role: role,
@@ -67,12 +66,12 @@ struct FlatMarkParagraphText: UIViewRepresentable {
                 width: width
             ) }
         }
-        view.refresh(width: view.bounds.width)
+        context.coordinator.refresh(view, width: view.bounds.width)
     }
 
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: FlatMarkAccessibleParagraphView, context: Context) -> CGSize? {
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
         guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
-        uiView.refresh(width: width)
+        context.coordinator.refresh(uiView, width: width)
         let size = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
         return CGSize(width: width, height: ceil(size.height))
     }
@@ -114,7 +113,7 @@ struct FlatMarkParagraphText: UIViewRepresentable {
             case let .image(image):
                 let native = NSMutableAttributedString(attributedString:
                     FlatMarkImagePresentation(image: image, phase: imagePhases[index] ?? .placeholder, policy: policy)
-                        .attributedText(width: width, font: roleFont, identity: index))
+                        .attributedText(width: width, font: roleFont))
                 let paragraph = paragraphStyle(direction: layoutDirection, alignment: alignment)
                 native.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: native.length))
                 result.append(native)
@@ -221,7 +220,16 @@ struct FlatMarkParagraphText: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextViewDelegate {
         var compositionInputs: CompositionInputs?
+        var compose: ((CGFloat) -> NSAttributedString)?
+        var composedWidth: CGFloat?
         var openURL: OpenURLAction
+
+        func refresh(_ view: UITextView, width: CGFloat) {
+            let width = width > 0 ? width : CGFloat.greatestFiniteMagnitude
+            guard composedWidth != width, let compose else { return }
+            view.attributedText = compose(width)
+            composedWidth = width
+        }
 
         init(openURL: OpenURLAction) {
             self.openURL = openURL

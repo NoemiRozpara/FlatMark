@@ -3,6 +3,22 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Native image accessibility — wrapper removal
+
+The iOS renderer now uses a plain `UITextView` with attributed attachments. The custom
+accessibility wrapper, image identity/label metadata, and wrapper-only accessibility test
+were removed. Earlier wrapper qualification below is historical, not the current contract.
+See [layout and accessibility limits](../README.md#layout-and-selection-limits).
+
+The user tested the plain native path on both platforms and reported that all content was
+reachable and links were active. iOS announced “Attachment png link”; macOS announced “Link”.
+These are user-reported observations, not guaranteed wording. Runtime versions, fixture,
+and navigation actions were not recorded for that manual check.
+
+After removal, the iOS paragraph suite passed 18 tests on the iPhone 18 Pro simulator with
+iOS 27.0. The macOS image-loading suite passed 14 tests. These checks do not establish live
+VoiceOver behavior. No snapshots were recorded during wrapper removal.
+
 ## Image attachment recovery verification — 2026-11-05
 
 After recovering the image attachment changes, both snapshot Record schemes ran on

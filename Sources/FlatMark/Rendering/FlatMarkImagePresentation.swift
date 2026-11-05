@@ -4,14 +4,11 @@ import UIKit
 /// Inline phase output. Request ownership remains with FlatMarkInlineView.
 @MainActor
 struct FlatMarkImagePresentation {
-    static let identityKey = NSAttributedString.Key("FlatMark.imageIdentity")
-    static let labelKey = NSAttributedString.Key("FlatMark.imageLabel")
-
     let image: FlatMarkRenderImage
     let phase: FlatMarkInlineView.ImagePhase
     let policy: FlatMarkUnsupportedContentPolicy
 
-    func attributedText(width: CGFloat, font: UIFont, identity: Int) -> NSAttributedString {
+    func attributedText(width: CGFloat, font: UIFont) -> NSAttributedString {
         let imageLabel = policy.imageLabel(for: image)
         let result: NSMutableAttributedString
         switch phase {
@@ -25,9 +22,8 @@ struct FlatMarkImagePresentation {
         case .placeholder, .loading, .failed:
             result = placeholder(label: imageLabel, font: font)
         }
-        let label = (image.link?.absoluteString ?? imageLabel) + phase.accessibilitySuffix
         let range = NSRange(location: 0, length: result.length)
-        result.addAttributes([Self.identityKey: identity, Self.labelKey: label, .font: font,
+        result.addAttributes([.font: font,
                               .foregroundColor: image.link == nil ? UIColor.label : UIColor.link], range: range)
         if let link = image.link { result.addAttribute(.link, value: link, range: range) }
         return result

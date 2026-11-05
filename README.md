@@ -237,8 +237,9 @@ styling and measurement. Selection preservation and cross-block selection are no
 
 On iOS, images share native attributed storage with surrounding text. Loaded images use inline
 attachments at intrinsic size, shrinking proportionally to the paragraph width. Other phases use
-an inline photo, static hourglass, or warning icon with the policy-resolved label. Image links have
-separate destination-first accessibility names; unlinked images use their descriptions.
+an inline photo, static hourglass, or warning icon with the policy-resolved label.
+The native text view owns accessibility for text, links, and attachments; FlatMark does not
+create separate accessibility elements for image runs.
 
 On macOS, values containing Markdown images retain the SwiftUI flow renderer and its ambient role
 styling in every phase. Mixed text/image content wraps by runs rather than character-level
@@ -246,6 +247,10 @@ typesetting. A long text run may wrap internally or move as a whole. Selection w
 supported text regions but is not continuous across arbitrary views. Linked images separate
 adjacent selectable text regions so the image remains independently actionable. Tables scroll horizontally;
 parsed column alignment does not change native cell alignment.
+
+Image announcements follow native platform behavior. FlatMark does not guarantee that VoiceOver
+speaks image alt text, link destinations, or phase wording. Linked images use the existing host
+navigation path. Generic attachment or link announcements are a known limitation on both platforms.
 
 See the [support matrix](SUPPORT.md) for construct-specific behavior and the
 [runtime guide](Tests/README.md) for verification limits.
