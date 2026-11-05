@@ -13,6 +13,12 @@ product. They compile the Swift files in `Support/FlatMarkFixtures` directly and
 bundle its `focaccia.jpeg` and `leaf.png`; no fixture sources are copied or imported as a package
 module. Package tests continue using the internal `FlatMarkFixtures` target.
 
+The recipe includes all six heading levels, nested list continuations, multi-line
+quotes, and linked and unlinked images. In Settings, turn off **Load bundled images**
+to inspect placeholders without changing the Markdown. The fixture never fetches
+remote images. Automated static snapshots use this same document and its sections;
+see [snapshot coverage](../Tests/README.md#shared-demo-snapshot-coverage).
+
 The initial preset is `daylight`. Add `--capture <preset>` under Scheme > Edit
 Scheme > Run > Arguments, or launch from the repository root:
 

@@ -13,186 +13,176 @@ import Testing
     import UIKit
 #endif
 
+/// Static presentation uses the same document, marker drawings, and replacements as Recipe Lab.
+/// Controlled transitions and internal layout probes remain in their focused suites.
 @Suite(.serialized)
 @MainActor
 struct FlatMarkRecipeIntegrationSnapshotTests {
-    @Test func primary() async throws { try await capture(testName: #function) }
-    @Test func dark() async throws { try await capture(dark: true, testName: #function) }
-    #if os(iOS)
-    @Test func enlarged() async throws { try await capture(enlarged: true, testName: #function) }
-    #endif
+    enum Scenario: String, CaseIterable {
+        case primary, dark, narrow, rtlNarrow, rtlWide
+        case customNarrow, customWide, customRTL, customDisabled, customReadOnly, customRetained
+        case omission, emptyReplacement, mentionsOff, readOnly, disabled
+        case noLoaderNarrow, noLoaderWide
+        #if os(iOS)
+        case enlarged, enlargedCustom, enlargedRTL, enlargedNoLoaderNarrow, enlargedNoLoaderWide
+        #endif
 
-    private enum CaptureError: Error { case resource, readiness, crop }
+        var source: (markdown: String, imageCount: Int) {
+            switch self {
+            case .primary, .dark:
+                return (FlatMarkRecipeSample.markdown, 3)
+            case .narrow, .rtlNarrow, .rtlWide:
+                return ([FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.method].joined(separator: "\n\n"), 0)
+            case .customNarrow, .customWide, .customRTL:
+                return ([FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.bakeAlong].joined(separator: "\n\n"), 1)
+            case .customDisabled, .customReadOnly, .customRetained, .readOnly, .disabled:
+                return (FlatMarkRecipeSample.bakeAlong, 0)
+            case .omission, .emptyReplacement:
+                return ([FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.notes]
+                    .joined(separator: "\n\n"), 2)
+            case .mentionsOff:
+                return ([FlatMarkRecipeSample.introduction, FlatMarkRecipeSample.notes].joined(separator: "\n\n"), 1)
+            case .noLoaderNarrow, .noLoaderWide:
+                return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.notes]
+                    .joined(separator: "\n\n"), 3)
+            #if os(iOS)
+            case .enlarged, .enlargedRTL:
+                return ([FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.method].joined(separator: "\n\n"), 0)
+            case .enlargedCustom:
+                return ([FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.bakeAlong].joined(separator: "\n\n"), 1)
+            case .enlargedNoLoaderNarrow, .enlargedNoLoaderWide:
+                return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.notes]
+                    .joined(separator: "\n\n"), 3)
+            #endif
+            }
+        }
 
-    // Loader completion precedes geometry quiescence; contrast and reviewed pixels prove drawing.
-    private final class Delivery: @unchecked Sendable {
-        private let lock = NSLock()
-        private var count = 0
-        private var done = false
-        var requests: Int { lock.withLock { count } }
-        var completed: Bool { lock.withLock { done } }
-        func start() { lock.withLock { count += 1 } }
-        func complete() { lock.withLock { done = true } }
+        var enlarged: Bool { rawValue.hasPrefix("enlarged") }
+        var custom: Bool { rawValue.hasPrefix("custom") || self == .emptyReplacement || rawValue == "enlargedCustom" }
+        var disabled: Bool { self == .disabled || self == .customDisabled }
+        var noLoader: Bool { rawValue.lowercased().contains("noloader") }
+        var column: CGFloat {
+            if noLoader { return rawValue.hasSuffix("Narrow") ? 160 : 320 }
+            if self == .narrow || self == .rtlNarrow || self == .customNarrow || self == .customRTL
+                || self == .customDisabled || self == .customReadOnly || self == .customRetained || enlarged {
+                return 240
+            }
+            return 560
+        }
+        var direction: FlatMarkSnapshotEnvironment.LayoutDirection {
+            self == .rtlNarrow || self == .rtlWide || self == .customRTL || rawValue == "enlargedRTL"
+                ? .rightToLeft : .leftToRight
+        }
     }
 
+    @Test(arguments: Scenario.allCases)
+    func recipe(scenario: Scenario) async throws {
+        let source = scenario.source
+        let model = FlatMarkCustomFixtureModel(markdown: source.markdown)
+        let expectedLoads = scenario.noLoader ? 0 : source.imageCount
+        model.loadsImages = !scenario.noLoader
+        model.policyKind = scenario.custom ? .custom : scenario == .omission ? .omit : .literal
+        model.replacementLabel = "Baker’s tip"
+        model.showsButtons = true
+        model.showsEmpty = scenario == .emptyReplacement
+        model.usesHostTaskMarker = scenario.custom
+        model.allowsTaskEditing = scenario != .readOnly && scenario != .customReadOnly
+        model.usesRetainedDocument = scenario == .customRetained
+        model.detectMentions = scenario != .mentionsOff
+        let environment = FlatMarkSnapshotEnvironment(
+            captureSize: CGSize(width: scenario.column + 80, height: scenario.enlarged ? 1800 : 1200),
+            columnWidth: scenario.column, contentInset: 40, pixelScale: 2,
+            appearance: scenario == .dark ? .dark : .light, localeIdentifier: "en_US",
+            layoutDirection: scenario.direction, textSize: scenario.enlarged ? .enlarged : .body
+        )
+        let geometry = Geometry()
+        let host = flatMakeRetainedSnapshotHost(
+            view: ScrollView(.vertical) {
+                FlatMarkCustomDocumentFixture(model: model)
+                    .disabled(scenario.disabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.scrollIndicators(.hidden),
+            environment: environment
+        )
+        defer { host.close() }
+
+        // Walk the mounted document rather than cropping fixed section coordinates. The final
+        // viewport ends at the actual content bottom, even after source or text-size changes.
+        var page = 0
+        repeat {
+            let image = try await host.capture { [page] root in
+                await Self.prepare(root, page: page, model: model, expectedLoads: expectedLoads, geometry: geometry)
+            }
+            guard geometry.ready else { throw CaptureError.readiness }
+            assertFlatMarkSnapshot(image, suite: .recipe, named: "\(scenario.rawValue)-page\(page + 1)",
+                                   environment: environment, testName: #function)
+            page += 1
+        } while geometry.offset < max(0, geometry.content - geometry.viewport) - 1
+        #expect(abs(geometry.offset - max(0, geometry.content - geometry.viewport)) < 1)
+        #expect(model.imageCalls.urls.count == expectedLoads, "Scrolling must not reload images")
+    }
+
+    private enum CaptureError: Error { case readiness }
+
     private final class Geometry {
-        var size = CGSize.zero
+        var content: CGFloat = 0
+        var viewport: CGFloat = 0
+        var offset: CGFloat = 0
         var ready = false
     }
 
-    private func capture(dark: Bool = false, enlarged: Bool = false, testName: String) async throws {
-        let environment = FlatMarkSnapshotEnvironment(
-            captureSize: CGSize(width: enlarged ? 1200 : 640, height: enlarged ? 1100 : 2400), columnWidth: enlarged ? 1120 : 560, contentInset: 40,
-            pixelScale: 2, appearance: dark ? .dark : .light, localeIdentifier: "en_US",
-            layoutDirection: .leftToRight, textSize: enlarged ? .enlarged : .body
-        )
-        let loaded = try await render(environment: environment, fallback: false)
-        let fallback = try await render(environment: environment, fallback: true)
-        #if os(macOS)
-            let sections = [("upperTitleImage", 0, 600), ("tasksQuotes", 600, 470),
-                            ("tableCode", 1070, 425), ("lowerNotes", 1495, 425)]
-        #else
-            let sections = [("upperTitleImage", 0, 650), ("tasksQuotes", 650, 540),
-                            ("tableCode", 1190, 505), ("lowerNotes", 1695, 550)]
-        #endif
-        #if os(macOS)
-            let upperHeight = sections[0].2
-        #else
-            let upperHeight = enlarged ? 900 : sections[0].2
-        #endif
-        let upper = try crop(loaded, y: 0, height: upperHeight)
-        let control = try crop(fallback, y: 0, height: upperHeight)
-        #expect(bytes(upper) != bytes(control), "Loaded recipe must differ from leaf.fill control")
-        print("Recipe \(testName): raster upper != leaf.fill control; requests=2 (photo + inline leaf) for each render")
-        if enlarged {
-            assertFlatMarkSnapshot(upper, suite: .recipe, named: "upperTitleImage", environment: environment, testName: testName)
-        } else {
-            for (name, y, height) in sections {
-                assertFlatMarkSnapshot(try crop(loaded, y: y, height: height), suite: .recipe,
-                                       named: name, environment: environment, testName: testName)
-            }
-        }
-    }
-
-    private func render(environment: FlatMarkSnapshotEnvironment, fallback: Bool) async throws -> FlatMarkSnapshotImage {
-        let delivery = Delivery()
-        let geometry = Geometry()
-        let expectedPhotoURL = FlatMarkCustomFixtureModel.baseURL?.appending(path: "focaccia.jpeg")
-        let expectedLeafURL = FlatMarkCustomFixtureModel.baseURL?.appending(path: "leaf.png")
-        let loader = FlatMarkImageLoader(configurationID: UUID()) { url in
-            delivery.start()
-            defer { delivery.complete() }
-            let isRecipeRaster = url == expectedPhotoURL || url == expectedLeafURL
-            guard isRecipeRaster else {
-                throw CaptureError.resource
-            }
-            if fallback { return leafFallbackImage }
-            let resource = url == expectedPhotoURL ? FlatMarkFixtureResources.focacciaURL : FlatMarkFixtureResources.leafURL
-            guard let resource else { throw CaptureError.resource }
+    private static func prepare(
+        _ root: FlatMarkSnapshotNativeView, page: Int,
+        model: FlatMarkCustomFixtureModel, expectedLoads: Int, geometry: Geometry
+    ) async {
+        geometry.ready = false
+        var previous: [CGRect] = []
+        var stable = 0
+        for _ in 1 ... 100 {
             #if os(macOS)
-                guard let image = NSImage(contentsOf: resource) else { throw CaptureError.resource }
+                root.layoutSubtreeIfNeeded()
+                root.displayIfNeeded()
+                guard let scroll = descendants(root).compactMap({ $0 as? NSScrollView }).first,
+                      let document = scroll.documentView else {
+                    Issue.record("Recipe vertical scroll view unavailable")
+                    return
+                }
+                geometry.content = document.bounds.height
+                geometry.viewport = scroll.contentView.bounds.height
+                let target = min(CGFloat(page) * geometry.viewport, max(0, geometry.content - geometry.viewport))
+                scroll.contentView.scroll(to: CGPoint(x: 0, y: target))
+                scroll.reflectScrolledClipView(scroll.contentView)
+                geometry.offset = scroll.contentView.bounds.minY
+                root.layoutSubtreeIfNeeded()
+                root.displayIfNeeded()
             #else
-                guard let image = UIImage(contentsOfFile: resource.path) else { throw CaptureError.resource }
+                root.layoutIfNeeded()
+                guard let scroll = descendants(root).compactMap({ $0 as? UIScrollView }).first else {
+                    Issue.record("Recipe vertical scroll view unavailable")
+                    return
+                }
+                geometry.content = scroll.contentSize.height
+                geometry.viewport = scroll.bounds.height
+                let target = min(CGFloat(page) * geometry.viewport, max(0, geometry.content - geometry.viewport))
+                scroll.setContentOffset(CGPoint(x: 0, y: target), animated: false)
+                geometry.offset = scroll.contentOffset.y
+                root.layoutIfNeeded()
             #endif
-            return image
-        }
-        let document = FlatMarkView(
-                markdown: FlatMarkRecipeSample.markdown,
-                baseURL: FlatMarkCustomFixtureModel.baseURL,
-                imageLoader: loader, unsupportedContentPolicy: .literal,
-                linkActivationAction: { _ in .handled }, detectMentions: true,
-                taskToggleAction: nil, taskMarker: .default
-            )
-            .fixedSize(horizontal: false, vertical: true)
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { geometry.size = $0 }
-        let image = try await flatMarkSnapshotImage(
-            of: Group {
-                if environment.textSize == .enlarged {
-                    ScrollView(.vertical) { document }
-                        .scrollIndicators(.hidden)
-                } else {
-                    document
-                }
-            },
-            environment: environment,
-            prepareMountedView: { root in
-                var previous: [CGRect] = []
-                var stable = 0
-                for _ in 1 ... 100 {
-                    #if os(macOS)
-                        root.layoutSubtreeIfNeeded()
-                        root.displayIfNeeded()
-                    #else
-                        root.layoutIfNeeded()
-                    #endif
-                    let observed = [CGRect(origin: .zero, size: geometry.size)] + Self.frames(root)
-                    stable = delivery.completed && observed == previous ? stable + 1 : 0
-                    if stable >= 5 {
-                        if environment.textSize == .enlarged {
-                            #if os(iOS)
-                                let scrolls = Self.scrollViews(root)
-                                #expect(scrolls.count == 1)
-                                #expect(scrolls.first?.contentOffset.y == 0)
-                            #endif
-                        }
-                        geometry.ready = true
-                        return
-                    }
-                    previous = observed
-                    try? await Task.sleep(for: .milliseconds(20))
-                }
-                Issue.record("Recipe readiness timed out: completed=\(delivery.completed), stable=\(stable), size=\(geometry.size)")
+            let observed = descendants(root).map { $0.convert($0.bounds, to: nil) }
+            let requested = model.imageCalls.urls.count == expectedLoads
+            let positioned = abs(geometry.offset - target) < 1 && geometry.viewport > 0 && geometry.content > 0
+            stable = requested && positioned && observed == previous ? stable + 1 : 0
+            if stable >= 5 {
+                geometry.ready = true
+                return
             }
-        )
-        #expect(delivery.requests == 2)
-        #expect(delivery.completed)
-        guard geometry.ready else { throw CaptureError.readiness }
-        if environment.textSize != .enlarged {
-            #expect(geometry.size.height < environment.captureSize.height - 80, "Full recipe must fit before cropping")
+            previous = observed
+            try? await Task.sleep(for: .milliseconds(20))
         }
-        return image
+        Issue.record("Recipe page \(page + 1) readiness timed out: loads=\(model.imageCalls.urls.count), stable=\(stable), content=\(geometry.content), viewport=\(geometry.viewport), offset=\(geometry.offset)")
     }
 
-    private static func frames(_ view: FlatMarkSnapshotNativeView) -> [CGRect] {
-        [view.convert(view.bounds, to: nil)] + view.subviews.flatMap { frames($0) }
+    private static func descendants(_ view: FlatMarkSnapshotNativeView) -> [FlatMarkSnapshotNativeView] {
+        [view] + view.subviews.flatMap { descendants($0) }
     }
-
-    #if os(iOS)
-        private static func scrollViews(_ view: UIView) -> [UIScrollView] {
-            (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews($0) }
-        }
-    #endif
-
-    // Crop coordinates are top-origin points converted to fixed 2x pixel rectangles.
-    private func crop(_ image: FlatMarkSnapshotImage, y: Int, height: Int) throws -> FlatMarkSnapshotImage {
-        #if os(macOS)
-            var proposed = CGRect(origin: .zero, size: image.size)
-            guard let source = image.cgImage(forProposedRect: &proposed, context: nil, hints: nil) else { throw CaptureError.crop }
-        #else
-            guard let source = image.cgImage else { throw CaptureError.crop }
-        #endif
-        guard let cropped = source.cropping(to: CGRect(x: 0, y: y * 2, width: source.width, height: height * 2)) else { throw CaptureError.crop }
-        #if os(macOS)
-            return NSImage(cgImage: cropped, size: CGSize(width: source.width / 2, height: height))
-        #else
-            return UIImage(cgImage: cropped, scale: 2, orientation: .up)
-        #endif
-    }
-
-    private func bytes(_ image: FlatMarkSnapshotImage) -> Data? {
-        #if os(macOS)
-            image.tiffRepresentation
-        #else
-            image.pngData()
-        #endif
-    }
-}
-
-/// The image a control recipe returns instead of the photo, so the loaded capture must differ from it.
-private var leafFallbackImage: NativeImage {
-    #if os(macOS)
-        NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: nil) ?? NSImage()
-    #else
-        UIImage(systemName: "leaf.fill") ?? UIImage()
-    #endif
 }

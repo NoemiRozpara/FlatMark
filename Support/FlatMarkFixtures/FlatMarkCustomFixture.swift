@@ -164,7 +164,7 @@ public struct FlatMarkCustomDocumentFixture: View {
         if usesRetainedDocument ?? model.usesRetainedDocument {
             FlatMarkView(
                 document: model.document,
-                imageLoader: model.loader,
+                imageLoader: model.loadsImages ? model.loader : nil,
                 unsupportedContentPolicy: policy,
                 linkActivationAction: activateLink,
                 taskToggleAction: toggleTask,
@@ -174,7 +174,7 @@ public struct FlatMarkCustomDocumentFixture: View {
             FlatMarkView(
                 markdown: model.markdown,
                 baseURL: FlatMarkCustomFixtureModel.baseURL,
-                imageLoader: model.loader,
+                imageLoader: model.loadsImages ? model.loader : nil,
                 unsupportedContentPolicy: policy,
                 linkActivationAction: activateLink,
                 detectMentions: model.detectMentions,
@@ -199,6 +199,7 @@ public final class FlatMarkCustomFixtureModel {
     }
     public private(set) var document: FlatMarkDocument
     public var usesRetainedDocument = false
+    public var loadsImages = true
     public var refreshRequests = 0
     public var policyKind: FlatMarkCustomPolicyKind = .literal {
         didSet { payloads = [] }
@@ -227,7 +228,7 @@ public final class FlatMarkCustomFixtureModel {
         self.markdown = markdown
         document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL, detectMentions: true)
         let imageCalls = imageCalls
-        // The recipe asks for two rasters: the block photo and the inline leaf.
+        // The recipe reuses these two resources for its block photo and inline leaves.
         var requests: [URL: URL] = [:]
         if let baseURL = Self.baseURL {
             if let file = FlatMarkFixtureResources.focacciaURL {

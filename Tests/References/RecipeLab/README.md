@@ -36,7 +36,9 @@ Any single-frame pixel difference in these captures is weak evidence. Capturing 
 the same geometry and scroll position three times in a row produced two distinct hashes, so treat
 frame equality as inconclusive and confirm anything that matters by eye or with a directed test.
 
-These are review artifacts, not automated pixel baselines.
+These are review artifacts, not automated pixel baselines. They predate the expanded
+recipe and the shared-demo snapshot consolidation; they were not regenerated for
+that change. Current automated references live in `../Snapshots/Recipe/`.
 
 ## Capture
 

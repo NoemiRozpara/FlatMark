@@ -15,18 +15,12 @@ import Testing
 /// A suite name is used by exactly one file, so recording that suite can never overwrite another
 /// suite's references.
 enum FlatMarkSnapshotSuite: String {
-    case linkedImage = "LinkedImage"
     case inlineFlow = "InlineFlow"
     case omissionSpacing = "OmissionSpacing"
-    case nestedContainers = "NestedContainers"
     case tables = "Tables"
     case imagePhases = "ImagePhases"
     case policyTransitions = "PolicyTransitions"
-    case taskMarkers = "TaskMarkers"
-    case unsupportedPolicies = "UnsupportedPolicies"
     case emptyStructures = "EmptyStructures"
-    case nativePlaceholderFlow = "NativePlaceholderFlow"
-    case typography = "Typography"
     case recipe = "Recipe"
 }
 

@@ -3,6 +3,64 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Shared demo snapshot coverage
+
+Static presentation snapshots now use `FlatMarkCustomDocumentFixture` and the shared
+recipe in `Support/FlatMarkFixtures/FlatMarkRecipeSample.swift`. Recipe Lab builds
+its document from the same sections used by focused captures. There is no separate
+Markdown sampler for these cases.
+
+| Shared recipe captures | Replaces custom snapshot content |
+| --- | --- |
+| Full document, light and dark | Typography sampler and fixed recipe section crops |
+| Narrow/wide and RTL baking instructions | Nested quotes, list continuations, and wrapping |
+| Dimpling paragraph and checklist with custom replacements | Mixed image/text flow and inline/block HTML replacement |
+| Default/custom tasks, interactive/read-only/disabled, retained document | Task-marker presentation matrix |
+| Omit and empty replacements | Static unsupported-policy presentation |
+| Mentions disabled | Mention-toggle sampler |
+| Images without a loader, narrow/wide and enlarged iOS text | Linked/unlinked placeholders and adjacent hard breaks |
+
+The matrix has 18 macOS scenarios and 23 iOS scenarios. Enlarged iOS captures use
+real Dynamic Type. Each scenario keeps one scroll view and document mounted across
+its pages. Captures check the actual scroll offset, reach the content bottom, and
+assert that scrolling does not start new image requests. A final page may overlap
+its predecessor. Page-boundary clipping and horizontal table clipping are expected.
+Frame stability and loader request counts are readiness gates, not proof of drawing.
+
+Focused fixtures remain where the demo does not express the tested contract:
+
+- held image loading, throwing failures, empty alt labels, and exact raster sizes;
+- retained policy/image transitions and request lifecycle checks;
+- table scroll offsets, internal empty tables, and native cell layout bounds;
+- omission/control pairs and deliberately empty tasks, ordered rows, and table cells;
+- the consecutive-hard-break regression and native baseline/paragraph probes.
+
+The empty-replacement payload-dispatch assertion remains in the mounted shared-fixture
+policy test. The duplicate initializer-path pixel test is retired; that same mounted
+test still traverses all six policy edges through both initializers and checks source,
+requests, task updates, and host dispatch. Removing static captures did not remove
+those semantic checks.
+
+### Consolidation verification
+
+Verification used Xcode 27 RC / Swift 6.4, macOS 27.0.1 on a 2x display, and the
+iPhone 18 Pro simulator running iOS 27.0.
+
+- Recorded 25 macOS and 53 iOS recipe references. Recording assertions were expected
+  failures, not verification passes. Retired references were removed, not re-recorded.
+- `swift test`: 222 tests in 30 suites passed, with the existing known LoaderSpy issue.
+- Non-recording `FlatMarkSnapshots-macOS`: 51 tests passed.
+- Non-recording `FlatMarkSnapshots-iOS`: 53 tests passed. The 23-case recipe matrix
+  also passed a separate repeat run.
+- Reviewed all 41 scenario contact sheets and 10 representative original PNGs.
+  No unintended blank capture, missing selected-section ending, or actual content
+  overlap was observed within that review. This is not full-size approval of every PNG.
+- Both demo targets compiled. Full running-app observation of every setting, live
+  VoiceOver, selection gestures, and minimum-runtime compatibility remain unverified.
+
+Historical suite counts and namespace mappings below predate this consolidation.
+Manual [Recipe Lab captures](References/RecipeLab/README.md) were not refreshed.
+
 ## Native macOS image paragraphs — issue #41
 
 Both platforms now render all image phases in native attributed paragraphs. The custom flow
@@ -768,8 +826,9 @@ message does not print the full reference path (see the ticket 14 qualification
 limitations). Do not record a mismatch just to make it pass.
 
 References live in `Tests/References/Snapshots/<suite>/<platform>/`.
-Each suite owns one namespace (`LinkedImage` initially); later suites add their
-own enum case in `FlatMarkSnapshotSuite` with shared-support owner approval.
+Each suite owns one namespace in `FlatMarkSnapshotSuite`. `Recipe` owns shared-demo
+presentation captures; focused edge-case suites keep their separate namespaces.
+See [current coverage](#shared-demo-snapshot-coverage) before adding a custom fixture.
 File names include the test, case, column, inset, capture size, scale, appearance,
 locale, direction, and text setting. `FlatMarkSnapshotEnvironment.standard` uses
 320×300pt, a 240pt column, 20pt inset, 2x, light appearance, `en_US`, LTR, standard

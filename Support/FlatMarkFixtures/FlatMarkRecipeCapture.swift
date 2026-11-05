@@ -15,6 +15,7 @@ public enum FlatMarkRecipeCapture: String, CaseIterable, Identifiable {
         model.showsButtons = true
         model.showsEmpty = false
         model.detectMentions = true
+        model.loadsImages = true
         model.usesRetainedDocument = false
         model.refreshRequests = 0
         model.enlargedText = self == .generous

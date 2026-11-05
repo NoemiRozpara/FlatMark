@@ -116,30 +116,6 @@ struct FlatMarkPolicyTransitionSnapshotTests {
         }
     }
 
-    @Test(arguments: [false, true]) func bothInitializerPaths(retained: Bool) async throws {
-        let source = "Before <u>middle</u> after.\n\n<div>block</div>\n\n- [ ] Task"
-        let model = FlatMarkCustomFixtureModel(markdown: source)
-        let host = flatMakeRetainedSnapshotHost(
-            view: FlatMarkCustomDocumentFixture(model: model, usesRetainedDocument: retained), environment: Self.environment
-        )
-        defer { host.close() }
-        let prefix = retained ? "document" : "source"
-        let testName = "bothInitializerPaths"
-        snapshot(try await capture(host),
-                 "\(prefix)Literal", testName: testName)
-        model.policyKind = .custom
-        snapshot(try await capture(host),
-                 "\(prefix)Custom", testName: testName)
-        model.policyKind = .omit
-        snapshot(try await capture(host),
-                 "\(prefix)Omit", testName: testName)
-        model.policyKind = .literal
-        snapshot(try await capture(host),
-                 "\(prefix)Literal", mode: .verify, testName: testName)
-        #expect(model.markdown == source)
-        #expect(model.taskUpdates == 0)
-    }
-
     private func capture(
         _ host: FlatMarkRetainedSnapshotHost, delivery: ControlledDelivery? = nil,
         requiresCompletion: Bool = true, expectedRequests: Int = 1
