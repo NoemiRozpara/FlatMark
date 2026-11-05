@@ -27,18 +27,14 @@ struct FlatMarkImageLoadingTests {
             markdown: "Before [![pending](https://example.com/image.png)](https://example.com/details) after.",
             imageLoader: loader), size: CGSize(width: 220, height: 300))
         defer { hosted.close() }
-        func find(_ view: NSView) -> NSTextView? {
-            if let text = view as? NSTextView { return text }
-            return view.subviews.lazy.compactMap { find($0) }.first
-        }
-        let original = try #require(find(hosted.view))
+        let original = try #require(firstTextView(in: hosted.view))
         let oldLink = try #require((original.accessibilityChildren() ?? [])
             .compactMap { $0 as? NSAccessibilityElement }.first { $0.accessibilityRole() == .link })
         hosted.view.rootView = FlatMarkView(markdown: "Replacement text.", imageLoader: loader)
         await settleMountedRendering()
         await gate.release()
         await settleMountedRendering()
-        let replacement = try #require(find(hosted.view))
+        let replacement = try #require(firstTextView(in: hosted.view))
         #expect(replacement.string == "Replacement text.")
         #expect(!(replacement.accessibilityChildren() ?? []).contains {
             ($0 as? NSAccessibilityProtocol)?.accessibilityRole() == .link
@@ -65,11 +61,7 @@ struct FlatMarkImageLoadingTests {
             "Before ![first](https://example.com/first.png) [ordinary](https://example.com/page) [![second](https://example.com/second.png)](https://example.com/details) after.",
             imageLoader: loader), size: CGSize(width: 180, height: 600))
         defer { hosted.close() }
-        func find(_ view: NSView) -> NSTextView? {
-            if let text = view as? NSTextView { return text }
-            return view.subviews.lazy.compactMap { find($0) }.first
-        }
-        let text = try #require(find(hosted.view))
+        let text = try #require(firstTextView(in: hosted.view))
         await secondGate.release()
         await settleMountedRendering()
         #expect(text.string == "Before \u{FFFC} first ordinary \u{FFFC} after.")
@@ -80,7 +72,7 @@ struct FlatMarkImageLoadingTests {
             hosted.view.setFrameSize(CGSize(width: width, height: 600))
             await settleMountedRendering()
             hosted.view.layoutSubtreeIfNeeded()
-            #expect(find(hosted.view) === text)
+            #expect(firstTextView(in: hosted.view) === text)
             let storage = try #require(text.textStorage)
             let first = try #require(storage.attribute(.attachment, at: 7, effectiveRange: nil) as? NSTextAttachment)
             #expect(first.bounds.size == CGSize(width: width, height: width / 2))

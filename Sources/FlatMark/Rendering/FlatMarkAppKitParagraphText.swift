@@ -117,6 +117,21 @@ struct FlatMarkParagraphText: NSViewRepresentable {
     ) -> NSAttributedString {
         let roleFont = Self.roleFont(for: role)
         let result = NSMutableAttributedString(string: "")
+        func append(_ native: NSMutableAttributedString) {
+            let range = NSRange(location: 0, length: native.length)
+            guard range.length > 0 else { return }
+            let paragraph = (native.attribute(.paragraphStyle, at: 0, effectiveRange: nil)
+                as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle
+                ?? NSMutableParagraphStyle()
+            paragraph.baseWritingDirection = layoutDirection == .rightToLeft ? .rightToLeft : .leftToRight
+            switch alignment {
+            case .center: paragraph.alignment = .center
+            case .leading: paragraph.alignment = layoutDirection == .rightToLeft ? .right : .left
+            case .trailing: paragraph.alignment = layoutDirection == .rightToLeft ? .left : .right
+            }
+            native.addAttribute(.paragraphStyle, value: paragraph, range: range)
+            result.append(native)
+        }
         for (index, component) in content.components.enumerated() {
             let text: AttributedString
             switch component {
@@ -127,15 +142,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
                 let native = NSMutableAttributedString(attributedString:
                     FlatMarkImagePresentation(image: image, phase: imagePhases[index] ?? .placeholder, policy: policy)
                         .attributedText(width: width, font: roleFont))
-                let paragraph = NSMutableParagraphStyle()
-                paragraph.baseWritingDirection = layoutDirection == .rightToLeft ? .rightToLeft : .leftToRight
-                switch alignment {
-                case .center: paragraph.alignment = .center
-                case .leading: paragraph.alignment = layoutDirection == .rightToLeft ? .right : .left
-                case .trailing: paragraph.alignment = layoutDirection == .rightToLeft ? .left : .right
-                }
-                native.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: native.length))
-                result.append(native)
+                append(native)
                 continue
             }
             for run in text.runs {
@@ -170,17 +177,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
                    native.attribute(.strikethroughStyle, at: 0, effectiveRange: nil) == nil {
                     native.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: range)
                 }
-                let paragraph = (native.attribute(.paragraphStyle, at: 0, effectiveRange: nil)
-                    as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle
-                    ?? NSMutableParagraphStyle()
-                paragraph.baseWritingDirection = layoutDirection == .rightToLeft ? .rightToLeft : .leftToRight
-                switch alignment {
-                case .center: paragraph.alignment = .center
-                case .leading: paragraph.alignment = layoutDirection == .rightToLeft ? .right : .left
-                case .trailing: paragraph.alignment = layoutDirection == .rightToLeft ? .left : .right
-                }
-                native.addAttribute(.paragraphStyle, value: paragraph, range: range)
-                result.append(native)
+                append(native)
             }
         }
         return result
@@ -306,9 +303,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
                         let url = native.accessibilityURL()
                         let attachmentCount = native.accessibilityTitle()?.filter { $0 == "\u{FFFC}" }.count ?? 0
                         let matching = Array(remaining.filter { item in
-                            guard let image = storage.attribute(.flatMarkImage, at: item.0.location, effectiveRange: nil)
-                                as? FlatMarkImageAccessibility else { return false }
-                            return image.url == url
+                            item.1.accessibilityURL() == url
                         }.prefix(attachmentCount))
                         retainedChildren.append(contentsOf: matching.map(\.1))
                         remaining.removeAll { item in matching.contains { $0.1 === item.1 } }

@@ -12,11 +12,7 @@ struct FlatMarkAppKitParagraphTextTests {
             size: CGSize(width: 180, height: 300)
         )
         defer { hosted.close() }
-        func find(_ view: NSView) -> NSTextView? {
-            if let text = view as? NSTextView { return text }
-            return view.subviews.lazy.compactMap { find($0) }.first
-        }
-        let text = try #require(find(hosted.view))
+        let text = try #require(firstTextView(in: hosted.view))
         #expect(text.string == "Before \u{FFFC} diagram after.")
         let storage = try #require(text.textStorage)
         #expect(storage.attribute(.attachment, at: 7, effectiveRange: nil) is NSTextAttachment)
@@ -42,11 +38,7 @@ struct FlatMarkAppKitParagraphTextTests {
         }
         let hosted = await mountTestView(root(.loading), size: CGSize(width: 180, height: 500))
         defer { hosted.close() }
-        func find(_ view: NSView) -> NSTextView? {
-            if let text = view as? NSTextView { return text }
-            return view.subviews.lazy.compactMap { find($0) }.first
-        }
-        let text = try #require(find(hosted.view))
+        let text = try #require(firstTextView(in: hosted.view))
         let children = (text.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityProtocol }
         #expect(children.filter { $0.accessibilityRole() == .link }.map { $0.accessibilityTitle() } == [
             url.absoluteString + ", loading", " between ", url.absoluteString + ", failed to load"
@@ -96,11 +88,7 @@ struct FlatMarkAppKitParagraphTextTests {
                                   imagePhases: [0: .loaded(large), 2: .loaded(small)])
         }, size: CGSize(width: 400, height: 600))
         defer { hosted.close() }
-        func find(_ view: NSView) -> NSTextView? {
-            if let text = view as? NSTextView { return text }
-            return view.subviews.lazy.compactMap { find($0) }.first
-        }
-        let text = try #require(find(hosted.view))
+        let text = try #require(firstTextView(in: hosted.view))
         let storage = try #require(text.textStorage)
         let first = try #require(storage.attribute(.attachment, at: 0, effectiveRange: nil) as? NSTextAttachment)
         let last = try #require(storage.attribute(.attachment, at: storage.length - 1, effectiveRange: nil) as? NSTextAttachment)

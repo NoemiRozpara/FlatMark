@@ -46,6 +46,12 @@
         }
     }
 
+    @MainActor
+    func firstTextView(in view: NSView) -> NSTextView? {
+        if let text = view as? NSTextView { return text }
+        return view.subviews.lazy.compactMap { firstTextView(in: $0) }.first
+    }
+
     /// Preserves each fixture's size while sharing window lifetime and the initial layout pass.
     @MainActor
     func mountTestView<V: View>(
