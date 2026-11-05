@@ -7,7 +7,7 @@ import Testing
 @MainActor
 struct FlatMarkAppKitParagraphTextTests {
     @Test func combinedIntentsPreserveUnicodeAndConsecutiveNewlines() throws {
-        var text = AttributedString("👩🏽‍💻 café\n\n漢字")
+        var text = AttributedString("👩🏽‍💻 cafe\u{301}\n\n漢字 English עברית العربية\n")
         text.inlinePresentationIntent = [.code, .stronglyEmphasized, .emphasized, .strikethrough]
         let native = render(.init(text: text))
         #expect(native.string == String(text.characters))
@@ -20,6 +20,36 @@ struct FlatMarkAppKitParagraphTextTests {
             #expect(native.attribute(.strikethroughStyle, at: offset, effectiveRange: nil) as? Int
                 == NSUnderlineStyle.single.rawValue)
         }
+    }
+
+    @Test(arguments: [false, true])
+    func literalAndOmittedUnicodeComposeWithoutSpaces(omitted: Bool) throws {
+        let url = try #require(URL(string: "https://example.com/unicode"))
+        var literal = AttributedString("👩🏽‍💻e\u{301}漢字עברית")
+        literal.link = url
+        let native = render(.init(components: [
+            .text(AttributedString("before\n")),
+            .unsupported(.init(literalText: literal)),
+            .text(AttributedString("\n\nafter\n")),
+        ]), policy: omitted ? .omit : .literal)
+        let middle = omitted ? "" : String(literal.characters)
+        #expect(Array(native.string.utf16) == Array("before\n\(middle)\n\nafter\n".utf16))
+        if !omitted {
+            var range = NSRange()
+            #expect(native.attribute(.link, at: 7, effectiveRange: &range) as? URL == url)
+            #expect(range == NSRange(location: 7, length: middle.utf16.count))
+            for offset in range.location..<NSMaxRange(range) {
+                #expect(native.attribute(.foregroundColor, at: offset, effectiveRange: nil) as? NSColor == .linkColor)
+            }
+        }
+        #expect(native.attribute(.link, at: 0, effectiveRange: nil) == nil)
+        #expect(native.attribute(.link, at: native.length - 1, effectiveRange: nil) == nil)
+    }
+
+    @Test func bodyUsesPreferredSemanticFont() throws {
+        let native = render(.init(text: AttributedString("Body")))
+        #expect(native.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+            == NSFont.preferredFont(forTextStyle: .body))
     }
 
     @Test func explicitEmptyIntentAndNativeHostAttributesWinPerRun() throws {
@@ -180,10 +210,46 @@ struct FlatMarkAppKitParagraphTextTests {
             let paragraph = try #require(storage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
             #expect(paragraph.baseWritingDirection == (direction == .rightToLeft ? .rightToLeft : .leftToRight))
             #expect(paragraph.alignment == (direction == .rightToLeft ? .right : .left))
+            let manager = try #require(first.layoutManager)
+            let container = try #require(first.textContainer)
+            manager.ensureLayout(for: container)
+            let glyphs = manager.boundingRect(forGlyphRange: manager.glyphRange(for: container), in: container)
+            #expect(first.bounds.height >= ceil(max(manager.usedRect(for: container).maxY,
+                                                    glyphs.maxY, manager.extraLineFragmentRect.maxY)))
+            let second = try #require(views.last)
+            let firstFrame = first.convert(first.bounds, to: hosted.view)
+            let secondFrame = second.convert(second.bounds, to: hosted.view)
+            if hosted.view.isFlipped {
+                #expect(firstFrame.maxY <= secondFrame.minY)
+            } else {
+                #expect(secondFrame.maxY <= firstFrame.minY)
+            }
             heights.append(first.bounds.height)
         }
         #expect(heights[1] > heights[0])
         #expect(heights[2] == heights[0])
+    }
+
+    @Test func unchosenProposalsDoNotChangeCommittedNativeWidth() async throws {
+        _ = try await flatMarkSnapshotImage(
+            of: AppKitParagraphProposalProbe {
+                FlatMarkParagraphText(content: .init(text: AttributedString("A paragraph with enough words to wrap repeatedly at a narrow committed width.")), role: .body, context: .readOnly)
+            }, environment: .standard,
+            prepareMountedView: { root in
+                @MainActor func find(_ view: NSView) -> NSTextView? {
+                    if let text = view as? NSTextView { return text }
+                    return view.subviews.lazy.compactMap { find($0) }.first
+                }
+                guard let view = find(root), let container = view.textContainer,
+                      let manager = view.layoutManager else {
+                    Issue.record("Paragraph must expose native layout")
+                    return
+                }
+                manager.ensureLayout(for: container)
+                #expect(abs(view.bounds.width - 140) < 1)
+                #expect(abs(container.containerSize.width - 140) < 1)
+                #expect(view.bounds.height >= ceil(manager.usedRect(for: container).maxY))
+            })
     }
 
     @Test func trailingBreaksReserveEmptyNativeLines() async throws {
@@ -279,6 +345,24 @@ struct FlatMarkAppKitParagraphTextTests {
     ) -> NSAttributedString {
         FlatMarkParagraphText.attributedText(for: content, policy: policy, role: role,
                                             layoutDirection: .leftToRight, alignment: .leading)
+    }
+}
+
+private struct AppKitParagraphProposalProbe: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        for probe in [ProposedViewSize.unspecified, ProposedViewSize(width: .infinity, height: nil),
+                      ProposedViewSize(width: 320, height: nil)] {
+            let size = subviews[0].sizeThatFits(probe)
+            #expect(size.width.isFinite && size.height.isFinite)
+        }
+        let size = subviews[0].sizeThatFits(ProposedViewSize(width: 140, height: nil))
+        #expect(abs(size.width - 140) < 1)
+        return size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews[0].place(at: bounds.origin, proposal: ProposedViewSize(width: 140, height: nil))
+        _ = subviews[0].sizeThatFits(ProposedViewSize(width: 320, height: nil))
     }
 }
 

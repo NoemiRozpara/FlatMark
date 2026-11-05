@@ -38,6 +38,16 @@
             #expect(report["opened"] == [destination])
         }
 
+        @Test(arguments: ["addCallback", "removeCallback"])
+        func `optional callback changes reach the retained native control`(decision: String) async throws {
+            let report = try await navigationReport(markdown: "[Details](details)", decision: decision)
+            let destination = "https://example.com/docs/details"
+            #expect(report["beforeActivation"] == [])
+            #expect(report["beforeOpening"] == [])
+            #expect(report["activated"] == (decision == "addCallback" ? ["new:" + destination] : []))
+            #expect(report["opened"] == (decision == "removeCallback" ? [destination] : []))
+        }
+
         @Test(arguments: [
             "[Details](details)",
             "| [Details](details) |\n| --- |",

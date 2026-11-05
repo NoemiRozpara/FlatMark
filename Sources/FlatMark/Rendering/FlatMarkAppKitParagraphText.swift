@@ -60,7 +60,8 @@ struct FlatMarkParagraphText: NSViewRepresentable {
         container.lineFragmentPadding = 0
         storage.addLayoutManager(manager)
         manager.addTextContainer(container)
-        let width = proposal.width.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        // Zero asks for minimum width; only an unspecified or unbounded proposal asks for ideal width.
+        let width = proposal.width.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
         container.containerSize = CGSize(width: width ?? .greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
         manager.ensureLayout(for: container)
         let used = manager.usedRect(for: container)
@@ -72,7 +73,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
         }
     }
 
-    static func attributedText(
+    nonisolated static func attributedText(
         for content: FlatMarkRenderInlineContent,
         policy: FlatMarkUnsupportedContentPolicy,
         role: FlatMarkTextRole = .body,
@@ -140,13 +141,17 @@ struct FlatMarkParagraphText: NSViewRepresentable {
 
     /// SwiftUI does not read NSTextView's native baseline through NSViewRepresentable.
     /// Resolve the first glyph's baseline from the displayed typography and offered width.
-    func firstBaseline(width: CGFloat) -> CGFloat {
+    // Each synchronous call owns its TextKit graph; no displayed view or mutable layout is shared.
+    // Apple's Text Layout Programming Guide permits this with background layout disabled:
+    // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/TextLayout/Concepts/LayoutManager.html
+    nonisolated func firstBaseline(width: CGFloat) -> CGFloat {
         let storage = NSTextStorage(attributedString: Self.attributedText(
             for: content, policy: .literal, role: role,
             layoutDirection: .leftToRight, alignment: .leading
         ))
         guard storage.length > 0 else { return 0 }
         let manager = NSLayoutManager()
+        manager.backgroundLayoutEnabled = false
         let container = NSTextContainer(containerSize: CGSize(width: width, height: .greatestFiniteMagnitude))
         container.lineFragmentPadding = 0
         storage.addLayoutManager(manager)
@@ -158,7 +163,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
     }
 
     /// The role's semantic AppKit font, without hardcoded point sizes.
-    static func roleFont(for role: FlatMarkTextRole) -> NSFont {
+    nonisolated static func roleFont(for role: FlatMarkTextRole) -> NSFont {
         let style: NSFont.TextStyle
         switch role {
         case .body, .tableHeader:

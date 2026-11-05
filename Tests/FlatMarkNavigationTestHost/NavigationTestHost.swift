@@ -31,9 +31,10 @@
             // because no call count is a lifecycle guarantee.
             var customPayloads: [String] = []
             var customActivations = 0
-            let updatesCallback = decision.hasPrefix("retainedCallback")
+            let changesOptionalCallback = decision == "addCallback" || decision == "removeCallback"
+            let updatesCallback = decision.hasPrefix("retainedCallback") || changesOptionalCallback
             let updatesOpener = decision == "retainedOpener"
-            let action: ((URL) -> FlatMarkLinkActivationResult)? = decision == "omitted" ? nil : { url in
+            let action: ((URL) -> FlatMarkLinkActivationResult)? = ["omitted", "addCallback"].contains(decision) ? nil : { url in
                 if updatesCallback {
                     activated.append("old:" + url.absoluteString)
                     return .handled
@@ -117,10 +118,10 @@
                 try? await Task.sleep(for: .milliseconds(100))
                 let originalTarget = hosting.hitTest(NSPoint(x: 20, y: hosting.bounds.midY))
                 if updatesCallback || updatesOpener {
-                    let updatedAction: ((URL) -> FlatMarkLinkActivationResult)? = updatesCallback ? { url in
+                    let updatedAction: ((URL) -> FlatMarkLinkActivationResult)? = decision == "removeCallback" ? nil : updatesCallback ? { url in
                         activated.append("new:" + url.absoluteString)
                         switch decision {
-                        case "retainedCallbackHandled": return .handled
+                        case "retainedCallbackHandled", "addCallback": return .handled
                         case "retainedCallbackRejected": return .rejected
                         default: return .useDefaultOpening
                         }
