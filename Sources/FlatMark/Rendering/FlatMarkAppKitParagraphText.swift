@@ -252,6 +252,34 @@ struct FlatMarkParagraphText: NSViewRepresentable {
             needsComposition = true
         }
 
+        private var standaloneImageLink: FlatMarkImageAccessibility? {
+            guard let storage = textStorage, storage.length > 0 else { return nil }
+            var range = NSRange()
+            guard let image = storage.attribute(.flatMarkImage, at: 0, longestEffectiveRange: &range,
+                                                in: NSRange(location: 0, length: storage.length))
+                as? FlatMarkImageAccessibility,
+                range == NSRange(location: 0, length: storage.length), image.url != nil else { return nil }
+            return image
+        }
+
+        override func accessibilityRole() -> NSAccessibility.Role? {
+            standaloneImageLink == nil ? super.accessibilityRole() : .link
+        }
+
+        override func accessibilityValue() -> String? {
+            standaloneImageLink == nil ? super.accessibilityValue() : nil
+        }
+
+        override func accessibilityURL() -> URL? {
+            standaloneImageLink?.url ?? super.accessibilityURL()
+        }
+
+        override func accessibilityPerformPress() -> Bool {
+            guard let url = standaloneImageLink?.url else { return super.accessibilityPerformPress() }
+            guard window != nil else { return false }
+            return delegate?.textView?(self, clickedOnLink: url, at: 0) ?? false
+        }
+
         override func accessibilityLabel() -> String? {
             guard let storage = textStorage else { return super.accessibilityLabel() }
             let result = NSMutableString(string: storage.string)
@@ -265,6 +293,8 @@ struct FlatMarkParagraphText: NSViewRepresentable {
         }
 
         override func accessibilityChildren() -> [Any]? {
+            // An image-only paragraph is itself the link, not a text area containing links.
+            if standaloneImageLink != nil { return [] }
             // AppKit may query recursively while constructing its native children.
             guard !queryingChildren else { return retainedChildren }
             queryingChildren = true

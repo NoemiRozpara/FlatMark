@@ -19,6 +19,32 @@ struct FlatMarkAppKitParagraphTextTests {
         #expect(text.isSelectable && !text.isEditable)
     }
 
+    @Test func imageOnlyParagraphExposesOneLinkWithoutTextAreaChildren() async throws {
+        let url = try #require(URL(string: "https://example.com/details"))
+        var activated: [URL] = []
+        let content = FlatMarkRenderInlineContent(components: [
+            .image(.init(url: nil, altText: "diagram", link: url))
+        ])
+        for phase in [FlatMarkInlineView.ImagePhase.placeholder, .loading, .failed,
+                      .loaded(NSImage(size: CGSize(width: 40, height: 20)))] {
+            let hosted = await mountTestView(
+                FlatMarkParagraphText(content: content, role: .body, context: .readOnly,
+                                      imagePhases: [0: phase])
+                    .environment(\.openURL, OpenURLAction { activated.append($0); return .handled }),
+                size: CGSize(width: 180, height: 100)
+            )
+            let text = try #require(firstTextView(in: hosted.view))
+            #expect(text.accessibilityRole() == .link)
+            #expect(text.accessibilityLabel() == url.absoluteString + phase.accessibilitySuffix)
+            #expect(text.accessibilityURL() == url)
+            #expect(text.accessibilityValue() == nil)
+            #expect(text.accessibilityChildren()?.isEmpty == true)
+            #expect(text.accessibilityPerformPress())
+            hosted.close()
+        }
+        #expect(activated == Array(repeating: url, count: 4))
+    }
+
     @Test func repeatedImageDestinationsKeepCurrentSeparateAccessibilityTargets() async throws {
         let url = try #require(URL(string: "https://example.com/details"))
         var ordinary = AttributedString(" between ")
