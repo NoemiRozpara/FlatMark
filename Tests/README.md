@@ -3,749 +3,138 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
-## #35 — navigation qualification
+## Native-text qualification — branch delivery
 
-Pickup: `4b1ed22` plus this uncommitted test/doc patch. Read the full issue and its
-empty comments with `gh issue view 35 --json title,body,comments`.
+This batch is stopped. It does not complete the migration or the full #31 qualification.
+No further execution is required by this document. Remaining work is deferred, not passed.
+Earlier qualification records below describe their own revisions and do not qualify this HEAD.
 
-### Evidence map at pickup
-
-| Criteria | Existing evidence | Missing essential evidence |
+| Work | Delivered status | Commit |
 | --- | --- | --- |
-| AC-29–31 | macOS `FlatMarkNavigationTests`: supported/replacement destinations and handled/rejected/default/omitted decisions, using an isolated native event host and recorded opener. | iOS public adapter and native primary-action path. |
-| AC-32–33 | Existing macOS host records zero calls before clicking and checks inert neighbors. | iOS rendering/measurement and inert native interaction. |
-| AC-34 | Existing macOS retained callback/opener tests assert native control identity. | UIKit action retained **before** opener refresh, then activated afterwards. |
-| AC-35 | No explicit optional callback addition/removal on a retained native control. | Add focused macOS examples; iOS remains a separate gap. |
-| AC-36 | Existing macOS supported/replacement neighbor tests activate each destination in separate fixtures. | Actual iOS tap integration. Do not multiply the existing decision scenarios. |
-| AC-39–40 | Existing custom block and task interaction hosts record their own actions separately from links. | Fresh running-host independent-control observation on iOS. |
+| #32 attributed content and semantic typography | Focused UIKit/AppKit attribute and composition coverage. | `19c7170` |
+| AppKit minimum-width regression | Zero-width proposals no longer report the unwrapped ideal width. | `c320753` |
+| AppKit baseline isolation | Private, synchronous TextKit measurement disables background layout and is safely nonisolated. | `af5ffe7` |
+| #33 retained updates and measurement | Accepted by owner exception: AC-24 failed, AC-25 partial. | `a1bd49f` |
+| #34 lists, tables, and image routing | Added native baseline/row geometry checks; reused image-routing/lifecycle evidence. | `4b1ed22` |
+| #35 navigation | Added callback/opener freshness and independent-control coverage; retained UIKit action check deferred by owner. Other iOS interaction limits remain below. | `3ea0804` |
+| #36 selection/copy/VoiceOver | Not started in this batch. No new human VoiceOver or selection/copy qualification. | — |
+| #37 final consolidation | Not completed. No final full-suite, affected-snapshot, both-demo-build, minimum-runtime, or rendering-cost qualification. | — |
 
-Scope: navigation wiring and ownership, not OS gesture quality. Custom SwiftUI image/element
-layout is transitional; its known layout/selection limits are not expanded into fixes here.
-No production changes, dependencies, public hooks, instrumentation, or baseline recording.
+### Scope and known issue
 
-### Added evidence and remaining gaps
+FlatMark owns native conversion, typography, configuration, measurement, and navigation wiring.
+Hosts retain source, services, navigation decisions, and custom content ownership. The migration
+is incomplete: image-containing values still use the whole existing SwiftUI renderer. That
+transitional layout is expected to be removed; this batch adds no attachments or replacement
+image-lifecycle suite. No new defect in that transitional path was established.
 
-- macOS: two optional-callback examples now update the public view from omitted → handled
-  and handled → omitted. The existing host asserts the clicked native control retains identity.
-  Only the new callback fires after addition; only the inherited opener fires after removal.
-- macOS: extended the existing same-task custom-block example, rather than adding a fixture.
-  It clicks block → task → block → native text link. The link point comes from the rendered
-  link glyph in `NSTextView` storage/layout, not an unexplained fixed coordinate. Each step
-  changes only its own counter. Only the task changes source. The link records exactly
-  `https://example.com/details`; the block remains a host-owned button.
-- iOS: `retainedPublicNavigationAdapterUsesCurrentOptionalCallbackAndOpener` mounts the
-  public view and retains its `UITextView` and coordinator through omitted → handled →
-  rejected → default → omitted updates. It invokes the coordinator's current opener and
-  checks exact callback/opener logs. Rendering/layout before each invocation leaves both
-  logs unchanged. This proves bridge-to-public-adapter freshness, **not primary-action
-  dispatch or a retained `UIAction`**.
-- UIKit's `primaryActionFor` action retained before opener refresh is still **missing**.
-  Inspection shows its handler reads `self?.openURL(url)` at activation, but inspection is
-  not an executable regression check. `UITextItem` has no supported initializer in the
-  installed SDK (`UITextItem.h` marks `init`/`new` unavailable). No private construction,
-  production hook, or substitute legacy delegate call was added to manufacture coverage.
-  The owner deferred this specific regression check. AC-34 retains its macOS and iOS
-  adapter evidence, but retained UIKit primary-action freshness remains unverified.
-  This deferral does not establish actual iOS link activation or satisfy other manual gaps.
+The UIKit test
+[`proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor`](FlatMarkTests/Snapshots/FlatMarkParagraphTextTests.swift)
+allocates **116pt**, while native terminal-line geometry ends at **132pt**. Source-bearing
+lines end at 110pt. Removing explicit proposal probes produces the same discrepancy.
+This fixture mounts the native bridge directly, so the issue is not attributed to the
+transitional image renderer. Visible clipping, overlap, and a production sizing defect have
+not been established; UIKit's terminal-empty-line allocation contract remains unresolved.
 
-### Deferred retained UIKit action check
+The owner accepted #33 with **AC-24 failed and AC-25 partial**. Only this fixture's
+terminal-inclusive containment assertion is wrapped in `withKnownIssue`. Source-bearing
+containment, native configuration, container geometry, and neighboring-frame separation remain
+ordinary expectations. No terminal-line sizing fix was made. The targeted run passed with one
+expected known issue; this is not an AC-24 pass.
 
-The owner deferred retained UIKit primary-action freshness and requested removal of the
-human-assisted capture test and its delegate helper. The existing public-adapter test
-remains; it does not invoke a retained system action.
+### Coverage and deferred evidence
 
-The removed example timed out waiting for native input. Automation exposed Recipe Lab,
-not the test paragraph, so no action was captured or dispatched. That attempt establishes
-neither freshness nor a production defect. Historical log: `/tmp/35-r2-test.log`.
+| Criteria | Evidence delivered | Limit |
+| --- | --- | --- |
+| AC-01–11, AC-16 | Unicode/order, breaks, combined traits, literal/omitted/multi-run composition, inheritance and explicit host precedence; framework-resolved body/headings/header fonts on both platforms. | Storage/font evidence, not visible glyphs or accessibility. Existing projector tests supply break-projection evidence. |
+| AC-12–15, AC-17 | Retained UIKit normal → accessibility → normal typography/height; fixed host fonts; following-frame separation; retained document setting updates. | No claim of system Settings propagation or selection preservation. |
+| AC-18–23 | Native configuration, offered/container widths, narrow → wide → narrow, replacement updates, source order and independent alignment/direction checks. | Native geometry/attributes do not establish every visual state. |
+| AC-24–25 | AppKit trailing lines and native-frame separation checked; UIKit terminal-line exception above. | AC-24 failed; AC-25 partial. No observed overlap. |
+| AC-26–27 | Wrapped-label first-line baselines, including host-font metrics; multiline native table-cell containment and next-row separation. Ordinary/accessibility iOS sizes and standard macOS. | Reviewed existing static references; no new pixel comparisons. |
+| AC-28 | Unspecified/infinite/unchosen proposal probes followed by a committed native width. AppKit zero/minimum width has a separate regression test. | iOS demo remains fixed-width; its rotation does not qualify width transitions. |
+| AC-29–33, AC-35–36 | macOS isolated native-click host checks destination/decision routing, zero render-time calls, inert prose, neighbors and callback addition/removal. iOS retained public adapter checks current decisions/openers and zero update-time calls. | Direct iOS coordinator invocation is not native link activation. Actual iOS link/inert-neighbor interaction remains unverified. |
+| AC-34 | Retained macOS callback/opener tests and iOS public-adapter freshness. | Owner deferred retained UIKit `primaryActionFor` action dispatch. Human-assisted capture test/helper were removed; no capture procedure remains. |
+| AC-37–38, AC-41 | Shared image routing/style inspection and existing image phase/policy/loading suites reused. `containsImages` routes the whole value outside native conversion before phase handling. | Structural and historical evidence, not fresh image-path pixel qualification. Request/loading production code was unchanged. |
+| AC-39–40 | macOS block → task → block → native link checks exact independent counters/source/destination. An actual iOS task tap changed only that task. | Live iOS block/task/link independence remains unverified. |
+| AC-42–47 | No new selection/copy or live VoiceOver qualification in this batch. | Deferred with #36. Existing export or accessibility structure is not equivalent to gestures or speech. |
 
-No capture test, opt-in environment variable, or manual capture procedure remains.
-Revisit this check only if a bounded, reliable way to obtain a system action is available.
-No production behavior changed. Removal was checked by source inspection and
-`git diff --check`; passing behavioral tests were not rerun.
+The removed retained-action example timed out before receiving a system action; it established
+neither freshness nor a production defect. Existing adapter coverage does not close that gap.
+No private `UITextItem` construction, production test hook, or external browser opening was added.
 
-### Environment and focused checks
+### Recorded environment and results
 
-Revision: `4b1ed229a87208f1c2a06ecd1f3006afeb65d06b` plus this patch. macOS 27.0.1
-(26A434), arm64; selected Xcode `/Applications/Xcode-27-RC.app/Contents/Developer`,
-Apple Swift 6.4 (`swiftlang-6.4.0.34.1`). iOS 27.0 simulator: iPhone 18 Pro,
-`674C04A9-8792-4995-A6A9-66F80E5F96AA`. Minimum OS/toolchain validation is unavailable.
-CLI help, actual schemes and simulator inventory were discovered before builds.
-All build/test arguments below are explicit; no project configuration was changed.
+Runs took place on 2026-11-04: arm64 macOS 27.0.1 (26A434), Xcode 27.0 (27A266a),
+Apple Swift 6.4 (`swiftlang-6.4.0.34.1`), developer directory
+`/Applications/Xcode-27-RC.app/Contents/Developer`. iOS runs used iPhone 18 Pro / iOS 27.0,
+simulator `674C04A9-8792-4995-A6A9-66F80E5F96AA`. Scheme/destination discovery preceded runs.
+These results do **not** qualify iOS 17/macOS 14 or Xcode 26/Swift 6.2.
+
+| Selection | Recorded result | Revision context |
+| --- | --- | --- |
+| #32 AppKit attributes; UIKit paragraph suite; AppKit composition/mentions | 8 methods; 14 methods; 8 methods passed, respectively. Initial composition selector matched zero and was corrected. | Base `6297caf`, delivered in `19c7170`. |
+| #33 initial AppKit/retained UIKit checks | 5 AppKit methods and 14 UIKit methods passed; 2 affected UIKit methods passed after active-TextKit inspection correction. | Base `19c7170`, delivered in `a1bd49f`. Initial legacy-layout inspection was superseded. |
+| #33 proposal/alignment additions | AppKit proposal method and UIKit parameterized alignment method passed. UIKit terminal-line case failed, then passed with one owner-authorized expected issue. | Same #33 development patch. |
+| AppKit minimum-width regression | New test failed before fix (zero and ideal both 369pt), then passed; 2 affected existing methods passed. | Delivered in `c320753`. |
+| AppKit baseline isolation | 2 focused methods passed. | Delivered in `af5ffe7`. |
+| macOS demo build | One explicit-arm64 build succeeded; affected production files compiled without the baseline actor warning. Reported exit-0 SwiftCompile failure did not reproduce. Unrelated AppIntents warning remained. | Fix2 development patch. |
+| #34 geometry/routing/loading | 24 macOS tests and 4 iOS tests passed. | Base `a1bd49f`, delivered in `4b1ed22`. |
+| #35 navigation/independent controls/iOS adapter | 12 macOS navigation methods, 1 independent-control example and 1 iOS adapter method passed. | Base `4b1ed22`, delivered in `3ea0804`. |
+| iOS demo | Built/launched; actual task tap observed. A paragraph-container tap was not counted as link activation. | #35 development patch. |
+
+No snapshot baseline was recorded. Historical task/nested-container/table references were
+inspected for #34; they are static references, not captures of retained transitions at HEAD.
+No full package suite or broad snapshot comparison was run for this final batch. Passing
+checks were not rerun merely for independent review. Documentation cleanup ran no builds/tests.
+
+### Commands and diagnostic artifacts
+
+These are the executed focused selections, not instructions to resume deferred work.
+Simulator commands used `FlatMarkSnapshots-iOS` in `Demo/FlatMarkDemo.xcodeproj` with the
+explicit simulator above. Local `/tmp` logs and result bundles are diagnostic artifacts,
+not committed baselines or durable evidence links.
 
 ```sh
-gh issue view 35 --json title,body,comments
-mobilebuildmcp --help
-mobilebuildmcp simulator list-schemes --project-path Demo/FlatMarkDemo.xcodeproj
-mobilebuildmcp simulator list
+# #32
+swift test --filter 'FlatMarkAppKitParagraphTextTests/(combinedIntents|literalAndOmitted|bodyUses|explicitEmpty|headingRoles|tableHeaderRole|inlineTraits|hostFont)'
+mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests'
+swift test --filter 'FlatMarkCustomUnsupportedContentTests/`(inline replacements|replacement runs|host intent|replacement uses|host font|replacement links)|FlatMarkMentionTests/`(opted in mentions|mention styling)'
+# AppKit fixes
+swift test --filter 'FlatMarkAppKitMinimumProposalTests/zeroWidthProposalDoesNotReportUnwrappedIdealWidth'
+swift test --filter 'FlatMarkAppKitParagraphTextTests/(unchosenProposalsDoNotChangeCommittedNativeWidth|nativeParagraphsMeasureOfferedWidthWithoutOverlappingFollowingText)'
+swift test --filter 'FlatMarkAppKitBaselineIsolationTests|FlatMarkAppKitParagraphTextTests/inlineTextExportsTheFirstLineBaselineToSwiftUI'
+mobilebuildmcp --log-level debug macos build --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-macOS --configuration Debug --arch arm64 --derived-data-path .build/demo --prefer-xcodebuild --verbose
+# #33 owner exception
+mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor()'
+# #34
+swift test --filter 'FlatMarkTaskMarkerSnapshotTests/wrappedNativeLabelExportsFirstLineBaseline|FlatMarkTableSnapshotTests/multilineNativeCellsStaySeparateFromNextRow|FlatMarkDocumentViewTests|FlatMarkImageLoadingTests'
+mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTaskMarkerSnapshotTests/wrappedNativeLabelExportsFirstLineBaseline()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTaskMarkerSnapshotTests/accessibilityWrappedNativeLabelExportsFirstLineBaseline()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTableSnapshotTests/multilineNativeCellsStaySeparateFromNextRow()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTableSnapshotTests/accessibilityMultilineNativeCellsStaySeparateFromNextRow()'
+# #35
 swift test --filter 'FlatMarkNavigationTests'
 swift test --filter 'task checkbox link and block host button'
 mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/retainedPublicNavigationAdapterUsesCurrentOptionalCallbackAndOpener()'
-git diff --check
-```
-
-Results: macOS navigation **12 methods passed** (including two added optional-callback
-cases); updated independent-control example **1 passed**. iOS selected adapter test
-**1 passed**, zero failed/skipped. Its first run passed with a redundant macro warning;
-the final changed assertion checks zero calls during every update and removes that warning.
-Only that changed method was run again. No snapshots, baselines, broad suite, or browser
-were used. Logs: `/tmp/35-macos-tests.log`, `/tmp/35-controls.log`,
-`/tmp/35-ios-tests.log`, `/tmp/35-ios-final.log`. Final iOS result bundle is
-`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T15-54-54-877Z_pid3530_181b3a36.xcresult`.
-
-### Running-host attempt and manual handoff
-
-Built/launched the existing iOS demo with:
-
-```sh
 mobilebuildmcp simulator build-and-run --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA
-mobilebuildmcp ui-automation snapshot-ui --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --output json
-mobilebuildmcp ui-automation swipe --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --within-element-ref e7 --direction up --distance 0.7
-mobilebuildmcp ui-automation tap --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --element-ref e100
 ```
 
-Refs belong only to the corresponding fresh snapshots. The task tap changed **Mix the
-dough** from unchecked to checked; the neighboring task states stayed unchanged in the
-next semantic snapshot (`/tmp/35-task-after.json`). This is actual simulator input, not
-full task/link/block independence evidence. The demo's existing actions are local and
-its link callback returns handled; no external opener was installed or launched.
-
-Scrolled through the existing recipe to its linked contact paragraph. The automation
-snapshot exposes that whole native paragraph as a text field with `typeText`, not a
-separate link target (`/tmp/35-final-visible8.json`). A tap of container ref `e288`
-reported simulated success (`/tmp/35-link-tap-attempt.log`), but the tool did not expose
-which rendered range it hit. This is **not** claimed as link activation. No arbitrary
-coordinate was substituted. Repeated swipes without a fresh snapshot were rejected
-by the tool; subsequent swipes used refreshed snapshots.
-
-Manual handoff: on the same built demo, tap a text mention and the linked contact text;
-verify the exact local destination note and one link-counter increment. Enable **Replace
-tags** and **Make replacements tappable** in Settings. Activate a block tip, a task and a
-text link separately; inspect **Task updates / Tip activations / Link activations** after
-each, and confirm only its own result changes. Tap adjacent prose and confirm no result
-changes. Keep opening local. Cross-reference #11's broader keyboard/hit-target audit;
-no repeat audit is requested. Actual iOS link activation and live block/link independence
-remain unverified. The user's macOS link-success report is useful but does not establish
-all criteria or retained-action freshness. The automated macOS host does establish its
-isolated native click routing; it does not prove external opening or general OS gestures.
-
-## #34 — native lists, tables, and image routing
-
-Authoritative #34 development evidence. Pickup HEAD: `a1bd49ff6a214ca374ba9dc73a751e933cf2d805`,
-plus this uncommitted test/doc diff. Read the full issue and comments with
-`gh api repos/{owner}/{repo}/issues/34` and `gh api repos/{owner}/{repo}/issues/34/comments`;
-there were zero comments. No production change, reference recording, dependency, public hook,
-or image lifecycle suite was added. #33's owner exception and terminal-line limit remain unchanged.
-
-### Evidence map made at pickup
-
-| Criterion | Existing evidence / pickup status | Essential addition or disposition |
-| --- | --- | --- |
-| AC-26 first-line list markers | Partial: `FlatMarkListRowView` uses `HStack(alignment: .firstTextBaseline)`; task/nested-container references cover wrapped rows. AppKit `inlineTextExportsTheFirstLineBaselineToSwiftUI` compares a short native label with SwiftUI. | Added wrapped native-label baseline comparisons with SwiftUI at 140pt, including an explicit 23pt native host font on both platforms and semantic body at iOS `.accessibility3`. These qualify the native baseline supplied to the row, not every custom marker drawing. |
-| AC-27 multiline table separation | Partial: table references cover long headers/cells, narrow leading/trailing scroll positions, and iOS enlarged text. Native row containment had no direct assertion. | Added one two-column table with a long cell and a following row. Checks native wrapping, allocated frame separation, and active native layout containment at standard size on both platforms and accessibility size on iOS. |
-| AC-37 whole image-containing value stays outside native conversion | Covered by shared routing inspection plus existing `FlatMarkDocumentViewTests`, `FlatMarkImageLoadingTests`, and `FlatMarkImagePhaseSnapshotTests` (placeholder, held loading, failure, loaded). | `containsImages` branches before conversion and before image-phase-dependent `renderingMode`. Every component, including supported neighbors, stays on `imageBearingContent`. No new lifecycle scenarios needed. |
-| AC-38 heading/header neighbors keep styling | Covered by shared code inspection: `imageBearingContent` applies heading font + bold or header bold around the entire `accessibleContent`, not only the image. The native role tests separately cover the image-free path. | Revalidated heading level mapping and table-header role propagation in `FlatMarkDocumentView.swift` (including its `FlatMarkTableView`). This is structural styling evidence, not a fresh image-path pixel comparison. |
-| AC-41 request identity/loading unchanged | Covered: existing loader-configuration, policy-transition, rejection, failure, cancellation, and fresh-mount checks. `FlatMarkPolicyTransitionSnapshotTests` retains image state across render-policy updates. | Existing package routing/loading checks passed below. No request/task/URL-policy/block/control code changed. Historical image pixel limitations under #29 are not waived or re-recorded. |
-
-Scope follows the owner's migration boundary: custom SwiftUI image/element layout is transitional.
-Only essential native responsibilities received new coverage. No new defect was found in these
-checks, and no transitional-layout diagnosis or fix was attempted.
-
-### Reference inspection
-
-Inspected the existing PNGs under `References/Snapshots/`:
-
-- `TaskMarkers/macOS/defaultReadOnly.*`: wrapped nested task marker sits beside its first line.
-- `NestedContainers/iOS/narrowListContinuations.*`: wrapped ordered/bullet rows, continuation,
-  quote, and fenced block remain distinct in the reference.
-- `Tables/iOS/wideLongCells.*`: long headers and body cells end above the next row; final wording
-  is visible in the reference.
-
-These are reviewed static references, not new screenshots of HEAD. No new captures were proposed
-because the missing evidence was native baseline/containment geometry, not a new visual scenario.
-The geometry tests use the existing mounted capture helper but do not save or compare baselines.
-
-### Environment, exact commands, and results
-
-Run date: 2026-11-04. Host: arm64 macOS 27.0.1 (26A434), Xcode 27.0 (27A266a),
-Apple Swift 6.4 (`swiftlang-6.4.0.34.1`), `/Applications/Xcode-27-RC.app/Contents/Developer`.
-iOS destination: booted iPhone 18 Pro / iOS 27.0. Environment discovery used `sw_vers`,
-`swift --version`, and tool discovery. The installed MobileBuildMCP skill was read first;
-`mobilebuildmcp --help`, `tools`, and `simulator test --help` supplied command discovery.
-`project-discovery list-schemes --project-path Demo/FlatMarkDemo.xcodeproj` confirmed the
-non-recording scheme; `simulator list` confirmed the destination. No repository tool defaults
-were found; project, scheme, and simulator were explicit.
-
-```sh
-swift test --filter 'FlatMarkTaskMarkerSnapshotTests/wrappedNativeLabelExportsFirstLineBaseline|FlatMarkTableSnapshotTests/multilineNativeCellsStaySeparateFromNextRow|FlatMarkDocumentViewTests|FlatMarkImageLoadingTests' > /tmp/flatmark34-macos.log 2>&1
-mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTaskMarkerSnapshotTests/wrappedNativeLabelExportsFirstLineBaseline()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTaskMarkerSnapshotTests/accessibilityWrappedNativeLabelExportsFirstLineBaseline()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTableSnapshotTests/multilineNativeCellsStaySeparateFromNextRow()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkTableSnapshotTests/accessibilityMultilineNativeCellsStaySeparateFromNextRow()' > /tmp/flatmark34-ios.log 2>&1
-git diff --check
-```
-
-- macOS: **24 tests in four suites passed**, including the two new geometry tests and existing
-  routing/loading checks. `FlatMarkDocumentViewTests.swift` declares `FlatMarkInlineViewTests`,
-  which ran alongside the selected loading suite. No snapshot comparisons were selected.
-- iOS: **4 tests passed, zero failed/skipped**. All four exact geometry selectors ran.
-  Existing iOS phase/routing evidence is reused from #29; those image snapshots were not rerun.
-- Each platform's affected selection ran once. `git diff --check` passed.
-- iOS result: `~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T15-39-36-280Z_pid98797_415d1eeb.xcresult`.
-  Build log: same workspace, `logs/test_sim_2026-11-04T15-39-36-280Z_pid98797_b334fe2f.log`.
-
-### Limits and manual handoff
-
-These results establish native geometry and shared routing structure, not running-app pixels,
-selection gestures, VoiceOver, or full image-path visual qualification. No fresh live UI session
-was available in this stage. Operator handoff: build the current tree on each platform, inspect
-wrapped bullet/ordered/task labels beside their first line and long table cells above the next
-row; on iOS repeat with an accessibility text category. Observe image-containing headings and
-headers through existing fixture loading states if fresh visual qualification is required.
-Record revision/environment/actions rather than treating the historical references as live evidence.
-Minimum iOS 17/macOS 14 and Xcode 26/Swift 6.2 remain unverified. No full suite, demo build,
-image snapshot rerun, or terminal-sizing check ran. No commit, issue closure, or #35 work occurred.
-
-## #33 handoff — current scope and status
-
-This section is the authoritative #33 handoff. The rounds below retain historical evidence;
-their requests for more diagnosis or manual execution do not authorize further work this turn.
-**The owner explicitly accepts #33 completion by exception with AC-24 failed and AC-25
-partial.** Only the terminal-line containment assertion in the trailing-break fixture is a
-known issue. This does not fix terminal sizing or qualify AC-24 as passed.
-
-### Migration boundary and essential evidence
-
-The migration is incomplete. The remaining custom SwiftUI image/element layout is transitional
-and will be dropped when migration finishes. Qualify only the current ticket's essential native
-paragraph responsibilities: retained content/style/direction updates, native typography and
-configuration, offered/committed width, height, and separation from neighboring paragraphs.
-Do not extend qualification or fix the transitional layout under #33.
-
-[Inline routing](../Sources/FlatMark/Rendering/FlatMarkDocumentView.swift) sends image-free
-content to the native paragraph bridge and keeps image-containing values on the whole existing
-renderer in every loading phase. Its image flow uses
-[`FlatMarkInlineFlowLayout`](../Sources/FlatMark/Rendering/FlatMarkInlineFlowLayout.swift).
-This routing is a migration boundary, not evidence of a new transitional-layout bug. No new
-transitional defect is diagnosed here.
-
-Existing automated evidence, not fresh execution:
-
-- Round 1: five AppKit methods and fourteen UIKit methods passed. The initial UIKit layout
-  inspection was superseded by round 2's active-TextKit correction.
-- Round 2: both affected retained UIKit methods passed with the corrected helper.
-- Round 3: AppKit proposal coverage passed; UIKit's three alignment cases passed. The UIKit
-  terminal-line case failed. Round 4 reproduced the same failure with and without explicit
-  unchosen probes.
-- The separate fix1/fix2 results below cover AppKit zero-width proposals and baseline isolation.
-  They do not resolve the UIKit failure or make #33 complete.
-
-### Unresolved native terminal-line discrepancy
-
-[`proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor`](FlatMarkTests/Snapshots/FlatMarkParagraphTextTests.swift)
-mounts the native paragraph representable directly in a test-only layout, not the transitional
-image flow. Its allocated height is **116pt**, while the active TextKit terminal-line bottom is
-**132pt**. The [UIKit bridge](../Sources/FlatMark/Rendering/FlatMarkParagraphText.swift) delegates
-finite positive width measurement to `UITextView.sizeThatFits`. There is no evidence that this
-failure belongs to the obsolete SwiftUI image path. There is also no proven clipping, overlap,
-or established production sizing defect. The native terminal-empty-line geometry/contract
-question remains unresolved. No further diagnosis, test correction, or production fix is
-authorized or needed this turn.
-
-### User-reported manual checks and limits
-
-The user reports macOS has no warnings, a normal resizable window, visible RTL/LTR content,
-and working links. The user reports the iOS checks pass except that the reading column stays
-fixed-width; this does not qualify an iOS width transition. These are user-reported observations,
-not fresh agent execution. Their revision/build correspondence, OS, toolchain, and dimensions
-are unknown. They do not resolve the native terminal-line discrepancy. Minimum supported
-OS/toolchain execution remains unverified.
-
-### Owner exception after round 5
-
-The owner authorized completion by exception, qualification commits, and later work on
-#34–37. This execution makes no commit and starts no other ticket. No terminal sizing fix,
-production change, snapshot change, or new diagnosis is included. Earlier round dispositions
-below are historical and are superseded only by this explicit exception.
-
-The helper defaults to ordinary checks. Only the trailing-break fixture opts into
-`withKnownIssue`, around the terminal-inclusive bottom assertion alone. Source-bearing line
-containment, container geometry, native configuration, and neighboring-frame separation remain
-ordinary expectations.
-
-One targeted simulator run passed with **1 test and 1 expected known issue** (116pt allocation,
-132pt terminal-inclusive bottom), on iPhone 18 Pro / iOS 27.0. Passing suites were not rerun.
-This is automated geometry evidence, not a fresh running-app observation:
-
-```sh
-mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor()'
-```
-
-Log: `/tmp/33-owner-exception-ios.log`. The detailed build log confirms the exact test ran
-and recorded the single known issue. AC-24 remains failed; AC-25 remains partial.
-
-The table maps all #33 criteria to the evidence above and the detailed round records below.
-“Covered” means automated boundary coverage, not complete running-app qualification.
-
-| Criteria | Final evidence status | Remaining limit |
-| --- | --- | --- |
-| AC-12–13 | Covered: retained UIKit normal → accessibility → restored normal font/height checks. | User reports iOS checks pass; revision and environment are unknown. |
-| AC-14 | Covered: following native frame separation during retained typography updates. | No fresh running-app observation. |
-| AC-15 | Covered: fixed host font survives mounted Dynamic Type updates. | Native attribute evidence, not a visual font comparison. |
-| AC-17 | Covered: both retained suites keep the document during render-setting updates. | Source replacement uses the host's separate document-update path. |
-| AC-18 | Covered: native configuration assertions and bridge inspection. | No additional interaction claim. |
-| AC-19–20 | Covered automatically: offered widths, container bounds, narrow → wide → narrow. | Running-host width qualification is partial on macOS (user report); unavailable on iOS's fixed column. |
-| AC-21–22 | Covered: retained short → multiline → short output, attributes, direction and source order on both platforms. | User reports RTL/LTR checks; build correspondence is unknown. |
-| AC-23 | Covered: independent leading/center/trailing attribute cases on both platforms. | Attribute evidence does not establish visible mixed-direction fidelity. |
-| AC-24 | Failed qualification: UIKit terminal-empty-line bottom is 132pt in a 116pt allocation. AppKit trailing-line checks passed. | Native terminal-line contract remains unresolved; clipping is not proven. |
-| AC-25 | Partial: native-frame separation checks passed; drawn-content separation is not established for the failing terminal-line case. | No observed overlap; do not infer a drawn-content pass from frame separation. |
-| AC-28 | Partial: both proposal-probe checks cover the native boundary without a fixed reading width. | iOS demo column remains fixed; no running-host iOS width transition qualified. |
-
-Minimum-runtime/toolchain checks and revision-matched running-host captures remain unavailable.
-Existing static references are not same-mounted-host captures. No new recording is authorized.
-These limits remain explicit rather than expanding qualification into transitional image layout.
-
-**#33 completion is accepted only by the owner's explicit exception, not unconditional
-qualification.** The unresolved terminal-line contract and observation limits remain as listed.
-Independent review should verify the known-issue scope and the preserved ordinary checks.
-No commit or issue closure was performed in this execution.
-
-## AppKit baseline actor isolation (fix2)
-
-Base: fix1 commit `c320753`, with the separate uncommitted #33 qualification changes
-retained. Environment: macOS 27.0.1 (26A434), arm64, Xcode 27 RC / Apple Swift 6.4
-(swiftlang-6.4.0.34.1). Minimum supported OS/toolchain versions remain unverified.
-
-SDK inspection found that SwiftUI's `alignmentGuide` closure is `@Sendable` and
-nonisolated, while `NSViewRepresentable` is main-actor isolated. The baseline helper
-and its stateless attributed-text/font helpers now opt out of inferred isolation.
-Each baseline call owns its TextKit graph and disables background layout. This follows
-Apple's documented [layout-manager thread-safety contract](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/TextLayout/Concepts/LayoutManager.html).
-No displayed native view is accessed, no actor assertion or warning suppression is used,
-and the width-dependent glyph-layout algorithm is unchanged.
-
-```sh
-swift test --filter 'FlatMarkAppKitBaselineIsolationTests|FlatMarkAppKitParagraphTextTests/inlineTextExportsTheFirstLineBaselineToSwiftUI'
-mobilebuildmcp --log-level debug macos build --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-macOS --configuration Debug --arch arm64 --derived-data-path .build/demo --prefer-xcodebuild --verbose
-```
-
-- Focused automated checks: exit 0, **2 tests passed**. The existing mounted SwiftUI
-  check compares the exported baseline with `Text`. The new detached-task check exercises
-  synchronous nonisolated measurement, mixed-font wrapping at 50pt versus 300pt, body
-  versus heading typography, and empty content. Log: `/tmp/flatmark-fix2-baseline.log`.
-  An existing test's unused `var host` warning remains unchanged.
-- Exactly one demo build ran, using the script's actual scheme, also confirmed by
-  `mobilebuildmcp macos list-schemes`. Explicit arm64 destination; no repository defaults
-  file found. CLI exit 0 and raw log ends with `BUILD SUCCEEDED`. The raw log confirms
-  both `FlatMarkAppKitParagraphText.swift` and `FlatMarkDocumentView.swift` compiled.
-  No baseline actor warning or SwiftCompile failure appears. The reported exit-0
-  SwiftCompile failure was **not reproduced**. The unrelated AppIntents metadata-extraction
-  warning remains. CLI log: `/tmp/flatmark-fix2-demo-arm64.log`; complete 628-line build
-  log: `/tmp/flatmark-fix2-demo-arm64-full.log` (copied from MobileBuildMCP's retained
-  `build_macos_2026-11-04T14-56-33-660Z_pid92421_76dfdb3b.log`).
-- `git diff --check` passed. No passing suite was rerun. No running-app pixels, selection,
-  window resizing, iOS behavior, or minimum-toolchain behavior was observed by this fix.
-  The separate #33 terminal-empty-line discrepancy remains unresolved and untouched.
-
-## AppKit zero-width minimum proposal (fix1)
-
-Environment: macOS 27.0.1 (26A434), arm64, Apple Swift 6.4
-(swiftlang-6.4.0.34.1). This does not qualify minimum supported OS/toolchain versions.
-
-The new Swift Testing example mounts FlatMark's AppKit paragraph in a SwiftUI layout.
-It checks that zero requests minimum width (0), unspecified requests a nonzero ideal width,
-and a finite 140pt proposal retains that width. It asserts FlatMark's sizing contract,
-not exact AppKit glyph metrics.
-
-```sh
-swift test --filter 'FlatMarkAppKitMinimumProposalTests/zeroWidthProposalDoesNotReportUnwrappedIdealWidth'
-swift test --filter 'FlatMarkAppKitParagraphTextTests/(unchosenProposalsDoNotChangeCommittedNativeWidth|nativeParagraphsMeasureOfferedWidthWithoutOverlappingFollowingText)'
-```
-
-- Red, before the production change: first command exited 1; 1 test selected, 4 issues
-  across repeated layout probes. Zero and unspecified both returned 369pt.
-  Log: `/tmp/flatmark-fix1-red.log`.
-- Green, after accepting finite zero separately from ideal sizing: first command exited 0;
-  1 test passed. Log: `/tmp/flatmark-fix1-green.log`.
-- Affected existing checks: second command exited 0; 2 test methods passed, including
-  the offered-width method's 140pt and 280pt cases. Log: `/tmp/flatmark-fix1-affected.log`.
-
-These are automated mounted sizing checks, not running-app observations of window resizing
-or pixels. No iOS checks or unrelated suites ran. The deferred baseline actor issue was not
-changed and did not block these commands. The separate #33 terminal-empty-line failure below
-remains unresolved and was not rerun or fixed by this change.
-
-## Retained updates and paragraph measurement (#33, round 4 — bounded diagnosis)
-
-Same environment and working-tree base as round 3. No production changes or new coverage.
-Temporary test-only prints decomposed active TextKit 2 layout; they were removed afterward.
-The original assertion and proposal probes remain unchanged. No legacy TextKit switch occurred.
-
-Only `proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor()` ran, twice:
-with the original probes, then with unspecified/infinite/320pt and post-placement probes
-temporarily disabled. Both runs compiled and failed identically: **1 failed, 0 passed**,
-allocated bounds/container **140 × 116pt**, aggregate bottom **132pt**. Every fragment/line
-below was identical in both runs. This rules out the explicit unchosen probes as the cause
-in this example; it does not establish every SwiftUI proposal sequence.
-
-UTF-16 source length is 63, ending in two authored newlines. Line ranges are local to each
-fragment's attributed string; fragment ranges below are document-relative. Bounds are
-`(x, y, width, height)` in fragment coordinates; frames are container-relative.
-
-| Fragment range / frame | Line character range | Typographic bounds |
-| --- | --- | --- |
-| `0..<62` / `(0, 0, 134.20703125, 88)` | `{0,17}` | `(0,0,134.20703125,22)` |
-| same | `{17,16}` | `(0,22,131.9326171875,22)` |
-| same | `{33,12}` | `(0,44,90.00537109375,22)` |
-| same | `{45,17}` | `(0,66,132.6298828125,22)` |
-| `62..<63` / `(0,88,0,44)` | `{0,1}` | `(0,0,0,22)` |
-| same | `{1,0}` | `(0,22,0,22)` |
-
-The first fragment contains wording and the first newline. The second contains only the
-second newline. Its source-bearing line ends at **110pt**; its zero-length terminal extra
-line occupies **110–132pt**. The allocation covers all source-bearing line bounds but only
-6pt of the terminal extra line's 22pt. The aggregate did not reveal an additional seventh
-line: four wrapped text lines plus two trailing empty lines account for the six lines.
-A zero-length terminal line alone is not evidence that it is beyond the authored breaks.
-Dropping it would relax trailing-line qualification without establishing the correct contract.
-
-**Stop: unresolved terminal-line geometry/contract discrepancy, not a proven test error.**
-No assertion was weakened and no production fix attempted. Production inspection shows the
-UIKit bridge delegates finite-width measurement to `UITextView.sizeThatFits`; these runs
-cannot establish whether UIKit's terminal-line sizing is intentional or defective. No pixels,
-selection, clipping, or overlap were observed. The minimal next action is agreement on the
-native terminal-empty-line height contract before authorizing any test correction or production
-fix. No passing suite was rerun.
-
-Both runs used the round-3 `mobilebuildmcp simulator test` command selecting only that method.
-Logs: `/tmp/33-r4-ios.log`, `/tmp/33-r4-ios-no-probes.log`. Raw diagnostic lines are in
-`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/logs/`
-under `test_sim_parser-debug_2026-11-04T14-06-56-492Z_pid84459_20ec075a.log` and
-`test_sim_parser-debug_2026-11-04T14-08*`.
-Result bundles in that workspace's `result-bundles/`:
-`test_sim_2026-11-04T14-06-42-458Z_pid84459_1d43c220.xcresult` and
-`test_sim_2026-11-04T14-08-03-490Z_pid84831_1cf6be63.xcresult`.
-`git diff --check` passed after restoring temporary diagnostics.
-
-Manual handoff remains **not performed**: use the round-3 same-host checklist below on both
-platforms with the current working tree. Do not substitute Markdown blank lines for native
-terminal empty lines. For the native fixture, a human follow-up must distinguish the final
-empty caret line from visible source-bearing glyphs and record its height and neighbor gap;
-visible wording alone cannot resolve this discrepancy. Unavailable visual automation is a
-handoff, not a passing observation. Minimum OS/toolchain checks remain unverified.
-
-## Retained updates and paragraph measurement (#33, round 3 — layout mismatch)
-
-Round 3 resumes under authorization to treat unavailable UI automation as a manual handoff,
-not an execution blocker. Base revision: `19c7170` plus the current uncommitted test/doc diff.
-Date: 2026-11-04. Environment: macOS 27.0.1 (26A434), Xcode 27 RC toolchain,
-Swift 6.4 (swiftlang-6.4.0.34.1), iPhone 18 Pro / iOS 27.0 simulator.
-Scheme/destination discovery used `mobilebuildmcp simulator list-schemes --project-path
-Demo/FlatMarkDemo.xcodeproj` and `mobilebuildmcp simulator list`; explicit arguments were used.
-No repository MobileBuildMCP defaults file was found.
-
-### Added coverage and focused results
-
-- Both platform suites now use a test-only SwiftUI `Layout` directly around the paragraph
-  representable. They probe unspecified, infinite, and unchosen 320pt widths, commit 140pt,
-  and probe 320pt again after placement. Mounted bounds/container checks inspect the committed
-  width. UIKit legitimately declines infinite proposals; SwiftUI may return infinite fallback
-  width, so the test does not require that fallback to be finite.
-- UIKit adds leading/center/trailing attribute checks at fixed RTL direction (three cases,
-  no direction/alignment matrix). The selected parameterized method passed in the first run.
-- UIKit mounts consecutive trailing newlines and a following native paragraph. It checks source,
-  width, minimum line height, active native layout bounds, and following-frame separation.
-  The round-2 helper still inspects TextKit 2 first; it does not force legacy layout.
-- AppKit's new proposal test passed: **1 test, zero failures**. An initial test compilation
-  error (throwing inside a nonthrowing prepare callback) was corrected before that pass.
-- UIKit's new mounted test **fails reproducibly**: allocated height is **116pt**, while the
-  active TextKit layout/line-fragment bottom is **132pt**. The other expectations did not fail.
-  The first run also had an invalid finite-width expectation on UIKit's infinite fallback;
-  removing that unsupported expectation leaves the same height mismatch in the final run.
-
-This is a new qualification failure requiring a bounded diagnosis/fix scope. Work stops here,
-not because UI automation is unavailable. No production fix or comparison relaxation was made.
-The failure establishes a native geometry mismatch, not observed clipping or overlap. It does
-not yet isolate trailing-line measurement from proposal side effects or distinguish an extra-line
-inspection issue from a production sizing defect. Automated qualification is **not complete**.
-No snapshot baseline was recorded; no production files, dependencies, or hooks changed.
-
-Commands (only newly added tests ran; unaffected passing tests were not rerun):
-
-```sh
-swift test --filter 'FlatMarkAppKitParagraphTextTests/unchosenProposals' > /tmp/33-r3-mac.log 2>&1
-mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/writingDirectionIsSeparateFromAlignment(alignment:)' > /tmp/33-r3-ios.log 2>&1
-# Final rerun selects only the failing test after correcting the infinite-fallback assertion:
-mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor()' > /tmp/33-r3-ios-final.log 2>&1
-git diff --check
-```
-
-Final iOS result bundle:
-`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T14-01-36-464Z_pid83676_5391a323.xcresult`.
-
-### Manual handoff for this revision — not performed
-
-Build the current working tree, not an existing installed binary. Follow [demo setup](../Demo/README.md)
-and launch each platform with `scripts/run-fixture-host.sh ios` / `scripts/run-fixture-host.sh macos`.
-Record revision plus diff, OS, toolchain, actual window/column widths, and before/after captures.
-Do not restart or navigate away between each sequence:
-
-1. Open **Settings** and **Markdown source**. Enable **Use retained document**. Disable
-   **Larger recipe text** and **Right-to-left recipe layout**. Replace source with:
-   `**Before** café مرحبا 123 with enough words to wrap repeatedly at narrow widths.` followed
-   by a blank line and `Following paragraph.` Wait for settled rendering after every change.
-2. On macOS resize the same window narrow → wide → original narrow; record actual dimensions
-   and confirm the reading column really changes. On iOS rotate portrait → landscape → portrait;
-   the demo normally uses a fixed 240pt column, so rotation alone is **not** width qualification.
-   If that column remains fixed, mark the iOS same-host visual width check unavailable; do not
-   claim a pass or add a new production width control. Automated probes cover a separate boundary.
-3. In the same source editor, change the first paragraph short → multiline (use two Markdown
-   hard breaks, each two spaces before Return) → short, keeping the following paragraph.
-   Inspect complete bold and mixed-script wording, wrapping, clipping, and neighbor separation
-   after each settled update. Source changes replace the document by host design.
-4. Without changing source, toggle **Right-to-left recipe layout** off → on → off, then use
-   **Re-render without editing**. Confirm wording/source order, correct paragraph side, all
-   glyphs visible, and following content separate. This exercises retained-document settings.
-5. On iOS, in the same mount toggle **Larger recipe text** off → on → off. This applies SwiftUI
-   accessibility Dynamic Type, not a fixture point-size override. Confirm larger fonts/height,
-   complete wrapped lines and neighbor separation, then restoration. System Settings propagation
-   is optional. The demo does not expose the fixed native-font fixture; its mounted automated
-   test remains the fixed-font evidence, not this visual check.
-6. Record pass/fail/unavailable per action on each platform. Native trailing empty lines are
-   qualified by the direct mounted test, not extra Markdown blank lines. Investigate the new
-   116pt/132pt mismatch only under an agreed bounded scope. Minimum OS/toolchain checks remain
-   unverified. No manual checks in this list are claimed passed.
-
-## Retained updates and paragraph measurement (#33, round 2 — blocked)
-
-Round 2 stops short of ticket completion. Required iOS same-host visual transitions could not
-be exercised through the available automation: the runtime snapshot exposed Settings (`e14`)
-and Markdown source (`e19`), but successful reported taps left both disclosures collapsed in
-subsequent snapshots and inspected screenshots. This is an automation limitation, not evidence
-that FlatMark's native text rendering is defective. An operator or working disclosure-control
-lane is needed before claiming the required visual qualification.
-
-### Active-layout correction
-
-`FlatMarkParagraphTextTests.expectCompleteLayout` now checks `textLayoutManager` first.
-For TextKit 2 it ensures the document range and enumerates layout fragments, including the
-extra-line fragment, checking fragment and line typographic bottoms against allocated height.
-Only an already-TextKit-1 control uses `layoutManager`. The test no longer forces the default
-UIKit control into TextKit 1 to inspect it. Production initialization is unchanged. Round 1's
-UIKit retained geometry result must not be treated as evidence for the untouched default
-layout system; the focused rerun below supersedes that result.
-
-Base revision remains `19c7170`, plus the uncommitted test/document diff. Run date:
-2026-11-04. macOS 27.0.1 (26A434), Swift 6.4, Xcode 27.0 (27A266a), iPhone 18 Pro simulator,
-iOS 27.0. Build skill and CLI help were read. Scheme and simulator discovery were repeated;
-no repository MobileBuildMCP defaults file was found. Explicit project/scheme/destination:
-
-```sh
-mobilebuildmcp project-discovery list-schemes --project-path Demo/FlatMarkDemo.xcodeproj
-mobilebuildmcp simulator list
-# First attempt omitted () on both method selectors: selected zero tests, not a pass.
-mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/retainedParagraphUpdatesDynamicTypeAndWidthWithoutOverlap()' '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/retainedReplacementUpdatesAttributesDirectionAndHeight()' > /tmp/flatmark33-r2-ios-corrected.log 2>&1
-git diff --check
-```
-
-Corrected selection: **2 tests passed, zero failed/skipped**. Only the two callers of the changed
-helper ran. No unaffected AppKit tests were rerun. Result bundle in
-`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T13-44-15-747Z_pid80743_58e3fefa.xcresult`;
-build log in the same workspace at
-`logs/test_sim_2026-11-04T13-44-15-747Z_pid80743_a3a12c4c.log`.
-
-### Running-host attempts and actual limits
-
-No baseline was recorded. Existing installed demo binaries were used; their correspondence to
-the working tree was not established. Observations therefore do not qualify a newly built demo.
-
-- iOS: launched `dev.flatmark.FlatMarkFixtureHost` using
-  `mobilebuildmcp simulator launch-app --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --bundle-id dev.flatmark.FlatMarkFixtureHost`.
-  `simulator screenshot --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --return-format path`
-  and runtime snapshots established the initial Recipe Lab screen and collapsed disclosures.
-  Inspected before/after screenshots ended in
-  `screenshot_optimized_5d27116c-7a3c-42f3-a75d-81f80ce4dcf5.jpg` and
-  `screenshot_optimized_be8c7e3f-3bdd-47c1-b4ff-e389468701ed.jpg` under the tool's temporary directory.
-  Reported successful taps did not expose Settings or the source editor. No iOS transition
-  was visually qualified.
-- macOS: System Events Accessibility accessed the existing source editor and RTL toggle.
-  `/usr/sbin/screencapture -x <path>` captured states that were inspected with the image reader.
-  `/tmp/33-mac-content-before.png` shows new bold/link/paragraph/list/quotation content.
-  `/tmp/33-mac-content-after.png` shows replacement wording and extra source blank lines, but
-  the immediate capture contains partly stale list/quotation text. This is not a settled-update
-  pass or a diagnosed production defect. `/tmp/33-mac-rtl.png` and
-  `/tmp/33-mac-ltr-return.png` show all replacement text after toggling RTL and back: paragraph
-  alignment, bullets, and quotation rule move to the corresponding side without visible overlap
-  in the inspected sample. Extra Markdown blank lines do not establish native trailing empty lines.
-- macOS width attempts used System Events `set size of window 1 to {580, 950}` then
-  `{1000, 950}`. A later query returned `{1396, 950}`; the requested narrow state was not reached.
-  `/tmp/flatmark33-macos-narrow.png` was inspected and is wide despite its filename.
-  `/tmp/33-mac-settings-now.png` confirms no separate column-width control in the running app.
-  These attempts are not narrow/wide transition evidence.
-
-Per the requested stop condition, further qualification stops at this visual-execution blocker.
-The bounded proposal probes, mounted UIKit trailing consecutive newlines with a neighbor, and
-additional leading/center/trailing separation tests were **not implemented** in round 2.
-Same-host visual qualification remains incomplete on both platforms. Minimum runtimes/toolchain
-remain unverified. No production changes, dependencies, hooks, snapshot recording, or commits.
-
-## Retained updates and paragraph measurement (#33, round 1)
-
-Pickup revision: `19c7170`. Read #33 and parent #31 bodies/comments using
-`gh issue view <number> --json title,body,comments`; neither has comments.
-Both bridges' creation, update, and measurement paths were inspected before test changes.
-No production changes or reference recording are authorized.
-
-### Pickup evidence map
-
-U/A means UIKit/AppKit paragraph suites in `Tests/FlatMarkTests/Snapshots`.
-
-| Criteria | Existing evidence before changes | Status / bounded gap |
-| --- | --- | --- |
-| AC-12–14 | U `retainedParagraphUpdatesDynamicTypeAndWidthWithoutOverlap` retains native identity through normal/accessibility/restored normal and checks font, height, and following frame. | Covered automatically; running-host transition observation remains missing. |
-| AC-15 | U host-font attribute test checks fixed fonts at conversion, not mounted Dynamic Type changes. | Partial: extend retained replacement example. |
-| AC-17 | U/A retained tests capture one document and update render settings. | Covered. |
-| AC-18 | A offered-width test checks native configuration; U offered-width test checks some configuration. Both make methods set clear backgrounds and zero insets. | Partial: inspect/assert full U configuration. |
-| AC-19–20 | U/A offered-width and retained narrow/wide/narrow tests check frames and identity; A checks native container width and used bounds. | Partial: U helper repeats native sizing instead of inspecting layout bounds. |
-| AC-21–22 | U/A retained replacement tests check short/multiline/short height, exact source order, font/color, direction. | Covered for storage/height; A lacks neighboring-frame check on replacement updates. |
-| AC-23 | A parameterized alignment test and U semantic direction test; mounted replacement updates check resolved alignment. | Partial: U only checks trailing alignment. |
-| AC-24–25 | A trailing-break and used-layout tests; U helper checks sizing and following frame. | Partial: U independent native layout bounds/trailing lines; A replacement neighbor geometry. |
-| AC-28 | Bridge inspection: U returns nil for nonpositive/nonfinite/unspecified widths; A measures unconstrained without a fixed width. | Partial: no proposal-probe qualification. |
-
-Existing static references cover narrow/wide typography, RTL and blank-line layouts. They do
-not prove same-mounted-host transitions. No new baseline recording is approved. Scope remains
-representative FlatMark boundary checks, not a native text-system behavior matrix.
-
-### Round 1 changes and verification
-
-- Extended the retained UIKit replacement test to apply `.accessibility3` during its middle
-  update and restore `.large`. The same document and native control survive; the explicit
-  23pt host font remains equal to its original native font in every state (AC-15).
-- Replaced UIKit's repeated `sizeThatFits` assertion with inspection of the mounted native
-  container width, used rect, glyph bounds, and extra-line fragment. The shared helper also
-  checks transparent/noneditable/selectable/no-scroll/zero-inset configuration and following
-  frame separation on each retained transition (AC-18–20, AC-24–25).
-- Added AppKit replacement-transition native layout bounds and following-frame checks.
-  This does not simulate Dynamic Type on macOS.
-
-Run date: 2026-11-04. Base: `19c7170`, plus the uncommitted test/document diff.
-Host: arm64 macOS 27.0.1 (26A434). Xcode 27.0 (27A266a), Apple Swift 6.4
-(`swiftlang-6.4.0.34.1 clang-2100.3.34.1`), developer directory
-`/Applications/Xcode-27-RC.app/Contents/Developer`. Environment was obtained with `sw_vers`,
-`swift --version`, `xcode-select -p`, and Xcode plists. Build skill was read first.
-`mobilebuildmcp --help`, `tools`, and `simulator test --help` supplied discovery.
-`project-discovery list-schemes --project-path Demo/FlatMarkDemo.xcodeproj` confirmed the
-non-recording scheme; `simulator list` confirmed booted iPhone 18 Pro, iOS 27.0.
-No repository MobileBuildMCP defaults file was found; project, scheme, and destination were
-passed explicitly.
-
-```sh
-swift test --filter 'FlatMarkAppKitParagraphTextTests/(nativeParagraphsMeasure|retainedParagraph|retainedReplacement|trailingBreaks|writingDirection)' > /tmp/flatmark33-macos.log 2>&1
-mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests' > /tmp/flatmark33-ios.log 2>&1
-git diff --check
-```
-
-- macOS: **5 methods passed**, including two width and three alignment cases.
-- iOS: **14 methods passed**, zero failed/skipped. Build log confirms retained replacement,
-  Dynamic Type/width, offered-width, and recipe ambient-size tests executed.
-- `git diff --check`: passed. No passing check was rerun.
-
-UIKit bundle:
-`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T13-33-13-235Z_pid78033_442e10ae.xcresult`.
-Build log: same workspace, `logs/test_sim_2026-11-04T13-33-13-235Z_pid78033_d849c1bb.log`.
-Artifacts are local diagnostics, not reference baselines.
-
-### Remaining qualification limits
-
-No production defect or execution blocker was found in this slice. #33 is not fully qualified:
-unchosen/nonpositive/nonfinite/unspecified proposal probes, mounted UIKit trailing empty lines,
-full UIKit leading/center/trailing direction separation, and same-host visual transition
-observations remain gaps. Native glyph-bound checks do not establish visible glyph fidelity.
-No new running-demo observation or capture inspection was performed this round. Existing static
-references were inventoried by purpose, not rerun or visually requalified. New same-host baseline
-recording still requires approval. Minimum iOS 17/macOS 14 and Xcode 26/Swift 6.2 were not run.
-No full package suite, demo builds, interaction/accessibility checks, or snapshot recording ran.
-The earlier #29 system-Settings gap is optional for #33; mounted environment changes are the
-required Dynamic Type boundary. Separate review should use these results without redundant reruns.
-
-## Attributed content and semantic typography (#32, round 1)
-
-Scope: #32 only. Issues #32 and #31 were read with `gh issue view <number> --repo
-NoemiRozpara/FlatMark --json title,body,comments`; both had no comments. Production code and
-snapshot references are unchanged. This is storage/font evidence, not glyph, gesture, or
-accessibility qualification.
-
-### Coverage inventory
-
-This inventory was made from the existing paragraph, custom-content, mention, and projector
-suites before adding coverage. UIKit/AppKit paragraph suites are abbreviated U/A below.
-
-| Criteria | Pickup evidence | Round 1 coverage |
-| --- | --- | --- |
-| AC-01 Unicode/order | Partial: U/A `combinedIntentsPreserveUnicodeAndConsecutiveNewlines` covered emoji modifiers and CJK, but not decomposed accents or mixed direction. UIKit replacement test covered neighbors. | Extended the existing combined fixture with decomposed `e` + U+0301, Hebrew/Arabic, and a trailing newline. New U/A `literalAndOmittedUnicodeComposeWithoutSpaces` checks exact UTF-16 output and link range, default link color throughout that range, and unlinked neighbors. |
-| AC-02 breaks | Covered across layers: projector formatted-inline and hard-break tests establish soft/hard projection; U/A combined tests establish native consecutive newlines. AppKit `trailingBreaksReserveEmptyNativeLines` covers trailing layout. | New policy composition tests also preserve leading-to-replacement, consecutive, and trailing native newlines. No parser matrix added. |
-| AC-03 inline attributes | Covered: U/A combined tests inspect code/bold/italic/strike at every UTF-16 offset. UIKit replacement tests inspect linked emphasis; AppKit custom tests inspect inherited/explicit links. Mention tests inspect bold tokens and retained neighboring attributes. | Reused those tests; extended Unicode fixture, without adding a parser test per combination. |
-| AC-04 policy composition | Partial: mounted custom-content tests covered multi-run custom output and neighbors; direct native literal/omit composition was missing. | Added one parameterized literal/omit test on each platform, using the same small Unicode fixture. |
-| AC-05 inheritance | Covered: UIKit `replacementInheritsIntentAndLinkWithoutChangingNeighbors`; AppKit mounted `replacement runs inherit enclosing emphasis`, `host intent and empty intent replace defaults per run`, and `replacement links inherit and override per run`. | Reused; selected AppKit tests passed this round. |
-| AC-06 explicit empty intent | Covered: U/A `explicitEmptyIntentAndNativeHostAttributesWinPerRun` and mounted custom per-run intent test. | Reused. |
-| AC-07 native host precedence | Covered: U/A explicit-empty and host-font/color tests, plus mounted custom host-font/color test. | Reused. |
-| AC-08 omitted font defaults | Covered: U/A host-font/color tests inspect default-font neighbors; AppKit multi-run custom test inspects missing-font runs around a native host run. | Reused, plus direct default body-font equality. |
-| AC-09 semantic body/headings | Partial: six heading roles already compare framework semantic sizes and bold traits; body was only indirectly checked. | Added U/A `bodyUsesPreferredSemanticFont`, comparing the complete native body font with the framework preferred font. Reused all six heading cases. |
-| AC-10 table header | Covered: U/A `tableHeaderRoleBoldensBodyTypeWithoutChangingSize`. | Reused. |
-| AC-11 role-derived traits | Covered: U/A `inlineTraitsDeriveFromTheHeadingRoleFont` inspects code/emphasis against semantic title size. | Reused. |
-| AC-16 AppKit semantic fonts | Covered: AppKit semantic heading/header tests and `roleFont` inspection use preferred AppKit fonts, with no iOS scaling environment. | Added direct preferred body-font equality. |
-
-### Environment, commands, and results
-
-Base revision: `6297cafcab1109a22fea7a692db1666ecc363029`, plus this uncommitted test-only diff.
-Run date: 2026-11-04. Host: arm64 macOS 27.0.1 (26A434). Active developer directory:
-`/Applications/Xcode-27-RC.app/Contents/Developer`, Xcode 27.0 (27A266a), Apple Swift 6.4
-(`swiftlang-6.4.0.34.1 clang-2100.3.34.1`). `swift --version`, `sw_vers`,
-`xcode-select -p`, and Xcode's version plist supplied these values.
-
-Build skill read before Apple tooling. Discovery used `mobilebuildmcp --help`,
-`mobilebuildmcp tools`, `mobilebuildmcp simulator list --help`,
-`mobilebuildmcp simulator test --help`, and
-`mobilebuildmcp project-discovery list-schemes --help`. No repository `.mobilebuildmcp`
-configuration was present; project, scheme, and destination were passed explicitly.
-`mobilebuildmcp project-discovery list-schemes --project-path Demo/FlatMarkDemo.xcodeproj`
-confirmed the non-recording `FlatMarkSnapshots-iOS` scheme. `mobilebuildmcp simulator list`
-confirmed booted iPhone 18 Pro, iOS 27.0, UDID `674C04A9-8792-4995-A6A9-66F80E5F96AA`.
-
-Commands run from the repository root:
-
-```sh
-swift test --filter 'FlatMarkAppKitParagraphTextTests/(combinedIntents|literalAndOmitted|bodyUses|explicitEmpty|headingRoles|tableHeaderRole|inlineTraits|hostFont)' > /tmp/flatmark32-macos.log 2>&1
-
-mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests' > /tmp/flatmark32-ios.log 2>&1
-
-# Initial selector matched zero tests. This was not a behavioral pass.
-swift test --filter 'FlatMarkCustomUnsupportedContentTests\.(inline replacements|replacement runs|host intent|replacement uses|host font|replacement links)|FlatMarkMentionTests\.(opted in mentions|mention styling)' > /tmp/flatmark32-composition.log 2>&1
-swift test list > /tmp/flatmark32-test-list.log 2>&1
-# Corrected selector uses the discovered slash/backtick identifiers.
-swift test --filter 'FlatMarkCustomUnsupportedContentTests/`(inline replacements|replacement runs|host intent|replacement uses|host font|replacement links)|FlatMarkMentionTests/`(opted in mentions|mention styling)' > /tmp/flatmark32-composition-selected.log 2>&1
-
-git diff --check
-```
-
-- AppKit attribute selection: **8 test methods passed**, including both policy cases and all six
-  heading cases. An existing unused-variable warning at `hostFontAndColorOverrideTheRoleDefaultWhileNeighborsKeepIt`
-  remains unchanged.
-- UIKit paragraph selection: **14 test methods passed, zero failed/skipped**. The build log confirms
-  both new methods, both policy cases, and all six heading cases ran. The suite also includes its
-  existing retained-update and measurement checks; these were not run separately.
-- Corrected AppKit composition/mention selection: **8 test methods passed** (six custom-content,
-  two mention). CoreText logged fallback-name diagnostics during native export. These passing
-  export assertions do not establish visible glyph/font fidelity.
-- `git diff --check`: passed. Passing checks were not repeated.
-
-UIKit result bundle:
-`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T13-19-33-000Z_pid75126_488276bd.xcresult`.
-Build log in the same workspace:
-`logs/test_sim_2026-11-04T13-19-33-000Z_pid75126_68d3c506.log`.
-Local `/tmp` logs and result bundles are diagnostic artifacts, not committed baselines.
-
-No production defect or execution blocker was found. Minimum iOS 17/macOS 14 and Xcode 26/Swift 6.2
-were not executed; current-runtime results do not qualify minimum runtimes. No snapshots, full
-package suite, demo builds, visible-glyph checks, live accessibility, or selection gestures were
-run for this attribute-only change. Those checks are not replaced by storage/font tests.
-Independent review should inspect this diff and these results without rerunning passing checks.
+Recorded logs: `/tmp/flatmark32-macos.log`, `/tmp/flatmark32-ios.log`,
+`/tmp/flatmark32-composition-selected.log`, `/tmp/33-owner-exception-ios.log`,
+`/tmp/flatmark-fix1-{red,green,affected}.log`, `/tmp/flatmark-fix2-baseline.log`,
+`/tmp/flatmark-fix2-demo-arm64-full.log`, `/tmp/flatmark34-{macos,ios}.log`,
+`/tmp/35-macos-tests.log`, `/tmp/35-controls.log`, `/tmp/35-ios-final.log`.
+MobileBuildMCP retains corresponding logs/result bundles under
+`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/`.
+
+### User-reported observations
+
+After the AppKit fixes, the user reported no warnings, normal window size/resizing,
+visible and correct RTL/LTR layout, and working macOS links. The user reported the iOS
+manual checks passed except the fixed-width reading column. Revision/build correspondence,
+OS, toolchain and dimensions were not recorded, so these are supporting user observations,
+not revision-matched qualification or proof of all navigation decisions.
+
+Selection/copy, live VoiceOver, minimum-runtime checks, retained UIKit action dispatch,
+full iOS link/control interaction and final rendering-cost assessment remain deferred.
+No performance guarantee or complete migration qualification is claimed.
 
 ## Integrated native text qualification (#29)
 
@@ -812,7 +201,7 @@ and the booted simulator. No reference recording or comparison-tolerance changes
 | --- | --- | --- |
 | Native output | UIKit/AppKit paragraph tests cover combined traits, Unicode/order, consecutive/trailing breaks, semantic roles, per-run host precedence, and direction versus alignment. Shared custom-content tests plus UIKit replacement tests cover multi-run inheritance/overrides without changing neighbors. | Exports/attributes are not glyph visibility or live accessibility. |
 | Mounted updates | Retained UIKit/AppKit tests cover width/content/direction/attributes and following-block separation; UIKit also covers mounted environment Dynamic Type changes. AppKit tests verify the first baseline. | Actual system-driven iOS Dynamic Type transitions, including accessibility categories, remain unverified. |
-| Navigation | Package navigation tests pass, including retained callback/opener replacement, supported/replacement links, handled/rejected/default/omitted callbacks, independent links, and inert neighbors. UIKit's primary-action delegate coverage was previously claimed here without a corresponding test; that claim is withdrawn (see #35). | macOS uses the controlled isolated click host; iOS delegate tests are not native link gestures. Live demo link activation remains unverified on both platforms. |
+| Navigation | Package navigation tests pass, including retained callback/opener replacement, supported/replacement links, handled/rejected/default/omitted callbacks, independent links, and inert neighbors. UIKit's primary-action delegate coverage was previously claimed here without a corresponding test; that claim is withdrawn (see [branch delivery](#native-text-qualification--branch-delivery)). | macOS uses the controlled isolated click host; iOS delegate tests are not native link gestures. Live demo link activation remains unverified on both platforms. |
 | Image/control preservation | Existing image lifecycle, custom block, task, and navigation tests remain; iOS production snapshots pass. Routing inspection preserves image-containing values as a whole. | macOS image pixel failures remain as reported above. No new blanket image qualification. |
 | Selection — iOS / macOS | Native selectability and macOS selection exports are automated. | Actual selection gestures/copy and selection-reset observations are unverified on both platforms. |
 | VoiceOver — iOS / macOS | No new accessibility wrapper was added. | No live VoiceOver operator session was available. Wording/order, independent supported/replacement link reachability/activation, and absence of duplicate announcements remain unverified on both platforms. Semantic exports and screenshots are not substitutes. |
