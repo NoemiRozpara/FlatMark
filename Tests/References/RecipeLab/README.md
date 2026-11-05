@@ -10,8 +10,8 @@ against an iPhone 18 Pro simulator running iOS 27: 91 PNGs plus `macos-widths.ts
 
 - macOS: 63 captures — 3 widths × 3 scroll positions (`top`, `middle`, `end`) × 7 presets. Scroll is
   driven with Home, Page Down twice, and End.
-- iOS: 28 captures — 4 geometries × 7 presets, all initial viewport. There is no scroll control for a
-  simulator, so the manifest records `top` for every iOS row.
+- iOS: 28 captures — 4 geometries × 7 presets, all initial viewport. The capture script does not
+  scroll iOS, so the manifest records `top` for every iOS row.
 
 Every macOS row reached its requested size. iOS clamped 320 to 375, and 430x1280 to 591x1280; the
 manifest records what rendered. The 1280-tall geometry is the tallest a resizable session allows and
@@ -124,14 +124,15 @@ Keep the following checks open:
 
 - Capture and visually review every preset for the current content. The previous capture pass was
   not visually reviewed; generating artifacts alone does not verify them.
-- Scroll the iOS fixture by hand. There is no scroll control for a simulator, so `hostMarkers`
-  and `readOnly` have no iOS capture that reaches their content, and `omission` is reached
-  only at the tallest geometry.
+- Capture lower iOS content in Device Hub. MobileBuildMCP scrolling with Device Hub visible is verified; see
+  [the Device Hub guide](../../../AI-docs/DEVICE_HUB.md#scroll-an-ios-app-in-device-hub). Gesture routing
+  during a resizable session remains unverified. The existing captures do not reach `hostMarkers`
+  or `readOnly` content, and reach `omission` only at the tallest geometry.
 - Decide what `readOnly` is for. It changes editability only, so no screenshot can verify it.
 - Exercise settings and inline replacement buttons with real input. The previous automation attempt
   reported taps but did not change their state; this established neither working nor broken behavior.
 - Inspect lower scroll content, tables, code, mixed-content wrapping, and selection gestures.
-  macOS covers top, middle, and end; iOS still needs manual scrolling.
+  macOS covers top, middle, and end; iOS still needs scrolled captures.
 - Reproduce earlier macOS quote truncation and narrow-table clipping. Shorter replacement wording
   is not evidence of a renderer fix; horizontal scrolling and complete cell reachability remain unverified.
 - Perform live VoiceOver checks on both platforms: task labels/state/nesting, focus order, toggle

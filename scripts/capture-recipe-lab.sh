@@ -317,8 +317,8 @@ APPLESCRIPT
 fi
 
 if [ "$PLATFORM" = macos ]; then
-  printf 'macOS captured top, middle, and end. iOS has no scroll control, so those are initial\n'
-  printf 'viewports only; scroll the fixture for content below the fold.\n'
+  printf 'macOS captured top, middle, and end. This script does not scroll iOS; its captures are\n'
+  printf 'initial viewports only. For scrolling in Device Hub, see AI-docs/DEVICE_HUB.md.\n'
 fi
 echo "Manifest: $MANIFEST"
 column -t -s "$(printf '\t')" "$MANIFEST"
