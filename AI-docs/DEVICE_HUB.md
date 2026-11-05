@@ -6,7 +6,7 @@ Use it when a task needs a running app observed under a specific size, appearanc
 
 ## Verified environment
 
-All commands and results below were run on Xcode 27.0 RC (build 27A266a), `devicectl` version 651.31, JSON output version 5, against the iPhone 18 Pro simulator running `dev.flatmark.FlatMarkFixtureHost`. Device Hub was closed for the final confirmation pass. Items marked **unverified** were not exercised.
+All commands and results below were run on Xcode 27.0 RC (build 27A266a), `devicectl` version 651.31, JSON output version 5, against the iPhone 18 Pro simulator running `dev.flatmark.FlatMarkFixtureHost`. Device Hub was closed for the final `devicectl` confirmation pass. The MobileBuildMCP scrolling check below was repeated with Device Hub open and visible. Items marked **unverified** were not exercised.
 
 ## The control surface
 
@@ -218,7 +218,27 @@ The real cause was `sizeThatFits` in `Sources/FlatMark/Rendering/FlatMarkAppKitP
 
 The harness does not pin, bound, or seed any window size. It moves the window to a fixed origin before each resize so captures are reproducible and never partly off-screen, then verifies the applied size against the window server and exits non-zero on any width the window did not reach. Previously it hid the whole problem behind a hardcoded `{850, 1040}`.
 
-macOS scrolls with keyboard Home, Page Down, and End, which is what finally separates presets like `hostMarkers` and `omission` from `daylight`. iOS has no scroll control: neither `devicectl` nor `simctl io` injects input, so iOS captures stay at the initial viewport. Pixel equality is weak evidence on macOS; repeating one capture three times at the same geometry and scroll position produced two distinct hashes. See [AI-docs/BUILD_AND_TEST.md](BUILD_AND_TEST.md) for how capture results may be reported.
+macOS scrolls with keyboard Home, Page Down, and End, which is what finally separates presets like `hostMarkers` and `omission` from `daylight`. The capture script still captures only the initial iOS viewport; it does not use the Device Hub scrolling path below. Pixel equality is weak evidence on macOS; repeating one capture three times at the same geometry and scroll position produced two distinct hashes. See [AI-docs/BUILD_AND_TEST.md](BUILD_AND_TEST.md) for how capture results may be reported.
+
+## Scroll an iOS app in Device Hub
+
+Neither `devicectl` nor `simctl io` injects scroll input. Use MobileBuildMCP's CLI to scroll an iOS app displayed in Device Hub; no app scroll anchors or launch arguments are needed. The CLI targets the simulated device directly, not the host pointer or canvas. Read the installed MobileBuildMCP skill before use. Discover the simulator and the current scroll-view reference rather than copying a saved identifier:
+
+```sh
+mobilebuildmcp simulator list
+mobilebuildmcp ui-automation snapshot-ui --simulator-id "$UDID"
+# Replace e7 with the scroll reference from the current snapshot.
+mobilebuildmcp ui-automation swipe --simulator-id "$UDID" \
+  --within-element-ref e7 --direction up --distance 0.7
+mobilebuildmcp ui-automation snapshot-ui --simulator-id "$UDID"
+mobilebuildmcp ui-automation screenshot --simulator-id "$UDID"
+```
+
+A swipe up reveals content farther down the document. Refresh the snapshot after scrolling before reusing references. For capture loops, bound retries and stop when the target appears or scrolling makes no progress.
+
+Verified with MobileBuildMCP 2.7.1 and FlatMark Recipe Lab displayed in Device Hub on iPhone 18 Pro running iOS 27.0. The running frontend executable was `Xcode-27-RC.app/Contents/Applications/DeviceHub.app/Contents/MacOS/DeviceHub`; no `Simulator.app` process was running. Before/after captures of the Device Hub window confirmed that an upward swipe with distance `0.5` moved Settings and Markdown source out of view and revealed recipe details and the food image. The swipe reported a snapshot-settling timeout despite visible movement. An earlier attempt briefly showed a blank screen and returned to the top; its cause is unknown. Command success alone is not proof of scrolling.
+
+Gesture routing during an active `appResize` session and physical-device scrolling remain **unverified**. Use `devicectl` for resizing and display-specific captures; this test does not establish that MobileBuildMCP targets the `Resizable` display.
 
 ## MCP options
 
@@ -233,7 +253,7 @@ macOS scrolls with keyboard Home, Page Down, and End, which is what finally sepa
 | Axiom `device-control-ref` skill | Documentation, not control | Installable reference covering `devicectl` / `simctl` / Device Hub. Read it rather than re-deriving these facts. |
 | `apple-device-hub-mcp`, Device MCP, `mobile-device-mcp`, `xcforge` | Mirroring, tap, swipe, UI tree | Third-party. Not evaluated here. |
 
-For FlatMark work, stay on `devicectl`. Reach for Xcode MCP when the question is about previews, build state, or diagnostics rather than a running device.
+For FlatMark work, use `devicectl` for device settings, resizing, and display-specific capture. Use MobileBuildMCP for scrolling iOS apps displayed in Device Hub. Reach for Xcode MCP when the question is about previews, build state, or diagnostics rather than a running device.
 
 ## visionOS, tvOS, watchOS, physical devices
 

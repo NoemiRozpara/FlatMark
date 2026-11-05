@@ -43,8 +43,8 @@ bash scripts/capture-recipe-lab.sh macos output-directory
 
 Both platforms sweep several widths on the running app rather than pinning one viewport, and write a
 `<platform>-widths.tsv` manifest naming the size each capture actually reached. macOS also captures
-`top`, `middle`, and `end` scroll positions; iOS has no scroll control, so its captures are initial
-viewports. iOS drives geometry with `devicectl` resizable app sessions; macOS drives the window size
+`top`, `middle`, and `end` scroll positions; the script does not scroll iOS, so its captures are initial
+viewports. MobileBuildMCP can scroll iOS apps displayed in Device Hub; see the Device Hub guide linked below. iOS drives geometry with `devicectl` resizable app sessions; macOS drives the window size
 through System Events, and a sweep that cannot reach a requested width exits non-zero. See
 [Recipe Lab captures](../Tests/References/RecipeLab/README.md) and
 [AI-docs/DEVICE_HUB.md](../AI-docs/DEVICE_HUB.md).
