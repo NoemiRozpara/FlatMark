@@ -35,8 +35,7 @@ struct FlatMarkOmittedContentTests {
     ) throws {
         let content = try #require(paragraphContent(in: markdown))
 
-        // Every text run the reader gets is a supported one: the tag runs are simply absent.
-        #expect(FlatMarkInlineView.inlineElements(for: content, policy: .omit).map(plainFragment) == fragments)
+        #expect(flatMarkNativeInlineText(content, policy: .omit).string == fragments.joined())
     }
 
     @Test(arguments: [
@@ -83,7 +82,11 @@ struct FlatMarkOmittedContentTests {
         let row = try #require(entries.first.flatMap(row(of:)))
         #expect(omit.plainText(for: row.content) == "before x after")
         #expect(FlatMarkUnsupportedContentPolicy.literal.plainText(for: row.content) == "before <u>x</u> after")
-        #expect(row.content.standaloneLinkedImageDestination == URL(string: "https://example.com/details"))
+        guard case let .image(image)? = row.content.components.first else {
+            Issue.record("Expected a linked image")
+            return
+        }
+        #expect(image.link == URL(string: "https://example.com/details"))
         guard case let .task(_, sourceRange) = row.marker else {
             Issue.record("Expected a task marker")
             return
@@ -277,10 +280,7 @@ struct FlatMarkOmittedContentTests {
         .blocks
         .first)
 
-        #expect(FlatMarkInlineView.inlineElements(for: span, policy: .omit).map(plainFragment) == [
-            "before ",
-            " after",
-        ])
+        #expect(flatMarkNativeInlineText(span, policy: .omit).string == "before  after")
         #expect(!omit.presents(shell))
     }
 
@@ -410,16 +410,5 @@ private func markerText(_ marker: FlatMarkListMarker) -> String {
         "\(index)."
     case let .task(isChecked, _):
         isChecked ? "checked" : "unchecked"
-    }
-}
-
-private func plainFragment(_ element: FlatMarkInlineView.InlineElement) -> String {
-    switch element.content {
-    case let .text(text):
-        return String(text.characters)
-    case .lineBreak:
-        return "\n"
-    case let .image(_, image):
-        return FlatMarkUnsupportedContentPolicy.omit.imageLabel(for: image)
     }
 }

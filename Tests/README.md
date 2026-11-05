@@ -3,7 +3,52 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
-## Native image accessibility — wrapper removal
+## Native macOS image paragraphs — issue #41
+
+Both platforms now render all image phases in native attributed paragraphs. The custom flow
+layout and renderer selector are removed. Earlier descriptions of whole-value SwiftUI image
+routing below are historical and do not describe the current implementation.
+
+macOS uses fresh attachments for each measurement graph and committed width. Unsupported inline
+output and image labels resolve at render time, before sizing probes. Request ownership stays in
+`FlatMarkInlineView`. Native image-link children receive destination-first names and use the
+current text-view delegate. Ordinary native links remain separate.
+
+Verification on 2026-11-05 used arm64 macOS 27.0.1 (26A434), Xcode 27 RC, Apple Swift 6.4,
+and a 2x display. iOS checks used the iPhone 18 Pro simulator with iOS 27.0.
+
+- `swift test`: 261 tests in 35 suites passed, with one existing known issue in `LoaderSpyTests`.
+- `FlatMarkSnapshots-macOS`: 88 tests passed in a separate non-recording run.
+- iOS paragraph, image-phase, and linked-image suites: 30 tests passed, with no reference changes.
+- New mounted checks cover reverse image completions in source order, retained width changes
+  without new requests, intrinsic small-image sizing, isolated unchosen-width attachment probes,
+  late completion after replacement, repeated image destinations around an ordinary link,
+  current phase/width accessibility frames, stale-target rejection, and one opener call per action.
+- Updated 29 macOS references for native paragraph typography, baseline placement, wrapping,
+  and the static hourglass. No comparison tolerance changed. Small and oversized raster-only
+  references passed unchanged. Prior environment-sensitive pixel failures remain historical;
+  none reproduced in the final runs.
+- Reviewed a contact sheet of the changed references and full-size representative native
+  placeholder, mixed loaded, and policy-transition captures. This is not full-size approval
+  of every reference.
+- Built and launched `FlatMarkDemo-macOS`. Captures of the same running recipe window at
+  900×1000 and 560×900 points show the loaded photo and reflowed surrounding text. The wide
+  image keeps its intrinsic width; the narrow image shrinks to the text column. Captures used
+  the current native macOS process, not another running simulator host.
+
+Live VoiceOver and actual selection/copy gestures remain unverified. Running-demo checks for
+all non-success phases, multiple images, long/empty labels, RTL, enlarged text, and image-bearing
+heading/list/table contexts remain incomplete. Automated exports, direct accessibility actions,
+and snapshots do not replace those observations. No iOS running-app observation was repeated;
+its presentation is unchanged and the affected automated suites passed. Minimum-runtime
+macOS 14/iOS 17 compatibility remains unverified.
+
+Diagnostic artifacts are in the MobileBuildMCP workspace
+`~/Library/Developer/MobileBuildMCP/workspaces/image-rendering-attachment-mac-f8fe33f9b2d3/`.
+The final macOS result stem is `test_macos_2026-11-05T12-11-16-201Z_pid20325_348d4326`.
+The iOS result stem is `test_sim_2026-11-05T12-01-22-044Z_pid16538_157be391`.
+
+## Native image accessibility — wrapper removal (historical)
 
 The iOS renderer now uses a plain `UITextView` with attributed attachments. The custom
 accessibility wrapper, image identity/label metadata, and wrapper-only accessibility test
@@ -66,10 +111,9 @@ Earlier qualification records below describe their own revisions and do not qual
 ### Scope and known issue
 
 FlatMark owns native conversion, typography, configuration, measurement, and navigation wiring.
-Hosts retain source, services, navigation decisions, and custom content ownership. The migration
-is incomplete: image-containing values still use the whole existing SwiftUI renderer. That
-transitional layout is expected to be removed; this batch adds no attachments or replacement
-image-lifecycle suite. No new defect in that transitional path was established.
+Hosts retain source, services, navigation decisions, and custom content ownership. At that revision, image-containing values still used the whole existing SwiftUI renderer.
+That transitional layout has since been removed by #41; this historical batch added no
+attachments or replacement image-lifecycle suite. No new defect in that transitional path was established.
 
 The UIKit test
 [`proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor`](FlatMarkTests/Snapshots/FlatMarkParagraphTextTests.swift)

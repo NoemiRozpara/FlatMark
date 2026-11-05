@@ -203,9 +203,8 @@ escaped tags, code, and ordinary text do not invoke either closure.
 
 Replacements keep their structural position and ambient environment. FlatMark adds no literal
 fallback or minimum-size box. Block controls remain independently actionable beside tasks and
-supported links. Inline replacement text inside image-free content uses semantic UIKit or AppKit
-typography for its role. Image-free paragraphs, headings, list text, and table cells use that native
-path. They preserve explicit native font and color attributes per run. SwiftUI `Font` attributes
+supported links. Inline replacement text uses semantic UIKit or AppKit typography for its role.
+Paragraphs, headings, list text, and table cells use that native path. They preserve explicit native font and color attributes per run. SwiftUI `Font` attributes
 use semantic native typography instead. Host-supplied fixed fonts remain host-owned.
 Each run inherits enclosing Markdown presentation intents and links when the host omits those
 attributes. An explicit host intent replaces the enclosing intent, including an empty intent set
@@ -224,7 +223,7 @@ including interpretation, sanitization, navigation, and resource access. FlatMar
 ## Layout and selection limits
 
 Paragraphs, headings, list text, and table cells compose supported and custom text in a
-noneditable, selectable `UITextView` on iOS. On macOS, image-free values use `NSTextView`. Each uses system-preferred
+noneditable, selectable `UITextView` on iOS or `NSTextView` on macOS. Each uses system-preferred
 semantic typography for its role — body, heading level 1–3 (title/title2/title3), heading level 4–6
 (headline), or bold table header — with no fixed point size. Inline emphasis, strong text, mentions,
 and inline code derive their traits from the resolved role font. Each measures the offered width
@@ -235,22 +234,18 @@ uses AppKit's preferred semantic fonts without iOS scaling. Ambient SwiftUI font
 and tint are not styling contracts for this path. Selection may reset on any update, including
 styling and measurement. Selection preservation and cross-block selection are not promised.
 
-On iOS, images share native attributed storage with surrounding text. Loaded images use inline
+On both platforms, images share native attributed storage with surrounding text. Loaded images use inline
 attachments at intrinsic size, shrinking proportionally to the paragraph width. Other phases use
 an inline photo, static hourglass, or warning icon with the policy-resolved label.
-The native text view owns accessibility for text, links, and attachments; FlatMark does not
-create separate accessibility elements for image runs.
+Long non-success labels wrap without a reserved raster box; empty alt text uses `Image`.
+iOS keeps native attachment accessibility. On macOS, FlatMark supplies policy-resolved image
+descriptions and phase wording in the paragraph label. It replaces native image-link children
+with destination-first link names while preserving ordinary native links. Image-link actions use
+the current native delegate and the existing host navigation path. Actual VoiceOver speech and
+focus behavior still require running-platform qualification; exported names are not live speech evidence.
+Generic attachment announcements remain an iOS limitation.
 
-On macOS, values containing Markdown images retain the SwiftUI flow renderer and its ambient role
-styling in every phase. Mixed text/image content wraps by runs rather than character-level
-typesetting. A long text run may wrap internally or move as a whole. Selection works within
-supported text regions but is not continuous across arbitrary views. Linked images separate
-adjacent selectable text regions so the image remains independently actionable. Tables scroll horizontally;
-parsed column alignment does not change native cell alignment.
-
-Image announcements follow native platform behavior. FlatMark does not guarantee that VoiceOver
-speaks image alt text, link destinations, or phase wording. Linked images use the existing host
-navigation path. Generic attachment or link announcements are a known limitation on both platforms.
+Tables scroll horizontally; parsed column alignment does not change native cell alignment.
 
 See the [support matrix](SUPPORT.md) for construct-specific behavior and the
 [runtime guide](Tests/README.md) for verification limits.

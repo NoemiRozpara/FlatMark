@@ -468,7 +468,6 @@ struct FlatMarkRenderProjectorTests {
         #expect(content.components == [.image(FlatMarkRenderImage(
             url: URL(string: "https://example.com/diagram.png"), altText: "Diagram"
         ))])
-        #expect(content.standaloneLinkedImageDestination == nil)
     }
 
     @Test
@@ -515,22 +514,10 @@ struct FlatMarkRenderProjectorTests {
             baseURL: URL(string: "https://example.com/")
         ))
 
-        #expect(content.standaloneLinkedImageDestination == nil)
         #expect(content.components.compactMap(image).compactMap(\.link) == [
             URL(string: "https://example.com/one"),
             URL(string: "https://example.com/two"),
         ])
-    }
-
-    @Test
-    func `exposes a standalone linked image destination`() throws {
-        let content = try #require(paragraphContent(
-            in: "[![A](a.png)](one)",
-            baseURL: URL(string: "https://example.com/")
-        ))
-
-        #expect(content.standaloneLinkedImageDestination ==
-            URL(string: "https://example.com/one"))
     }
 
     @Test

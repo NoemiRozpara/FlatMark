@@ -47,14 +47,6 @@ struct FlatMarkRenderInlineContent: Equatable, Sendable, ExpressibleByStringLite
 
     private(set) var components: [Component] = []
 
-    /// Image eligibility does not depend on loading phase or linked-image routing.
-    var containsImages: Bool {
-        components.contains { component in
-            if case .image = component { return true }
-            return false
-        }
-    }
-
     init() {}
 
     init(components: [Component]) {
@@ -100,16 +92,6 @@ struct FlatMarkRenderInlineContent: Equatable, Sendable, ExpressibleByStringLite
     /// an emptied shell.
     var isEmptiedByOmission: Bool {
         !components.isEmpty && components.allSatisfy(\.isUnsupported)
-    }
-
-    var standaloneLinkedImageDestination: URL? {
-        guard components.count == 1,
-              case let .image(image) = components[0]
-        else {
-            return nil
-        }
-
-        return image.link
     }
 
     mutating func append(contentsOf other: Self) {

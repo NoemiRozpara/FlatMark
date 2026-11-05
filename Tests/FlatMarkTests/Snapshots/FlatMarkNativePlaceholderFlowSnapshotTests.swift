@@ -28,7 +28,7 @@ struct FlatMarkNativePlaceholderFlowSnapshotTests {
             pixelScale: 2, appearance: .light, localeIdentifier: "en_US",
             layoutDirection: .leftToRight, textSize: enlarged ? .enlarged : .body
         )
-        // Unlinked image, no loader, and no custom content keep renderingMode in native inlineText.
+        // No-loader images share native paragraph storage with the surrounding text.
         let image = try await flatMarkSnapshotImage(
             of: FlatMarkView(markdown: markdown).fixedSize(horizontal: false, vertical: true),
             environment: environment
