@@ -3,6 +3,33 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Image attachment recovery verification — 2026-11-05
+
+After recovering the image attachment changes, both snapshot Record schemes ran on
+macOS 27 and the iPhone 18 Pro simulator with iOS 27.0 using Xcode 27 RC.
+Recording updated 103 tracked PNGs: 64 iOS and 39 macOS. Recording assertions are
+expected failures, not verification passes.
+
+Separate non-recording checks:
+
+- `swift test`: 262 tests in 35 suites passed, with one known issue.
+- `FlatMarkSnapshots-macOS`: 85 passed.
+- `FlatMarkSnapshots-iOS`: 103 passed and 3 reported failures. No pixel mismatches
+  remained. First-baseline assertions differed by 22 and 38 points. The primary
+  and dark recipe checks measured 2417.33 points against a 2320-point fit limit.
+- The iOS composition-count/accessibility-element identity test and image-phase
+  composition test passed on the simulator.
+- Contact-sheet inspection covered all 103 changed PNGs. This is not full-size
+  visual approval. The enlarged iOS recipe shows crowded/overlapping introductory
+  text, and recipe fit assertions remain unresolved. These references record the
+  current output, not a claim that all layouts are correct.
+
+MobileBuildMCP result bundles and logs are under
+`~/Library/Developer/MobileBuildMCP/workspaces/image-rendering-attachment-29a5db523f8d/`.
+The final verify result stems are `test_sim_2026-11-05T11-08-02-942Z_pid1540_1958d046`
+and `test_macos_2026-11-05T11-08-39-537Z_pid1684_cce873db`.
+Live VoiceOver, selection gestures, and minimum-runtime compatibility were not tested.
+
 ## Native-text qualification — branch delivery
 
 This batch is stopped. It does not complete the migration or the full #31 qualification.
