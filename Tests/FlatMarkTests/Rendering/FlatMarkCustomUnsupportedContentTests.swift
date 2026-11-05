@@ -607,20 +607,21 @@ struct FlatMarkCustomRenderingTests {
         }
 
         @Test
-        func `task checkbox and block host button activate independently in the same item`() async throws {
-            let markdown = "- [x] untouched task\n- [ ] supported text\n\n  <div>continuation</div>"
-            let checkedMarkdown = "- [x] untouched task\n- [x] supported text\n\n  <div>continuation</div>"
+        func `task checkbox link and block host button activate independently in the same item`() async throws {
+            let markdown = "- [x] untouched task\n- [ ] [supported text](details)\n\n  <div>continuation</div>"
+            let checkedMarkdown = "- [x] untouched task\n- [x] [supported text](details)\n\n  <div>continuation</div>"
             let report = try await nativeHostReport(arguments: ["--task-interaction", "custom", markdown])
             #expect(report["completed"] == ["true"])
             #expect(report["initialMarkdown"] == [markdown])
             #expect(report["initialCustomActivations"] == ["0"])
             #expect(report["initialTaskUpdates"] == ["0"])
             #expect(Set(report["customPayloads"] ?? []) == ["<div>continuation</div>\n"])
-            #expect(report["customActivations"] == ["1", "1", "2"])
-            #expect(report["taskUpdates"] == ["0", "1", "1"])
-            #expect(report["markdown"] == [markdown, checkedMarkdown, checkedMarkdown])
+            #expect(report["customActivations"] == ["1", "1", "2", "2"])
+            #expect(report["taskUpdates"] == ["0", "1", "1", "1"])
+            #expect(report["markdown"] == [markdown, checkedMarkdown, checkedMarkdown, checkedMarkdown])
             #expect(report["updates"] == [checkedMarkdown])
-            #expect(report["linkActivations"] == ["0", "0", "0"])
+            #expect(report["linkActivations"] == ["0", "0", "0", "1"])
+            #expect(report["destinations"] == ["https://example.com/details"])
         }
 
         @Test(arguments: [false, true])

@@ -64,14 +64,19 @@
                     "initialCustomActivations": [String(model.customActivations)],
                     "initialTaskUpdates": [String(model.updates.count)],
                 ]
-                for activatesTask in mode == "custom" ? [false, true, false] : [true] {
-                    click(at: activatesTask ? checkboxPoint : hostPoint, in: hosting, window: window)
+                var points = mode == "custom" ? [hostPoint, checkboxPoint, hostPoint] : [checkboxPoint]
+                if mode == "custom", let linkPoint = linkPoint(in: hosting) {
+                    points.append(linkPoint)
+                }
+                for point in points {
+                    click(at: point, in: hosting, window: window)
                     await settle(hosting)
                     report["customActivations", default: []].append(String(model.customActivations))
                     report["taskUpdates", default: []].append(String(model.updates.count))
                     report["markdown", default: []].append(model.markdown)
                     report["linkActivations", default: []].append(String(model.linkActivations))
                 }
+                report["destinations"] = model.destinations
                 report["updates"] = model.updates
                 report["customPayloads"] = model.payloads
                 report["loaded"] = model.loadedURLs
@@ -89,6 +94,29 @@
             try? await Task.sleep(for: .milliseconds(30))
             hosting.layoutSubtreeIfNeeded()
             hosting.displayIfNeeded()
+        }
+
+        /// Locate the rendered link glyph rather than assume a task-label coordinate.
+        private static func linkPoint(in hosting: NSView) -> NSPoint? {
+            func textViews(in view: NSView) -> [NSTextView] {
+                if let text = view as? NSTextView { return [text] }
+                return view.subviews.flatMap { textViews(in: $0) }
+            }
+            for text in textViews(in: hosting) {
+                guard let storage = text.textStorage, let manager = text.layoutManager,
+                      let container = text.textContainer else { continue }
+                manager.ensureLayout(for: container)
+                for offset in 0..<storage.length where storage.attribute(.link, at: offset, effectiveRange: nil) != nil {
+                    let glyph = manager.glyphIndexForCharacter(at: offset)
+                    let rect = manager.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: container)
+                    guard !rect.isEmpty else { continue }
+                    let point = NSPoint(x: rect.midX + text.textContainerOrigin.x,
+                                        y: rect.midY + text.textContainerOrigin.y)
+                    guard text.bounds.contains(point) else { exit(7) }
+                    return hosting.convert(point, from: text)
+                }
+            }
+            return nil
         }
 
         private static func click(
@@ -125,6 +153,7 @@
         let mode: String
         var customActivations = 0
         var linkActivations = 0
+        var destinations: [String] = []
         var updates: [String] = []
         @ObservationIgnored var markerFrames: [Bool: CGRect] = [:]
         @ObservationIgnored var replacementFrame: CGRect?
@@ -180,7 +209,8 @@
                                 }
                         )
                     }) : model.policy,
-                    linkActivationAction: { _ in
+                    linkActivationAction: { url in
+                        model.destinations.append(url.absoluteString)
                         model.linkActivations += 1
                         return .handled
                     },

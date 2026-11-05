@@ -3,6 +3,131 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## #35 — navigation qualification
+
+Pickup: `4b1ed22` plus this uncommitted test/doc patch. Read the full issue and its
+empty comments with `gh issue view 35 --json title,body,comments`.
+
+### Evidence map at pickup
+
+| Criteria | Existing evidence | Missing essential evidence |
+| --- | --- | --- |
+| AC-29–31 | macOS `FlatMarkNavigationTests`: supported/replacement destinations and handled/rejected/default/omitted decisions, using an isolated native event host and recorded opener. | iOS public adapter and native primary-action path. |
+| AC-32–33 | Existing macOS host records zero calls before clicking and checks inert neighbors. | iOS rendering/measurement and inert native interaction. |
+| AC-34 | Existing macOS retained callback/opener tests assert native control identity. | UIKit action retained **before** opener refresh, then activated afterwards. |
+| AC-35 | No explicit optional callback addition/removal on a retained native control. | Add focused macOS examples; iOS remains a separate gap. |
+| AC-36 | Existing macOS supported/replacement neighbor tests activate each destination in separate fixtures. | Actual iOS tap integration. Do not multiply the existing decision scenarios. |
+| AC-39–40 | Existing custom block and task interaction hosts record their own actions separately from links. | Fresh running-host independent-control observation on iOS. |
+
+Scope: navigation wiring and ownership, not OS gesture quality. Custom SwiftUI image/element
+layout is transitional; its known layout/selection limits are not expanded into fixes here.
+No production changes, dependencies, public hooks, instrumentation, or baseline recording.
+
+### Added evidence and remaining gaps
+
+- macOS: two optional-callback examples now update the public view from omitted → handled
+  and handled → omitted. The existing host asserts the clicked native control retains identity.
+  Only the new callback fires after addition; only the inherited opener fires after removal.
+- macOS: extended the existing same-task custom-block example, rather than adding a fixture.
+  It clicks block → task → block → native text link. The link point comes from the rendered
+  link glyph in `NSTextView` storage/layout, not an unexplained fixed coordinate. Each step
+  changes only its own counter. Only the task changes source. The link records exactly
+  `https://example.com/details`; the block remains a host-owned button.
+- iOS: `retainedPublicNavigationAdapterUsesCurrentOptionalCallbackAndOpener` mounts the
+  public view and retains its `UITextView` and coordinator through omitted → handled →
+  rejected → default → omitted updates. It invokes the coordinator's current opener and
+  checks exact callback/opener logs. Rendering/layout before each invocation leaves both
+  logs unchanged. This proves bridge-to-public-adapter freshness, **not primary-action
+  dispatch or a retained `UIAction`**.
+- UIKit's `primaryActionFor` action retained before opener refresh is still **missing**.
+  Inspection shows its handler reads `self?.openURL(url)` at activation, but inspection is
+  not an executable regression check. `UITextItem` has no supported initializer in the
+  installed SDK (`UITextItem.h` marks `init`/`new` unavailable). No private construction,
+  production hook, or substitute legacy delegate call was added to manufacture coverage.
+  The owner deferred this specific regression check. AC-34 retains its macOS and iOS
+  adapter evidence, but retained UIKit primary-action freshness remains unverified.
+  This deferral does not establish actual iOS link activation or satisfy other manual gaps.
+
+### Deferred retained UIKit action check
+
+The owner deferred retained UIKit primary-action freshness and requested removal of the
+human-assisted capture test and its delegate helper. The existing public-adapter test
+remains; it does not invoke a retained system action.
+
+The removed example timed out waiting for native input. Automation exposed Recipe Lab,
+not the test paragraph, so no action was captured or dispatched. That attempt establishes
+neither freshness nor a production defect. Historical log: `/tmp/35-r2-test.log`.
+
+No capture test, opt-in environment variable, or manual capture procedure remains.
+Revisit this check only if a bounded, reliable way to obtain a system action is available.
+No production behavior changed. Removal was checked by source inspection and
+`git diff --check`; passing behavioral tests were not rerun.
+
+### Environment and focused checks
+
+Revision: `4b1ed229a87208f1c2a06ecd1f3006afeb65d06b` plus this patch. macOS 27.0.1
+(26A434), arm64; selected Xcode `/Applications/Xcode-27-RC.app/Contents/Developer`,
+Apple Swift 6.4 (`swiftlang-6.4.0.34.1`). iOS 27.0 simulator: iPhone 18 Pro,
+`674C04A9-8792-4995-A6A9-66F80E5F96AA`. Minimum OS/toolchain validation is unavailable.
+CLI help, actual schemes and simulator inventory were discovered before builds.
+All build/test arguments below are explicit; no project configuration was changed.
+
+```sh
+gh issue view 35 --json title,body,comments
+mobilebuildmcp --help
+mobilebuildmcp simulator list-schemes --project-path Demo/FlatMarkDemo.xcodeproj
+mobilebuildmcp simulator list
+swift test --filter 'FlatMarkNavigationTests'
+swift test --filter 'task checkbox link and block host button'
+mobilebuildmcp simulator test --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --extra-args '-only-testing:FlatMarkSnapshots-iOS/FlatMarkParagraphTextTests/retainedPublicNavigationAdapterUsesCurrentOptionalCallbackAndOpener()'
+git diff --check
+```
+
+Results: macOS navigation **12 methods passed** (including two added optional-callback
+cases); updated independent-control example **1 passed**. iOS selected adapter test
+**1 passed**, zero failed/skipped. Its first run passed with a redundant macro warning;
+the final changed assertion checks zero calls during every update and removes that warning.
+Only that changed method was run again. No snapshots, baselines, broad suite, or browser
+were used. Logs: `/tmp/35-macos-tests.log`, `/tmp/35-controls.log`,
+`/tmp/35-ios-tests.log`, `/tmp/35-ios-final.log`. Final iOS result bundle is
+`~/Library/Developer/MobileBuildMCP/workspaces/native-attributed-text-rendering-e6253af6ee59/result-bundles/test_sim_2026-11-04T15-54-54-877Z_pid3530_181b3a36.xcresult`.
+
+### Running-host attempt and manual handoff
+
+Built/launched the existing iOS demo with:
+
+```sh
+mobilebuildmcp simulator build-and-run --project-path Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkDemo-iOS --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA
+mobilebuildmcp ui-automation snapshot-ui --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --output json
+mobilebuildmcp ui-automation swipe --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --within-element-ref e7 --direction up --distance 0.7
+mobilebuildmcp ui-automation tap --simulator-id 674C04A9-8792-4995-A6A9-66F80E5F96AA --element-ref e100
+```
+
+Refs belong only to the corresponding fresh snapshots. The task tap changed **Mix the
+dough** from unchecked to checked; the neighboring task states stayed unchanged in the
+next semantic snapshot (`/tmp/35-task-after.json`). This is actual simulator input, not
+full task/link/block independence evidence. The demo's existing actions are local and
+its link callback returns handled; no external opener was installed or launched.
+
+Scrolled through the existing recipe to its linked contact paragraph. The automation
+snapshot exposes that whole native paragraph as a text field with `typeText`, not a
+separate link target (`/tmp/35-final-visible8.json`). A tap of container ref `e288`
+reported simulated success (`/tmp/35-link-tap-attempt.log`), but the tool did not expose
+which rendered range it hit. This is **not** claimed as link activation. No arbitrary
+coordinate was substituted. Repeated swipes without a fresh snapshot were rejected
+by the tool; subsequent swipes used refreshed snapshots.
+
+Manual handoff: on the same built demo, tap a text mention and the linked contact text;
+verify the exact local destination note and one link-counter increment. Enable **Replace
+tags** and **Make replacements tappable** in Settings. Activate a block tip, a task and a
+text link separately; inspect **Task updates / Tip activations / Link activations** after
+each, and confirm only its own result changes. Tap adjacent prose and confirm no result
+changes. Keep opening local. Cross-reference #11's broader keyboard/hit-target audit;
+no repeat audit is requested. Actual iOS link activation and live block/link independence
+remain unverified. The user's macOS link-success report is useful but does not establish
+all criteria or retained-action freshness. The automated macOS host does establish its
+isolated native click routing; it does not prove external opening or general OS gestures.
+
 ## #34 — native lists, tables, and image routing
 
 Authoritative #34 development evidence. Pickup HEAD: `a1bd49ff6a214ca374ba9dc73a751e933cf2d805`,
@@ -687,7 +812,7 @@ and the booted simulator. No reference recording or comparison-tolerance changes
 | --- | --- | --- |
 | Native output | UIKit/AppKit paragraph tests cover combined traits, Unicode/order, consecutive/trailing breaks, semantic roles, per-run host precedence, and direction versus alignment. Shared custom-content tests plus UIKit replacement tests cover multi-run inheritance/overrides without changing neighbors. | Exports/attributes are not glyph visibility or live accessibility. |
 | Mounted updates | Retained UIKit/AppKit tests cover width/content/direction/attributes and following-block separation; UIKit also covers mounted environment Dynamic Type changes. AppKit tests verify the first baseline. | Actual system-driven iOS Dynamic Type transitions, including accessibility categories, remain unverified. |
-| Navigation | Package navigation tests pass, including retained callback/opener replacement, supported/replacement links, handled/rejected/default/omitted callbacks, independent links, and inert neighbors. UIKit's primary-action delegate is covered by its existing test. | macOS uses the controlled isolated click host; iOS delegate tests are not native link gestures. Live demo link activation remains unverified on both platforms. |
+| Navigation | Package navigation tests pass, including retained callback/opener replacement, supported/replacement links, handled/rejected/default/omitted callbacks, independent links, and inert neighbors. UIKit's primary-action delegate coverage was previously claimed here without a corresponding test; that claim is withdrawn (see #35). | macOS uses the controlled isolated click host; iOS delegate tests are not native link gestures. Live demo link activation remains unverified on both platforms. |
 | Image/control preservation | Existing image lifecycle, custom block, task, and navigation tests remain; iOS production snapshots pass. Routing inspection preserves image-containing values as a whole. | macOS image pixel failures remain as reported above. No new blanket image qualification. |
 | Selection — iOS / macOS | Native selectability and macOS selection exports are automated. | Actual selection gestures/copy and selection-reset observations are unverified on both platforms. |
 | VoiceOver — iOS / macOS | No new accessibility wrapper was added. | No live VoiceOver operator session was available. Wording/order, independent supported/replacement link reachability/activation, and absence of duplicate announcements remain unverified on both platforms. Semantic exports and screenshots are not substitutes. |

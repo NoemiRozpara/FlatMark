@@ -165,6 +165,56 @@ struct FlatMarkParagraphTextTests {
         }
     }
 
+    @Test func retainedPublicNavigationAdapterUsesCurrentOptionalCallbackAndOpener() async throws {
+        let destination = try #require(URL(string: "https://example.com/details"))
+        let document = FlatMarkDocument(markdown: "[Details](https://example.com/details) neighbor")
+        var activated: [String] = []
+        var opened: [String] = []
+        func root(_ decision: FlatMarkLinkActivationResult?, generation: String) -> some View {
+            let callback: ((URL) -> FlatMarkLinkActivationResult)? = decision.map { result in
+                { url in
+                    activated.append(generation + ":" + url.absoluteString)
+                    return result
+                }
+            }
+            return FlatMarkView(document: document, linkActivationAction: callback)
+                .environment(\.openURL, OpenURLAction { url in
+                    opened.append(generation + ":" + url.absoluteString)
+                    return .discarded
+                })
+                .frame(width: 300)
+        }
+        let host = UIHostingController(rootView: root(nil, generation: "initial"))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 340, height: 600))
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true; window.rootViewController = nil }
+        await settle(host.view)
+        let original = try #require(textViews(in: host.view).first)
+        let coordinator = try #require(original.delegate as? FlatMarkParagraphText.Coordinator)
+        #expect(activated.isEmpty && opened.isEmpty)
+        coordinator.openURL(destination)
+        #expect(opened == ["initial:" + destination.absoluteString])
+        for (decision, generation) in [(FlatMarkLinkActivationResult?.some(.handled), "handled"),
+                                      (.some(.rejected), "rejected"), (.some(.useDefaultOpening), "default"),
+                                      (nil, "removed")] {
+            let beforeActivation = activated
+            let beforeOpening = opened
+            host.rootView = root(decision, generation: generation)
+            await settle(host.view)
+            let current = try #require(textViews(in: host.view).first)
+            #expect(current === original)
+            #expect(original.delegate === coordinator)
+            #expect(activated == beforeActivation)
+            #expect(opened == beforeOpening)
+            // This isolates bridge-to-public-adapter wiring, not native gesture dispatch.
+            coordinator.openURL(destination)
+            #expect(activated == beforeActivation + (decision == nil ? [] : [generation + ":" + destination.absoluteString]))
+            let delegates = generation == "default" || generation == "removed"
+            #expect(opened == beforeOpening + (delegates ? [generation + ":" + destination.absoluteString] : []))
+        }
+    }
+
     @Test func retainedParagraphUpdatesDynamicTypeAndWidthWithoutOverlap() async throws {
         let document = FlatMarkDocument(markdown: "A long paragraph with enough words to wrap repeatedly at narrow widths. Unicode café 漢字 and more words for several lines.\n\nFollowing paragraph.")
         func root(_ size: DynamicTypeSize, width: CGFloat) -> some View {
