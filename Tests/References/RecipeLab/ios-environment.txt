@@ -1,4 +1,4 @@
-Thu Nov  5 09:45:21 UTC 2026
+Thu Nov  5 10:16:33 UTC 2026
 ProductName:		macOS
 ProductVersion:		27.0.1
 BuildVersion:		26A434
@@ -23,5 +23,5 @@ Target: arm64-apple-macosx27.0.0
 -- watchOS 10.2 --
 CAPTURES=daylight midnight generous rightToLeft hostMarkers readOnly literal omission
 MACOS_WIDTHS=480x900 850x1040 1200x900
-IOS_WIDTHS=320x700 390x844 430x932
+IOS_WIDTHS=320x700 390x844 430x932 430x1280
 SEED_SIZE=390x844

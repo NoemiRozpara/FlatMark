@@ -5,23 +5,40 @@ unsupported-content policies, and retained-document controls. See the
 [test guide](../../README.md) for setup and manual checks.
 
 **Captures were regenerated on 2026-11-05** on macOS 27.0.1 (26A434) with Xcode 27.0 (27A266a),
-against an iPhone 18 Pro simulator running iOS 27: 24 macOS and 24 iOS PNGs, plus
-`macos-widths.tsv`, `ios-widths.tsv`, and two environment files. Every macOS row reached its
-requested size; iOS rows at 320 points clamped to 375, which the manifest records. These are review
-artifacts, not automated pixel baselines.
+against an iPhone 18 Pro simulator running iOS 27: 104 PNGs plus `macos-widths.tsv`,
+`ios-widths.tsv`, and two environment files.
 
-**They do not distinguish every preset.** Hashing the 48 files found 6 groups of byte-identical
-captures, all of them presets whose content sits below the initial viewport:
+- macOS: 72 captures — 3 widths × 3 scroll positions (`top`, `middle`, `end`) × 8 presets. Scroll is
+  driven with Home, Page Down twice, and End.
+- iOS: 32 captures — 4 geometries × 8 presets, all initial viewport. There is no scroll control for a
+  simulator, so the manifest records `top` for every iOS row.
 
-| Preset | Indistinguishable from `daylight` at |
-| --- | --- |
-| `hostMarkers`, `readOnly`, `literal` | every iOS and every macOS width |
-| `omission` | every iOS width; macOS 480x900 and 1200x900 |
-| `generous`, `rightToLeft` | iOS 375x700 only |
+Every macOS row reached its requested size. iOS clamped 320 to 375, and 430x1280 to 591x1280; the
+manifest records what rendered. The 1280-tall geometry is the tallest a resizable session allows and
+is what finally separates `omission` from `daylight` on iOS.
 
-`midnight` differs everywhere, as expected. Treat the four always-identical presets as unverified by
-these captures: the initial viewport never reaches the tasks, markers, or HTML-policy content those
-presets change. Scrolling is required, not optional, for them.
+**Scrolling is what makes most presets visible.** Against `daylight`, per platform:
+
+| Preset | macOS | iOS |
+| --- | --- | --- |
+| `midnight`, `rightToLeft` | differs at every geometry | differs at every geometry |
+| `generous` | differs except at 480x900/top | differs except at 375x700 |
+| `hostMarkers`, `omission` | differs once scrolled; identical at 480x900/top | identical at every geometry (`omission` excepted: differs at 430x1280) |
+| `readOnly`, `literal` | no reliable difference | identical at every geometry |
+
+Those last two are not capture failures:
+
+- `literal` is redundant with `daylight` by construction. `FlatMarkRecipeCapture.apply` sets
+  `policyKind = self == .omission ? .omit : .literal`, so every preset except `omission` already uses
+  the literal policy, and no other field distinguishes `literal`. The two models are identical.
+- `readOnly` only sets `allowsTaskEditing`, which changes behaviour, not pixels. Verifying it needs
+  interaction or accessibility evidence, not a screenshot.
+
+Any single-frame pixel difference in these captures is weak evidence. Capturing the same preset at
+the same geometry and scroll position three times in a row produced two distinct hashes, so treat
+frame equality as inconclusive and confirm anything that matters by eye or with a directed test.
+
+These are review artifacts, not automated pixel baselines.
 
 ## Capture
 
@@ -48,20 +65,16 @@ iOS drives geometry with `devicectl` resizable app sessions and captures the `Re
 Device Hub does not need to be running. See [AI-docs/DEVICE_HUB.md](../../AI-docs/DEVICE_HUB.md).
 Desktop capture needs Screen Recording and System Events access, and no longer pins a window size.
 
-**macOS width is drivable, but only with the demo's root bound.** An unbounded root `ScrollView`
-proposes an unbounded ideal width, AppKit recomputes the window from it, and no external width change
-is applied at all: an accessibility resize snapped the width to roughly 10,000,000 points while
-height resized normally. `Demo/FlatMarkDemo/FlatMarkDemoApp.swift` fixes this with a fixed
-`maxWidth` on the root plus `.windowResizability(.contentMinSize)`. Keep both: without the bound no
-width applies, and without `.contentMinSize` the window stays pinned to the content's ideal size.
+**macOS width is drivable because FlatMark measures zero-width proposals correctly.** The real fix
+is in the library, not the harness: `sizeThatFits` in
+`Sources/FlatMark/Rendering/FlatMarkAppKitParagraphText.swift` treats a zero proposal as a request for
+minimum width. When it treated zero as "unspecified" it laid out at `.greatestFiniteMagnitude`, the
+window opened roughly 10,000,000 points wide, and no external resize could be applied at all. If
+widths ever snap to a huge value again, look there first.
 
-The fixed maximum also caps how wide the layout grows. A window wider than `maximumWindowWidth` keeps
-growing while the recipe stops widening, so the window size would overstate what the layout was
-offered; the script flags those captures. Raise the sweep and `maximumWindowWidth` together.
-
-Width is applied through System Events, which is still required for macOS, and the window is moved to
-a fixed origin before each resize because macOS clamps a resize against the area the window already
-occupies. The size that actually applied is read back from the window server.
+Width is applied through System Events, which is still required for macOS. The window is moved to a
+fixed origin before each resize so captures are reproducible and never partly off-screen, and the
+size that actually applied is read back from the window server rather than assumed.
 
 Presets and widths are overridable per run:
 
@@ -97,9 +110,9 @@ The local rosemary illustration uses an SF Symbol whose appearance depends on th
 | `omission` | Hide HTML |
 
 Generated filenames follow `ios-<preset>-<width>x<height>.png` and
-`macos-<preset>-<width>x<height>.png`, where the size is the measured window or scene geometry in
-points. A capture whose measured size was not honoured is named after what it really shows and
-flagged in the manifest.
+`macos-<preset>-<width>x<height>-<scroll>.png`, where the size is the measured window or scene
+geometry in points. A capture whose measured size was not honoured is named after what it really
+shows and flagged in the manifest.
 
 ## Verification limits
 
@@ -109,18 +122,20 @@ reading-column width in an earlier, larger fixture. Those results do not verify 
 
 Keep the following checks open:
 
-- Review every macOS width in the current sweep for wrapping, clipping, and table reachability. The
+- Review every macOS width and scroll position for wrapping, clipping, and table reachability. The
   sweep reaches the requested size, but no capture has been visually reviewed yet.
 
 - Capture and visually review every preset for the current content. The previous capture pass was
-  not visually reviewed; generating artifacts alone does not verify them. The four presets in the
-  table above additionally need scrolled captures, because their initial viewport is pixel-identical
-  to `daylight`.
+  not visually reviewed; generating artifacts alone does not verify them.
+- Scroll the iOS fixture by hand. There is no scroll control for a simulator, so `hostMarkers`,
+  `readOnly`, and `literal` have no iOS capture that reaches their content, and `omission` is reached
+  only at the tallest geometry.
+- Decide what `readOnly` and `literal` are for. `literal` selects the same policy `daylight` already
+  uses, so it is redundant; `readOnly` changes editability only, so no screenshot can verify it.
 - Exercise settings and inline replacement buttons with real input. The previous automation attempt
   reported taps but did not change their state; this established neither working nor broken behavior.
 - Inspect lower scroll content, tables, code, mixed-content wrapping, and selection gestures.
-  For `hostMarkers`, `readOnly`, `literal`, and `omission` this is the only check that reaches their
-  distinguishing content.
+  macOS covers top, middle, and end; iOS still needs manual scrolling.
 - Reproduce earlier macOS quote truncation and narrow-table clipping. Shorter replacement wording
   is not evidence of a renderer fix; horizontal scrolling and complete cell reachability remain unverified.
 - Perform live VoiceOver checks on both platforms: task labels/state/nesting, focus order, toggle

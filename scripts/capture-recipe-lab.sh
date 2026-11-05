@@ -8,15 +8,13 @@
 # Width is driven on the running app instead of being baked into one fixed viewport.
 #
 #   macOS  The recipe sets no column cap on macOS, so window width is what drives text layout.
-#          Width is set through System Events and verified against the window server. Two things
-#          make that work, and both are load-bearing:
-#            * The demo bounds the scene root with a fixed maxWidth and uses
-#              .windowResizability(.contentMinSize). Without a bound the root ScrollView proposes an
-#              unbounded ideal width, AppKit recomputes the window from it, and no external width
-#              change is applied at all.
-#            * The window is moved to a fixed origin before each resize, because macOS clamps a
-#              resize against the area the window already occupies.
-#          The geometry that actually applied is read back from the window server, never assumed.
+#          Width is set through System Events and verified against the window server. Resizing only
+#          works because FlatMark measures zero-width proposals correctly
+#          (FlatMarkAppKitParagraphText.sizeThatFits): a zero proposal used to fall through to
+#          .greatestFiniteMagnitude, which made the window ~10,000,000 points wide and unsortable.
+#          If that regresses, no amount of harness code can fix it; check there first. The window is
+#          moved to a fixed origin first so captures are reproducible and never partly off-screen.
+#          The size that actually applied is read back from the window server, never assumed.
 #   iOS    Uses devicectl resizable app sessions (Xcode 27+) to sweep scene geometry. The recipe
 #          pins a 240-point reading column on iOS, so these captures exercise the host container
 #          and chrome at each width rather than a reflowed reading column. On Xcode 26 there are
@@ -42,15 +40,15 @@ esac
 # The previous script pinned macOS to one 850 x 1040 window. 850 stays in the default sweep so
 # older references stay comparable; the other widths are what establish responsive behaviour.
 MACOS_WIDTHS="${MACOS_WIDTHS:-480x900 850x1040 1200x900}"
-IOS_WIDTHS="${IOS_WIDTHS:-320x700 390x844 430x932}"
+IOS_WIDTHS="${IOS_WIDTHS:-320x700 390x844 430x932 430x1280}"
 SEED_SIZE=390x844     # geometry an iOS session starts at, used to calibrate the capture scale
 CAPTURES="${CAPTURES:-daylight midnight generous rightToLeft hostMarkers readOnly literal omission}"
 BUNDLE=dev.flatmark.FlatMarkFixtureHost
 MANIFEST="$OUTPUT/$PLATFORM-widths.tsv"
-printf 'platform\tpreset\trequested\tpoints\tpixels\tscale\tscaleSource\tfile\tnote\n' \
+printf 'platform\tpreset\tscroll\trequested\tpoints\tpixels\tscale\tscaleSource\tfile\tnote\n' \
   > "$MANIFEST"
 
-record() { printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$@" >> "$MANIFEST"; }
+record() { printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$@" >> "$MANIFEST"; }
 pixels_of() {
   sips -g pixelWidth -g pixelHeight "$1" 2>/dev/null \
     | awk '/pixelWidth:/{w=$2} /pixelHeight:/{h=$2} END{if(w&&h) print w"x"h; else print "unknown"}'
@@ -141,7 +139,7 @@ sys.exit("No booted iPhone simulator.")')"
     if [ "$RESIZE_OK" -eq 0 ]; then
       out="$(unique_path "ios-$capture" "-viewport")"
       xcrun simctl io booted screenshot "$out"
-      record ios "$capture" "primary display" unknown "$(pixels_of "$out")" none unavailable \
+      record ios "$capture" top "primary display" unknown "$(pixels_of "$out")" none unavailable \
         "$(basename "$out")" "Xcode 26 has no resizable sessions; single viewport"
       continue
     fi
@@ -159,8 +157,8 @@ sys.exit("No booted iPhone simulator.")')"
       kill "$session" 2>/dev/null || true; wait "$session" 2>/dev/null || true
       out="$(unique_path "ios-$capture" "-viewport")"
       xcrun simctl io booted screenshot "$out"
-      record ios "$capture" unknown unknown "$(pixels_of "$out")" none failed "$(basename "$out")" \
-        "resizable session did not start; is the app foreground?"
+      record ios "$capture" top unknown unknown "$(pixels_of "$out")" none failed \
+        "$(basename "$out")" "resizable session did not start; is the app foreground?"
       continue
     fi
 
@@ -187,7 +185,7 @@ sys.exit("No booted iPhone simulator.")')"
       if ! xcrun devicectl device capture screenshot --device "$UDID" \
              --display-unique-id "$resid" --destination "$tmp" >/dev/null 2>&1 \
          || [ ! -s "$tmp" ]; then
-        record ios "$capture" "$size" unknown unknown unknown unknown "-" "capture failed"
+        record ios "$capture" top "$size" unknown unknown unknown unknown "-" "capture failed"
         rm -f "$tmp"; continue
       fi
       px="$(pixels_of "$tmp")"
@@ -203,7 +201,7 @@ sys.exit("No booted iPhone simulator.")')"
       if [ "$note" = clamped ]; then
         printf '  %s: requested %s, rendered %s\n' "$capture" "$size" "$pts" >&2
       fi
-      record ios "$capture" "$size" "$pts" "$px" "$scale" "$scale_source" \
+      record ios "$capture" top "$size" "$pts" "$px" "$scale" "$scale_source" \
         "$(basename "$out")" "$note"
     done
     kill "$session" 2>/dev/null || true; wait "$session" 2>/dev/null || true
@@ -221,13 +219,8 @@ else
   swiftc -O "$ROOT/scripts/support/capture-window-geometry.swift" -o "$GEOM_BIN"
 
   rejected=0
-  # Anchor the window at a fixed origin before sizing it. macOS clamps a resize against the area the
-  # window already occupies, so sizing a window that sits near a display edge silently lands on a
-  # different size. Moving first makes the requested size the one that applies; order matters here.
-  # The recipe content is capped by the demo's maximumWindowWidth, so a wider window grows the
-  # window without widening the layout. Keep the sweep at or below that value. It lives in
-  # Demo/FlatMarkDemo/FlatMarkDemoApp.swift; raise both together.
-  MACOS_CONTENT_CAP=1280
+  # Anchor the window at a fixed origin so every capture of a preset starts from the same place and
+  # is never partly off-screen. The resize itself is verified against the window server afterwards.
   place_and_size() { # place_and_size <width> <height>
     osascript >/dev/null 2>&1 <<APPLESCRIPT
 tell application "System Events"
@@ -239,6 +232,19 @@ tell application "System Events"
         set size of window 1 to {$1, $2}
         delay 0.6
     end tell
+end tell
+APPLESCRIPT
+  }
+
+  send_keys() { # send_keys <keycode> <repeat>
+    osascript >/dev/null 2>&1 <<APPLESCRIPT
+tell application "System Events"
+    tell process "FlatMarkDemo" to set frontmost to true
+    delay 0.3
+    repeat $2 times
+        key code $1
+        delay 0.35
+    end repeat
 end tell
 APPLESCRIPT
   }
@@ -258,13 +264,8 @@ APPLESCRIPT
         geom="$("$GEOM_BIN" FlatMark || true)"
       fi
       if [ -z "$geom" ]; then
-        record macos "$capture" "$size" unknown unknown unknown unknown "-" "window not found"
+        record macos "$capture" none "$size" unknown unknown unknown unknown "-" "window not found"
         rejected=$((rejected + 1))
-        continue
-      fi
-      geom="$("$GEOM_BIN" FlatMark || true)"
-      if [ -z "$geom" ]; then
-        record macos "$capture" "$size" unknown unknown unknown unknown "-" "window not found"
         continue
       fi
       IFS=$'\t' read -r wid pw ph scale cgw cgh <<< "$geom"
@@ -277,23 +278,28 @@ APPLESCRIPT
         note="rejected: window became ${pw}x${ph}"
         rejected=$((rejected + 1))
       fi
-      # Past the content cap the window keeps growing while the recipe stops widening, so the
-      # window size would overstate what the layout was actually offered.
-      if [ "$want_w" -gt "$MACOS_CONTENT_CAP" ]; then
-        note="$note; wider than the ${MACOS_CONTENT_CAP}pt content cap"
-        rejected=$((rejected + 1))
-      fi
-      out="$(unique_path "macos-$capture-${pw}x${ph}" "")"
-      if ! screencapture -x -o -l"$wid" "$out" 2>/dev/null || [ ! -s "$out" ]; then
-        rm -f "$out"
-        record macos "$capture" "$size" "${pw}x${ph}" unknown "$scale" window-server \
-          "-" "window capture failed"
-        continue
-      fi
-      px_dim="$(pixels_of "$out")"
-      printf '  %s: requested %s, window is %sx%s points\n' "$capture" "$size" "$pw" "$ph" >&2
-      record macos "$capture" "$size" "${pw}x${ph}" "$px_dim" "$scale" window-server \
-        "$(basename "$out")" "$note"
+      # Three scroll positions. The initial viewport cannot reach the tasks, task markers, or
+      # HTML-policy content, which is how hostMarkers, readOnly, and literal came out byte-identical
+      # to daylight. Home, two pages down, then End.
+      for scroll in top middle end; do
+        case "$scroll" in
+          top) send_keys 115 1 ;;     # Home
+          middle) send_keys 121 2 ;;  # Page Down twice
+          end) send_keys 119 1 ;;     # End
+        esac
+        out="$(unique_path "macos-$capture-${pw}x${ph}-$scroll" "")"
+        if ! screencapture -x -o -l"$wid" "$out" 2>/dev/null || [ ! -s "$out" ]; then
+          rm -f "$out"
+          record macos "$capture" "$scroll" "$size" "${pw}x${ph}" unknown "$scale" window-server \
+            "-" "window capture failed"
+          rejected=$((rejected + 1))
+          continue
+        fi
+        px_dim="$(pixels_of "$out")"
+        printf '  %s %s %s: window is %sx%s points\n' "$capture" "$size" "$scroll" "$pw" "$ph" >&2
+        record macos "$capture" "$scroll" "$size" "${pw}x${ph}" "$px_dim" "$scale" window-server \
+          "$(basename "$out")" "$note"
+      done
     done
     pkill -x FlatMarkDemo 2>/dev/null || true
   done
@@ -302,14 +308,17 @@ APPLESCRIPT
     # Do not exit 0 with a manifest that contains widths the window never had.
     printf '%s of %s macOS captures did not reach the requested size.\n' \
       "$rejected" "$(( $(wc -l < "$MANIFEST") - 1 ))" >&2
-    printf 'Check that nothing else is stealing focus, that the window is on a display that can\n' >&2
-    printf 'hold the requested height, and that the width is within maximumWindowWidth in\n' >&2
-    printf 'Demo/FlatMarkDemo/FlatMarkDemoApp.swift, which also caps how wide the layout grows.\n' >&2
+    printf 'Check that nothing else is stealing focus and that the display can hold the requested\n' >&2
+    printf 'height. If widths snap to a huge value, FlatMark is measuring a zero-width proposal as\n' >&2
+    printf 'unbounded again: see sizeThatFits in Sources/FlatMark/Rendering/FlatMarkAppKitParagraphText.swift.\n' >&2
     printf 'See AI-docs/DEVICE_HUB.md.\n' >&2
     exit 1
   fi
 fi
 
+if [ "$PLATFORM" = macos ]; then
+  printf 'macOS captured top, middle, and end. iOS has no scroll control, so those are initial\n'
+  printf 'viewports only; scroll the fixture for content below the fold.\n'
+fi
 echo "Manifest: $MANIFEST"
 column -t -s "$(printf '\t')" "$MANIFEST"
-printf 'Captured initial viewports only. Scroll to review the rest of each document.\n'

@@ -212,17 +212,13 @@ Two things it does that matter:
 - iOS starts a resizable session per preset, captures the `Resizable` display by `--display-unique-id`, and names each file after the measured size. A clamped request is labelled `clamped`, never `exact`.
 - The capture scale is calibrated at run time from the geometry `appResize start` reported applying, so no device scale is hardcoded. `scripts/support/capture-window-geometry.swift` does the same job for macOS windows using the window server's own numbers.
 
-**macOS width needs a bounded root, and the reason is worth knowing.** An unbounded root `ScrollView` proposes an unbounded ideal width, so AppKit recomputes the window from it and rejects every external width change. Observed on this machine before the fix: an accessibility size change moved the height but snapped the width to about 10,000,000 points, confirmed by both System Events and `CGWindowListCopyWindowInfo`, and capturing such a window failed with `could not create image from rect`. The window also ignored a seeded window-frame autosave value, and clearing the app's preferences and restarting `cfprefsd` changed neither result.
+**If macOS widths ever snap to a huge value again, look in the library, not the harness.** An earlier pass at this chased a window that opened roughly 10,000,000 points wide: an accessibility resize moved the height but the width snapped back, confirmed by both System Events and `CGWindowListCopyWindowInfo`, and capturing it failed with `could not create image from rect`. Seeding the window-frame autosave value, clearing the app's preferences, and restarting `cfprefsd` changed nothing, because the cause was never the window frame.
 
-`Demo/FlatMarkDemo/FlatMarkDemoApp.swift` carries the fix, and three parts are load-bearing:
+The real cause was `sizeThatFits` in `Sources/FlatMark/Rendering/FlatMarkAppKitParagraphText.swift`. It treated a zero width proposal as "unspecified" and laid out at `.greatestFiniteMagnitude`, so the content reported an enormous ideal width and AppKit sized the window to it. Treating zero as a request for minimum width fixed it, and no width bound in the demo was needed. Check that condition first if widths stop being settable.
 
-| Part | What breaks without it |
-| --- | --- |
-| Fixed `maxWidth` on the scene root | No external width is ever applied; the width snaps to the content's unbounded ideal |
-| `.windowResizability(.contentMinSize)` | The window stays pinned to the content's ideal size and ignores resize requests |
-| Move the window to a fixed origin before resizing | macOS clamps a resize against the area the window already occupies, so a window near a display edge silently lands on a different size |
+The harness does not pin, bound, or seed any window size. It moves the window to a fixed origin before each resize so captures are reproducible and never partly off-screen, then verifies the applied size against the window server and exits non-zero on any width the window did not reach. Previously it hid the whole problem behind a hardcoded `{850, 1040}`.
 
-The fixed `maxWidth` also caps how wide the layout grows: a window wider than `maximumWindowWidth` keeps growing while the recipe stops widening, so the window size overstates what the layout was offered. The script flags those captures, and exits non-zero on any width the window did not reach. Previously it hid all of this behind a hardcoded `{850, 1040}`. See [AI-docs/BUILD_AND_TEST.md](BUILD_AND_TEST.md) for how capture results may be reported.
+macOS scrolls with keyboard Home, Page Down, and End, which is what finally separates presets like `hostMarkers` and `omission` from `daylight`. iOS has no scroll control: neither `devicectl` nor `simctl io` injects input, so iOS captures stay at the initial viewport. Pixel equality is weak evidence on macOS; repeating one capture three times at the same geometry and scroll position produced two distinct hashes. See [AI-docs/BUILD_AND_TEST.md](BUILD_AND_TEST.md) for how capture results may be reported.
 
 ## MCP options
 
