@@ -2,16 +2,20 @@
 import SwiftUI
 import UIKit
 
-/// Native text for image-free inline content. Image routing remains the caller's responsibility.
+/// Selectable native inline content with component-owned image phases.
 struct FlatMarkParagraphText: UIViewRepresentable {
     let content: FlatMarkRenderInlineContent
     let role: FlatMarkTextRole
     let context: FlatMarkRenderContext
 
-    init(content: FlatMarkRenderInlineContent, role: FlatMarkTextRole, context: FlatMarkRenderContext) {
+    let imagePhases: [Int: FlatMarkInlineView.ImagePhase]
+
+    init(content: FlatMarkRenderInlineContent, role: FlatMarkTextRole, context: FlatMarkRenderContext,
+         imagePhases: [Int: FlatMarkInlineView.ImagePhase]) {
         self.content = content
         self.role = role
         self.context = context
+        self.imagePhases = imagePhases
     }
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -39,19 +43,35 @@ struct FlatMarkParagraphText: UIViewRepresentable {
 
     func updateUIView(_ view: UITextView, context: Context) {
         context.coordinator.openURL = openURL
-        view.attributedText = Self.attributedText(
-            for: content,
-            policy: self.context.unsupportedContentPolicy,
-            role: role,
-            dynamicTypeSize: dynamicTypeSize,
-            layoutDirection: layoutDirection,
-            alignment: alignment
-        )
-        view.invalidateIntrinsicContentSize()
+        let policyKey: Int? = switch self.context.unsupportedContentPolicy {
+        case .literal: 0
+        case .omit: 1
+        case .custom: nil
+        }
+        let inputs = CompositionInputs(content: content, role: role, policyKey: policyKey,
+                                       dynamicTypeSize: dynamicTypeSize, layoutDirection: layoutDirection,
+                                       alignment: alignment, imagePhases: imagePhases)
+        // Custom closures have no comparable identity and may capture changed host state.
+        if policyKey == nil || context.coordinator.compositionInputs != inputs {
+            context.coordinator.compositionInputs = inputs
+            context.coordinator.composedWidth = nil
+            context.coordinator.compose = { width in Self.attributedText(
+                for: content,
+                policy: self.context.unsupportedContentPolicy,
+                role: role,
+                dynamicTypeSize: dynamicTypeSize,
+                layoutDirection: layoutDirection,
+                alignment: alignment,
+                imagePhases: imagePhases,
+                width: width
+            ) }
+        }
+        context.coordinator.refresh(view, width: view.bounds.width)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
         guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
+        context.coordinator.refresh(uiView, width: width)
         let size = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
         return CGSize(width: width, height: ceil(size.height))
     }
@@ -62,7 +82,9 @@ struct FlatMarkParagraphText: UIViewRepresentable {
         role: FlatMarkTextRole = .body,
         dynamicTypeSize: DynamicTypeSize,
         layoutDirection: LayoutDirection,
-        alignment: TextAlignment
+        alignment: TextAlignment,
+        imagePhases: [Int: FlatMarkInlineView.ImagePhase] = [:],
+        width: CGFloat = .greatestFiniteMagnitude
     ) -> NSAttributedString {
         let category: UIContentSizeCategory
         switch dynamicTypeSize {
@@ -82,14 +104,20 @@ struct FlatMarkParagraphText: UIViewRepresentable {
         }
         let roleFont = Self.roleFont(for: role, category: category)
         let result = NSMutableAttributedString(string: "")
-        for component in content.components {
+        for (index, component) in content.components.enumerated() {
             let text: AttributedString
             switch component {
             case let .text(value): text = value
             case let .unsupported(value):
                 text = FlatMarkInlineView.replacementText(for: value, policy: policy)
-            case .image:
-                preconditionFailure("Image-containing content must use the existing image renderer")
+            case let .image(image):
+                let native = NSMutableAttributedString(attributedString:
+                    FlatMarkImagePresentation(image: image, phase: imagePhases[index] ?? .placeholder, policy: policy)
+                        .attributedText(width: width, font: roleFont))
+                let paragraph = paragraphStyle(direction: layoutDirection, alignment: alignment)
+                native.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: native.length))
+                result.append(native)
+                continue
             }
             for run in text.runs {
                 let slice = AttributedString(text[run.range])
@@ -129,20 +157,31 @@ struct FlatMarkParagraphText: UIViewRepresentable {
                    native.attribute(.strikethroughStyle, at: 0, effectiveRange: nil) == nil {
                     native.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: range)
                 }
-                let paragraph = (native.attribute(.paragraphStyle, at: 0, effectiveRange: nil)
-                    as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle
-                    ?? NSMutableParagraphStyle()
-                paragraph.baseWritingDirection = layoutDirection == .rightToLeft ? .rightToLeft : .leftToRight
-                switch alignment {
-                case .center: paragraph.alignment = .center
-                case .leading: paragraph.alignment = layoutDirection == .rightToLeft ? .right : .left
-                case .trailing: paragraph.alignment = layoutDirection == .rightToLeft ? .left : .right
-                }
+                let paragraph = paragraphStyle(
+                    direction: layoutDirection,
+                    alignment: alignment,
+                    preserving: native.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+                )
                 native.addAttribute(.paragraphStyle, value: paragraph, range: range)
                 result.append(native)
             }
         }
         return result
+    }
+
+    private static func paragraphStyle(
+        direction: LayoutDirection,
+        alignment: TextAlignment,
+        preserving existing: NSParagraphStyle? = nil
+    ) -> NSMutableParagraphStyle {
+        let paragraph = existing?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+        paragraph.baseWritingDirection = direction == .rightToLeft ? .rightToLeft : .leftToRight
+        switch alignment {
+        case .center: paragraph.alignment = .center
+        case .leading: paragraph.alignment = direction == .rightToLeft ? .right : .left
+        case .trailing: paragraph.alignment = direction == .rightToLeft ? .left : .right
+        }
+        return paragraph
     }
 
     /// The role's semantic font at the given Dynamic Type size, without hardcoded point sizes.
@@ -169,8 +208,28 @@ struct FlatMarkParagraphText: UIViewRepresentable {
         return UIFont(descriptor: descriptor, size: base.pointSize)
     }
 
+    struct CompositionInputs: Equatable {
+        let content: FlatMarkRenderInlineContent
+        let role: FlatMarkTextRole
+        let policyKey: Int?
+        let dynamicTypeSize: DynamicTypeSize
+        let layoutDirection: LayoutDirection
+        let alignment: TextAlignment
+        let imagePhases: [Int: FlatMarkInlineView.ImagePhase]
+    }
+
     final class Coordinator: NSObject, UITextViewDelegate {
+        var compositionInputs: CompositionInputs?
+        var compose: ((CGFloat) -> NSAttributedString)?
+        var composedWidth: CGFloat?
         var openURL: OpenURLAction
+
+        func refresh(_ view: UITextView, width: CGFloat) {
+            let width = width > 0 ? width : CGFloat.greatestFiniteMagnitude
+            guard composedWidth != width, let compose else { return }
+            view.attributedText = compose(width)
+            composedWidth = width
+        }
 
         init(openURL: OpenURLAction) {
             self.openURL = openURL

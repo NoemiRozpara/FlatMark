@@ -177,11 +177,34 @@ struct FlatMarkInlineView: View {
         case responsiveImageFlow
     }
 
-    enum ImagePhase {
+    enum ImagePhase: Equatable {
         case placeholder
         case loading
         case loaded(NativeImage)
         case failed
+
+        var accessibilitySuffix: String {
+            switch self {
+            case .placeholder: ", not loaded"
+            case .loading: ", loading"
+            case .loaded: ""
+            case .failed: ", failed to load"
+            }
+        }
+
+        var placeholderSymbolName: String? {
+            switch self {
+            case .placeholder: "photo"
+            case .loading:
+                #if os(iOS)
+                "hourglass"
+                #else
+                "clock"
+                #endif
+            case .loaded: nil
+            case .failed: "exclamationmark.triangle"
+            }
+        }
     }
 
     private enum ImageLoadResult: Sendable {
@@ -232,8 +255,12 @@ struct FlatMarkInlineView: View {
     }
 
     var body: some View {
-        // Image-free values use the native text bridge; any value containing a Markdown image keeps
-        // the whole existing renderer, in every loading phase, with its role styling applied here.
+        #if os(iOS)
+        FlatMarkParagraphText(content: content, role: role, context: context, imagePhases: imagePhases)
+            .task(id: imageTaskID) {
+                await loadImages()
+            }
+        #else
         if content.containsImages {
             imageBearingContent
                 .task(id: imageTaskID) {
@@ -249,6 +276,7 @@ struct FlatMarkInlineView: View {
             FlatMarkParagraphText(content: content, role: role, context: context)
             #endif
         }
+        #endif
     }
 
     /// The image-bearing SwiftUI path, with the role typography the native bridge otherwise supplies.
@@ -479,19 +507,11 @@ struct FlatMarkInlineView: View {
 
     private func imageText(for image: FlatMarkRenderImage, at index: Int) -> Text {
         let label = context.unsupportedContentPolicy.imageLabel(for: image)
-        return switch imagePhases[index] ?? .placeholder {
-        case .placeholder:
-            labeledImageText(systemName: "photo", label: label)
-        case .loading:
-            labeledImageText(systemName: "clock", label: label)
-        case .loaded:
-            Text(label)
-        case .failed:
-            labeledImageText(
-                systemName: "exclamationmark.triangle",
-                label: label
-            )
+        let phase = imagePhases[index] ?? .placeholder
+        if let symbol = phase.placeholderSymbolName {
+            return labeledImageText(systemName: symbol, label: label)
         }
+        return Text(label)
     }
 
     static func accessibilityLabel(
@@ -500,16 +520,7 @@ struct FlatMarkInlineView: View {
         policy: FlatMarkUnsupportedContentPolicy = .literal
     ) -> String {
         let label = policy.imageLabel(for: image)
-        return switch phase {
-        case .placeholder:
-            "\(label), not loaded"
-        case .loading:
-            "\(label), loading"
-        case .loaded:
-            label
-        case .failed:
-            "\(label), failed to load"
-        }
+        return label + phase.accessibilitySuffix
     }
 
     private func labeledImageText(systemName: String, label: String) -> Text {
@@ -518,6 +529,7 @@ struct FlatMarkInlineView: View {
 
     @MainActor
     private func loadImages() async {
+        guard !imageRequests.isEmpty else { return }
         let imageLoader = context.imageLoader
         imagePhases = Dictionary(uniqueKeysWithValues: imageRequests.map { imageRequest in
             let phase: ImagePhase =

@@ -3,6 +3,49 @@
 [Package usage](../README.md) · [Construction benchmarks](../Benchmarks/README.md) ·
 [Capture references](References/RecipeLab/README.md)
 
+## Native image accessibility — wrapper removal
+
+The iOS renderer now uses a plain `UITextView` with attributed attachments. The custom
+accessibility wrapper, image identity/label metadata, and wrapper-only accessibility test
+were removed. Earlier wrapper qualification below is historical, not the current contract.
+See [layout and accessibility limits](../README.md#layout-and-selection-limits).
+
+The user tested the plain native path on both platforms and reported that all content was
+reachable and links were active. iOS announced “Attachment png link”; macOS announced “Link”.
+These are user-reported observations, not guaranteed wording. Runtime versions, fixture,
+and navigation actions were not recorded for that manual check.
+
+After removal, the iOS paragraph suite passed 18 tests on the iPhone 18 Pro simulator with
+iOS 27.0. The macOS image-loading suite passed 14 tests. These checks do not establish live
+VoiceOver behavior. No snapshots were recorded during wrapper removal.
+
+## Image attachment recovery verification — 2026-11-05
+
+After recovering the image attachment changes, both snapshot Record schemes ran on
+macOS 27 and the iPhone 18 Pro simulator with iOS 27.0 using Xcode 27 RC.
+Recording updated 103 tracked PNGs: 64 iOS and 39 macOS. Recording assertions are
+expected failures, not verification passes.
+
+Separate non-recording checks:
+
+- `swift test`: 262 tests in 35 suites passed, with one known issue.
+- `FlatMarkSnapshots-macOS`: 85 passed.
+- `FlatMarkSnapshots-iOS`: 103 passed and 3 reported failures. No pixel mismatches
+  remained. First-baseline assertions differed by 22 and 38 points. The primary
+  and dark recipe checks measured 2417.33 points against a 2320-point fit limit.
+- The iOS composition-count/accessibility-element identity test and image-phase
+  composition test passed on the simulator.
+- Contact-sheet inspection covered all 103 changed PNGs. This is not full-size
+  visual approval. The enlarged iOS recipe shows crowded/overlapping introductory
+  text, and recipe fit assertions remain unresolved. These references record the
+  current output, not a claim that all layouts are correct.
+
+MobileBuildMCP result bundles and logs are under
+`~/Library/Developer/MobileBuildMCP/workspaces/image-rendering-attachment-29a5db523f8d/`.
+The final verify result stems are `test_sim_2026-11-05T11-08-02-942Z_pid1540_1958d046`
+and `test_macos_2026-11-05T11-08-39-537Z_pid1684_cce873db`.
+Live VoiceOver, selection gestures, and minimum-runtime compatibility were not tested.
+
 ## Native-text qualification — branch delivery
 
 This batch is stopped. It does not complete the migration or the full #31 qualification.
@@ -135,6 +178,30 @@ not revision-matched qualification or proof of all navigation decisions.
 Selection/copy, live VoiceOver, minimum-runtime checks, retained UIKit action dispatch,
 full iOS link/control interaction and final rendering-cost assessment remain deferred.
 No performance guarantee or complete migration qualification is claimed.
+
+## Native iOS image paragraphs (#40)
+
+The iOS renderer now composes all image phases in native paragraph storage. macOS retains its
+SwiftUI image flow. The #29 results below describe the earlier implementation, not this change.
+
+Verification used Swift 6.4 on macOS 27 and an iPhone 18 Pro simulator running iOS 27.0 through
+MobileBuildMCP. These runs do not establish iOS 17 compatibility. No references were recorded.
+
+- The iOS demo compiled. UIKit paragraph tests passed 15/15 after fixing duplicate image
+  accessibility boundaries. A later measurement-identity fix compiled, but final test retries
+  terminated the test host with signal TERM; that final revision is not fully test-verified.
+- New paragraph checks cover source order, Unicode, explicit breaks, RTL attributes, intrinsic and
+  proportional image bounds, phase descriptions, separate same-destination images, direct actions,
+  and stale accessibility targets. Direct actions do not prove live VoiceOver or link gestures.
+- Focused iOS image-phase, linked-image, and policy-transition snapshots: nine passed, eight failed
+  pixel comparisons. Fresh visual review and intended reference updates remain outstanding.
+- macOS image-loading tests: 14 passed. `swift test --skip Snapshot`: 186 passed with the existing
+  known LoaderSpy issue. Full `swift test`: 254 tests, 37 issues including that known issue.
+  Snapshot failures were not recorded away; their full provenance remains unverified.
+- Running-demo phase/width observations, selection/copy gestures, system text scaling, and live
+  VoiceOver order, names, reachability, and activation remain unverified for this implementation.
+- Held reverse-order completion and retained-mount width/request-count scenarios still need
+  explicit native iOS integration qualification; attributed-storage sizing checks are narrower.
 
 ## Integrated native text qualification (#29)
 

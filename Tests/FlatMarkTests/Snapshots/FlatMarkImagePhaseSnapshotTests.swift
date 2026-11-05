@@ -1,4 +1,4 @@
-import FlatMark
+@testable import FlatMark
 import Foundation
 import SwiftUI
 import Testing
@@ -74,13 +74,13 @@ struct FlatMarkImagePhaseSnapshotTests {
         let source = "![\(alt)](https://example.invalid/local.png)"
         let markdown = mixed ? "Before the diagram \(source) after the diagram ends here." : source
         let label = alt.isEmpty ? "Image" : alt
-        let symbol = switch phase {
-        case .placeholder: "photo"
-        case .loading: "clock"
-        case .failed: "exclamationmark.triangle"
-        case .loaded: "photo"
+        let imagePhase: FlatMarkInlineView.ImagePhase = switch phase {
+        case .placeholder: .placeholder
+        case .loading: .loading
+        case .failed: .failed
+        case .loaded: .loaded(raster)
         }
-        if phase != .loaded {
+        if let symbol = imagePhase.placeholderSymbolName {
             let control = try await flatMarkSnapshotImage(
                 of: (Text("") + Text(Image(systemName: symbol)) + Text(" \(label)"))
                     .textSelection(.enabled), environment: environment
