@@ -2351,7 +2351,8 @@ automated hosting-independent width guard; table, quote, and cell overflow remai
 ## Recipe Lab
 
 The backend-free host renders one focaccia recipe shared with the mounted suite. It includes tasks,
-mentions, links, a local illustration, tables, code, nested content, and unsupported HTML.
+mentions, links, a block photo, an inline leaf image inside a paragraph, tables, code, nested content,
+and unsupported HTML.
 Source: [FlatMarkCustomFixture.swift](../Support/FlatMarkFixtures/FlatMarkCustomFixture.swift) and
 [FlatMarkRecipeSample.swift](../Support/FlatMarkFixtures/FlatMarkRecipeSample.swift).
 

@@ -41,7 +41,7 @@ let package = Package(
             name: "FlatMarkFixtures",
             dependencies: ["FlatMark"],
             path: "Support/FlatMarkFixtures",
-            resources: [.copy("focaccia.jpeg")]
+            resources: [.copy("focaccia.jpeg"), .copy("leaf.png")]
         ),
         .executableTarget(
             name: "FlatMarkConstructionBenchmark",

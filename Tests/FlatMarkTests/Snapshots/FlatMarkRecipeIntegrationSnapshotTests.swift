@@ -63,7 +63,7 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         let upper = try crop(loaded, y: 0, height: upperHeight)
         let control = try crop(fallback, y: 0, height: upperHeight)
         #expect(bytes(upper) != bytes(control), "Loaded recipe must differ from leaf.fill control")
-        print("Recipe \(testName): raster upper != leaf.fill control; requests=1 for each render")
+        print("Recipe \(testName): raster upper != leaf.fill control; requests=2 (photo + inline leaf) for each render")
         if enlarged {
             assertFlatMarkSnapshot(upper, suite: .recipe, named: "upperTitleImage", environment: environment, testName: testName)
         } else {
@@ -77,15 +77,18 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
     private func render(environment: FlatMarkSnapshotEnvironment, fallback: Bool) async throws -> FlatMarkSnapshotImage {
         let delivery = Delivery()
         let geometry = Geometry()
-        let expectedURL = FlatMarkCustomFixtureModel.baseURL?.appending(path: "focaccia.jpeg")
+        let expectedPhotoURL = FlatMarkCustomFixtureModel.baseURL?.appending(path: "focaccia.jpeg")
+        let expectedLeafURL = FlatMarkCustomFixtureModel.baseURL?.appending(path: "leaf.png")
         let loader = FlatMarkImageLoader(configurationID: UUID()) { url in
             delivery.start()
             defer { delivery.complete() }
-            guard url == expectedURL else {
+            let isRecipeRaster = url == expectedPhotoURL || url == expectedLeafURL
+            guard isRecipeRaster else {
                 throw CaptureError.resource
             }
             if fallback { return leafFallbackImage }
-            guard let resource = FlatMarkFixtureResources.focacciaURL else { throw CaptureError.resource }
+            let resource = url == expectedPhotoURL ? FlatMarkFixtureResources.focacciaURL : FlatMarkFixtureResources.leafURL
+            guard let resource else { throw CaptureError.resource }
             #if os(macOS)
                 guard let image = NSImage(contentsOf: resource) else { throw CaptureError.resource }
             #else

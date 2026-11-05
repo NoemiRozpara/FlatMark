@@ -1,7 +1,7 @@
 # Recipe Lab captures
 
-Recipe Lab renders a shared focaccia recipe with mentions, tasks, links, a local illustration,
-unsupported-content policies, and retained-document controls. See the
+Recipe Lab renders a shared focaccia recipe with mentions, tasks, links, a block photo, an inline
+leaf image inside a paragraph, unsupported-content policies, and retained-document controls. See the
 [test guide](../../README.md) for setup and manual checks.
 
 **Captures were regenerated on 2026-11-05** on macOS 27.0.1 (26A434) with Xcode 27.0 (27A266a),
@@ -48,7 +48,7 @@ bash scripts/capture-recipe-lab.sh ios Tests/References/RecipeLab
 ```
 
 Use the [package requirements](../../../README.md#requirements). The script launches a fresh
-process per preset and width, waits for the local image, and captures the initial viewport. Lower
+process per preset and width, waits for the local images, and captures the initial viewport. Lower
 content requires separate scrolling and directed checks. Environment files record the OS/toolchain
 and simulator. Captures contain platform chrome and clocks; do not treat them as deterministic
 pixels.
@@ -94,7 +94,8 @@ scripts/run-fixture-host.sh ios --capture generous
 
 Defaults: standard text, light appearance, LTR, interactive tasks, default markers, and custom
 unsupported-content replacements. iOS uses a 240-point reading column; macOS follows window width.
-The local rosemary illustration uses an SF Symbol whose appearance depends on the OS.
+The recipe's two rasters are bundled PNG/JPEG files that the fixture loader serves; a URL the loader
+does not serve falls back to a `leaf.fill` SF Symbol, whose appearance depends on the OS.
 
 | Preset | Variation |
 | --- | --- |

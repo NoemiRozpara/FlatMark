@@ -10,7 +10,7 @@ Do not make configuration changes only in the generated Xcode project.
 
 Both app targets reference the root package locally (`..`) and link its `FlatMark`
 product. They compile the Swift files in `Support/FlatMarkFixtures` directly and
-bundle its `focaccia.jpeg`; no fixture sources are copied or imported as a package
+bundle its `focaccia.jpeg` and `leaf.png`; no fixture sources are copied or imported as a package
 module. Package tests continue using the internal `FlatMarkFixtures` target.
 
 The initial preset is `daylight`. Add `--capture <preset>` under Scheme > Edit

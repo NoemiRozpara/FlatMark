@@ -6,7 +6,7 @@ enum FlatMarkFixtureResources {
         #if SWIFT_PACKAGE
         Bundle.module
         #else
-        // These sources compile into the bundle that embeds the raster.
+        // These sources compile into the bundle that embeds the rasters.
         let owner = Bundle(for: BundleToken.self)
         return owner.url(forResource: "focaccia", withExtension: "jpeg") != nil ? owner : Bundle.main
         #endif
@@ -18,5 +18,9 @@ enum FlatMarkFixtureResources {
 
     static var focacciaURL: URL? {
         bundle.url(forResource: "focaccia", withExtension: "jpeg")
+    }
+
+    static var leafURL: URL? {
+        bundle.url(forResource: "leaf", withExtension: "png")
     }
 }

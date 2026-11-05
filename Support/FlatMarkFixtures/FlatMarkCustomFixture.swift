@@ -227,11 +227,20 @@ public final class FlatMarkCustomFixtureModel {
         self.markdown = markdown
         document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL, detectMentions: true)
         let imageCalls = imageCalls
-        let imageURL = FlatMarkFixtureResources.focacciaURL
-        let expectedImageURL = Self.baseURL?.appending(path: "focaccia.jpeg")
+        // The recipe asks for two rasters: the block photo and the inline leaf.
+        var requests: [URL: URL] = [:]
+        if let baseURL = Self.baseURL {
+            if let file = FlatMarkFixtureResources.focacciaURL {
+                requests[baseURL.appending(path: "focaccia.jpeg")] = file
+            }
+            if let file = FlatMarkFixtureResources.leafURL {
+                requests[baseURL.appending(path: "leaf.png")] = file
+            }
+        }
+        let servedImages = requests
         loader = FlatMarkImageLoader(configurationID: UUID()) { url in
             await imageCalls.record(url)
-            guard url == expectedImageURL, let imageURL, let image = fixtureImage(at: imageURL) else {
+            guard let file = servedImages[url], let image = fixtureImage(at: file) else {
                 return missingImagePlaceholder
             }
             return image

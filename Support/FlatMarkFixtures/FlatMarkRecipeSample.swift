@@ -9,7 +9,7 @@ public enum FlatMarkRecipeSample {
 
     [![Freshly baked focaccia — open the herb note](focaccia.jpeg)](herbs)
 
-    Compare the golden crust [![Focaccia crust — open the herb note](focaccia.jpeg)](herbs) before adding the final drizzle of olive oil.
+    Once the dough is soft and airy, use your fingertips to make shallow dimples across the surface. Press a single rosemary leaf [![Rosemary leaf — open the herb note](leaf.png)](herbs) into each dimple, keeping the herbs tucked into the dough so they do not scorch. Finish with **a pinch of flaky salt** and a final drizzle of olive oil, then let the focaccia rest while the oven heats.
 
     <div>Print this recipe · Subscribe to the newsletter</div>
 

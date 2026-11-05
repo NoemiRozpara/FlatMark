@@ -569,7 +569,10 @@ struct FlatMarkCustomRenderingTests {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             )
             defer { hosted.close() }
-            try await waitForImage(in: model.imageCalls)
+            // The recipe shows two rasters: the block photo and the leaf inside the dimple paragraph.
+            try await waitForImage(in: model.imageCalls, expecting: 2)
+            let photoURL = try #require(URL(string: "https://example.com/focaccia.jpeg"))
+            let leafURL = try #require(URL(string: "https://example.com/leaf.png"))
 
             let dispatched: Set<String> = [
                 "<div>Print this recipe · Subscribe to the newsletter</div>\n",
@@ -582,7 +585,9 @@ struct FlatMarkCustomRenderingTests {
                 model.policyKind = policy
                 await settleMountedRendering()
                 #expect(model.markdown == FlatMarkCustomFixtureModel.markdown)
-                #expect(model.imageCalls.urls.count == 1)
+                // Requests start in load order, not source order; each raster must be asked for once.
+                #expect(Set(model.imageCalls.urls) == [photoURL, leafURL])
+                #expect(model.imageCalls.urls.count == 2)
                 #expect(model.taskUpdates == 0)
                 switch policy {
                 case .literal, .omit:
@@ -603,7 +608,8 @@ struct FlatMarkCustomRenderingTests {
             #expect(Set(model.presentedLabels) == ["Other replacement"])
             #expect(Set(model.payloads) == dispatched)
             #expect(model.markdown == FlatMarkCustomFixtureModel.markdown)
-            #expect(model.imageCalls.urls.count == 1)
+            #expect(Set(model.imageCalls.urls) == [photoURL, leafURL])
+            #expect(model.imageCalls.urls.count == 2)
         }
 
         @Test

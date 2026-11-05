@@ -73,16 +73,17 @@
         return MountedView(view: hosting, window: window)
     }
 
+    /// Waits until the loader has seen `expected` requests, then lets rendering settle.
     @MainActor
-    func waitForImage(in calls: FlatMarkRecordedImageLoads) async throws {
+    func waitForImage(in calls: FlatMarkRecordedImageLoads, expecting expected: Int = 1) async throws {
         for _ in 0 ..< 100 {
-            if calls.urls.count == 1 {
+            if calls.urls.count >= expected {
                 await settleMountedRendering()
                 return
             }
             try await Task.sleep(for: .milliseconds(10))
         }
-        Issue.record("Expected the supported image to load")
+        Issue.record("Expected \(expected) supported image request(s), saw \(calls.urls.count)")
     }
 
     @MainActor
