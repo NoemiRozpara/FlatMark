@@ -240,16 +240,16 @@ struct FlatMarkImageLoadingTests {
         func `linked image flow wraps inside its column at enlarged effective text sizes`() async throws {
             let textBeforeImage = "A long introduction explains the diagram and gives enough context to wrap naturally"
             let textAfterImage = "while the remaining explanation continues after it without becoming a narrow column."
-            // Resolved URLs, because an image only leaves native text once it carries a link: a relative
-            // source and destination both drop out and the paragraph silently stops being a flow at all.
+            // Absolute destinations preserve image navigation in this fixture.
             let linkedImage = "[![Diagram](https://example.com/image.png)](https://example.com/details)"
             let document = FlatMarkRenderProjector.project(
                 markdown: "\(textBeforeImage) \(linkedImage) \(textAfterImage)"
             )
             let linkedContent = try #require(paragraphContent(in: document))
 
-            // Everything below measures the shared inline flow, so the fixture has to be in it.
+            #if os(macOS)
             #expect(FlatMarkInlineView(content: linkedContent, context: .readOnly).renderingMode == .linkedImageFlow)
+            #endif
 
             let bodyHeight = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: .body).height
             let enlargedHeight = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: .enlarged).height
@@ -284,10 +284,15 @@ struct FlatMarkImageLoadingTests {
             )))
             #expect(content.plainText.contains("\u{00A0}"))
 
+            #if os(macOS)
             let elements = FlatMarkInlineView.inlineElements(for: content, policy: .literal)
-
             #expect(elements.count == 2)
             #expect(elements[0].content == .text(AttributedString("A\u{00A0}B ")))
+            #else
+            let native = FlatMarkParagraphText.attributedText(for: content, policy: .literal,
+                dynamicTypeSize: .large, layoutDirection: .leftToRight, alignment: .leading)
+            #expect(native.string.hasPrefix("A\u{00A0}B "))
+            #endif
         }
 
         @Test

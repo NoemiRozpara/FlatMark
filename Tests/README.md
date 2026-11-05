@@ -136,6 +136,30 @@ Selection/copy, live VoiceOver, minimum-runtime checks, retained UIKit action di
 full iOS link/control interaction and final rendering-cost assessment remain deferred.
 No performance guarantee or complete migration qualification is claimed.
 
+## Native iOS image paragraphs (#40)
+
+The iOS renderer now composes all image phases in native paragraph storage. macOS retains its
+SwiftUI image flow. The #29 results below describe the earlier implementation, not this change.
+
+Verification used Swift 6.4 on macOS 27 and an iPhone 18 Pro simulator running iOS 27.0 through
+MobileBuildMCP. These runs do not establish iOS 17 compatibility. No references were recorded.
+
+- The iOS demo compiled. UIKit paragraph tests passed 15/15 after fixing duplicate image
+  accessibility boundaries. A later measurement-identity fix compiled, but final test retries
+  terminated the test host with signal TERM; that final revision is not fully test-verified.
+- New paragraph checks cover source order, Unicode, explicit breaks, RTL attributes, intrinsic and
+  proportional image bounds, phase descriptions, separate same-destination images, direct actions,
+  and stale accessibility targets. Direct actions do not prove live VoiceOver or link gestures.
+- Focused iOS image-phase, linked-image, and policy-transition snapshots: nine passed, eight failed
+  pixel comparisons. Fresh visual review and intended reference updates remain outstanding.
+- macOS image-loading tests: 14 passed. `swift test --skip Snapshot`: 186 passed with the existing
+  known LoaderSpy issue. Full `swift test`: 254 tests, 37 issues including that known issue.
+  Snapshot failures were not recorded away; their full provenance remains unverified.
+- Running-demo phase/width observations, selection/copy gestures, system text scaling, and live
+  VoiceOver order, names, reachability, and activation remain unverified for this implementation.
+- Held reverse-order completion and retained-mount width/request-count scenarios still need
+  explicit native iOS integration qualification; attributed-storage sizing checks are narrower.
+
 ## Integrated native text qualification (#29)
 
 This section is the current evidence for #25–#28. Earlier sections are historical reports, not

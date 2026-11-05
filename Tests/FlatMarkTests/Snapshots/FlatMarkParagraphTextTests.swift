@@ -317,9 +317,9 @@ struct FlatMarkParagraphTextTests {
     @Test func proposalProbesAndTrailingBreaksKeepCommittedLayoutSeparateFromNeighbor() async throws {
         let host = UIHostingController(rootView: VStack(spacing: 0) {
             ParagraphProposalProbe {
-                FlatMarkParagraphText(content: .init(text: AttributedString("A paragraph with enough words to wrap at the committed width.\n\n")), role: .body, context: .readOnly)
+                FlatMarkParagraphText(content: .init(text: AttributedString("A paragraph with enough words to wrap at the committed width.\n\n")), role: .body, context: .readOnly, imagePhases: [:])
             }
-            FlatMarkParagraphText(content: .init(text: AttributedString("Following paragraph.")), role: .body, context: .readOnly)
+            FlatMarkParagraphText(content: .init(text: AttributedString("Following paragraph.")), role: .body, context: .readOnly, imagePhases: [:])
         }.frame(width: 140))
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 340, height: 900))
         window.rootViewController = host
@@ -334,6 +334,107 @@ struct FlatMarkParagraphTextTests {
         let font = try #require(first.attributedText.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
         #expect(first.bounds.height >= 3 * font.lineHeight)
         try expectCompleteLayout(views, in: host.view, knownTerminalLineIssue: true)
+    }
+
+    @Test func imagePhasesComposeInSourceOrderAndFitNativeWidth() throws {
+        let content = FlatMarkRenderInlineContent(components: [
+            .text(AttributedString("before\n")),
+            .image(.init(url: nil, altText: "Diagram")),
+            .text(AttributedString("\n\nafter"))
+        ])
+        let raster = UIGraphicsImageRenderer(size: CGSize(width: 600, height: 300)).image { _ in }
+        for width: CGFloat in [140, 280, 700, 140] {
+            let native = FlatMarkParagraphText.attributedText(
+                for: content, policy: .literal, dynamicTypeSize: .large,
+                layoutDirection: .rightToLeft, alignment: .leading,
+                imagePhases: [1: .loaded(raster)], width: width)
+            #expect(native.string == "before\n\u{FFFC}\n\nafter")
+            let attachment = try #require(native.attribute(.attachment, at: 7, effectiveRange: nil) as? NSTextAttachment)
+            #expect(attachment.bounds.width == min(width, 600))
+            #expect(attachment.bounds.height == min(width, 600) / 2)
+            let paragraph = try #require(native.attribute(.paragraphStyle, at: 7, effectiveRange: nil) as? NSParagraphStyle)
+            #expect(paragraph.baseWritingDirection == .rightToLeft)
+        }
+        for (phase, suffix) in [(FlatMarkInlineView.ImagePhase.placeholder, "not loaded"),
+                                (.loading, "loading"), (.failed, "failed to load")] {
+            let native = FlatMarkParagraphText.attributedText(
+                for: content, policy: .literal, dynamicTypeSize: .large,
+                layoutDirection: .leftToRight, alignment: .leading, imagePhases: [1: phase], width: 140)
+            #expect(native.string == "before\n\u{FFFC} Diagram\n\nafter")
+            #expect(native.attribute(FlatMarkImagePresentation.labelKey, at: 7, effectiveRange: nil) as? String
+                == "Diagram, \(suffix)")
+            let attachment = try #require(native.attribute(.attachment, at: 7, effectiveRange: nil) as? NSTextAttachment)
+            #expect(attachment.bounds.size == .zero)
+        }
+    }
+
+    @Test func linkedImageNamesStayDestinationFirstInEveryPhase() throws {
+        let destination = try #require(URL(string: "https://example.com/details"))
+        let raster = UIGraphicsImageRenderer(size: CGSize(width: 20, height: 10)).image { _ in }
+        let image = FlatMarkRenderImage(url: nil, altText: "A long meaningful description", link: destination)
+        for (phase, suffix) in [(FlatMarkInlineView.ImagePhase.placeholder, ", not loaded"),
+                                (.loading, ", loading"), (.failed, ", failed to load"), (.loaded(raster), "")] {
+            let native = FlatMarkImagePresentation(image: image, phase: phase, policy: .literal)
+                .attributedText(width: 140, font: .preferredFont(forTextStyle: .body), identity: 2)
+            #expect(native.attribute(FlatMarkImagePresentation.labelKey, at: 0, effectiveRange: nil) as? String
+                == destination.absoluteString + suffix)
+            #expect(native.attribute(.link, at: 0, effectiveRange: nil) as? URL == destination)
+            if case .loaded = phase {
+                let attachment = try #require(native.attribute(.attachment, at: 0, effectiveRange: nil) as? NSTextAttachment)
+                #expect(attachment.bounds.size == raster.size)
+            } else {
+                #expect(native.string.contains("A long meaningful description"))
+            }
+        }
+    }
+
+    @Test func orderedImageAccessibilityKeepsSharedDestinationsSeparateAndInvalidatesOldActions() throws {
+        let destination = try #require(URL(string: "https://example.com/details"))
+        var ordinary = AttributedString("ordinary")
+        ordinary.link = destination
+        let content = FlatMarkRenderInlineContent(components: [
+            .text(AttributedString("before ")), .text(ordinary),
+            .image(.init(url: nil, altText: "First", link: destination)),
+            .image(.init(url: nil, altText: "Second", link: destination)),
+            .image(.init(url: nil, altText: "")), .text(AttributedString(" after"))
+        ])
+        let wrapper = FlatMarkAccessibleParagraphView()
+        var opened: [URL] = []
+        wrapper.activateLink = { opened.append($0) }
+        var compositionCount = 0
+        wrapper.compose = { width in
+            compositionCount += 1
+            return FlatMarkParagraphText.attributedText(for: content, policy: .literal, dynamicTypeSize: .large,
+                layoutDirection: .leftToRight, alignment: .leading, width: width)
+        }
+        wrapper.refresh(width: 140)
+        let elements = try #require(wrapper.accessibilityElements as? [UIAccessibilityElement])
+        #expect(elements.map(\.accessibilityLabel) == ["before ", "ordinary",
+            destination.absoluteString + ", not loaded", destination.absoluteString + ", not loaded",
+            "Image, not loaded", " after"])
+        #expect(wrapper.textView.accessibilityElementsHidden)
+        #expect(elements[2].accessibilityTraits.contains(.link))
+        #expect(!elements[2].accessibilityTraits.contains(.image))
+        #expect(elements[1].accessibilityActivate())
+        #expect(elements[2].accessibilityActivate())
+        #expect(elements[3].accessibilityActivate())
+        #expect(opened == [destination, destination, destination])
+        wrapper.refresh(width: 140)
+        wrapper.refresh(width: 140)
+        #expect(compositionCount == 1)
+        let measuredElements = try #require(wrapper.accessibilityElements as? [UIAccessibilityElement])
+        #expect(zip(elements, measuredElements).allSatisfy { $0 === $1 })
+        #expect(elements[2].accessibilityActivate())
+        #expect(opened == [destination, destination, destination, destination])
+        wrapper.refresh(width: 280)
+        #expect(compositionCount == 2)
+        wrapper.compose = { _ in NSAttributedString(string: "replacement") }
+        wrapper.refresh(width: 280)
+        #expect(!elements[2].accessibilityActivate())
+        #expect(elements[2].accessibilityFrame == .zero)
+        #expect(opened.count == 4)
+        #expect(wrapper.accessibilityElements == nil)
+        #expect(!wrapper.textView.accessibilityElementsHidden)
     }
 
     private func textViews(in view: UIView) -> [UITextView] {
