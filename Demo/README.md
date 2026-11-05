@@ -40,3 +40,13 @@ To capture all presets, choose a platform and output directory:
 bash scripts/capture-recipe-lab.sh ios output-directory
 bash scripts/capture-recipe-lab.sh macos output-directory
 ```
+
+Both platforms sweep several widths on the running app rather than pinning one viewport, and write a
+`<platform>-widths.tsv` manifest naming the size each capture actually reached. iOS drives geometry
+with `devicectl` resizable app sessions. macOS drives the window size through System Events, which
+works because the demo bounds its root with a fixed `maxWidth` and uses
+`.windowResizability(.contentMinSize)`; a sweep that cannot reach a requested width exits non-zero.
+Keep the widest swept width at or below `maximumWindowWidth` in `FlatMarkDemoApp.swift`, which also
+caps how wide the layout grows. See
+[Recipe Lab captures](../Tests/References/RecipeLab/README.md) and
+[AI-docs/DEVICE_HUB.md](../AI-docs/DEVICE_HUB.md).

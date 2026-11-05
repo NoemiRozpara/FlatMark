@@ -19,6 +19,7 @@ Read only the documents relevant to the task:
 - [AI-docs/UI.md](AI-docs/UI.md): native semantics, layout, interaction, accessibility, and custom content.
 - [AI-docs/BUILD_AND_TEST.md](AI-docs/BUILD_AND_TEST.md): toolchain requirements, verification selection, demo generation, and reporting.
 - [AI-docs/CODE_REVIEW.md](AI-docs/CODE_REVIEW.md): code review and specialist selection.
+- [AI-docs/DEVICE_HUB.md](AI-docs/DEVICE_HUB.md): driving simulators and devices with `devicectl`, including resizing the running app, capture, and device settings.
 
 `AGENTS.md` owns repository-wide rules; `AI-docs/` owns contributor policy; task skills own procedures and on-demand examples. Link to the authoritative source rather than copying its rules. Load only relevant skill references, not entire reference folders.
 

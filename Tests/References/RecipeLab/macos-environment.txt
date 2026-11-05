@@ -1,0 +1,12 @@
+Thu Nov  5 09:43:40 UTC 2026
+ProductName:		macOS
+ProductVersion:		27.0.1
+BuildVersion:		26A434
+Xcode 27.0
+Build version 27A266a
+Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+Target: arm64-apple-macosx27.0.0
+CAPTURES=daylight midnight generous rightToLeft hostMarkers readOnly literal omission
+MACOS_WIDTHS=480x900 850x1040 1200x900
+IOS_WIDTHS=320x700 390x844 430x932
+SEED_SIZE=390x844

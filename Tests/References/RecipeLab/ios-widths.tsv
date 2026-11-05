@@ -1,0 +1,25 @@
+platform	preset	requested	points	pixels	scale	scaleSource	file	note
+ios	daylight	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-daylight-375x700.png	clamped
+ios	daylight	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-daylight-390x844.png	exact
+ios	daylight	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-daylight-430x932.png	exact
+ios	midnight	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-midnight-375x700.png	clamped
+ios	midnight	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-midnight-390x844.png	exact
+ios	midnight	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-midnight-430x932.png	exact
+ios	generous	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-generous-375x700.png	clamped
+ios	generous	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-generous-390x844.png	exact
+ios	generous	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-generous-430x932.png	exact
+ios	rightToLeft	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-rightToLeft-375x700.png	clamped
+ios	rightToLeft	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-rightToLeft-390x844.png	exact
+ios	rightToLeft	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-rightToLeft-430x932.png	exact
+ios	hostMarkers	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-hostMarkers-375x700.png	clamped
+ios	hostMarkers	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-hostMarkers-390x844.png	exact
+ios	hostMarkers	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-hostMarkers-430x932.png	exact
+ios	readOnly	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-readOnly-375x700.png	clamped
+ios	readOnly	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-readOnly-390x844.png	exact
+ios	readOnly	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-readOnly-430x932.png	exact
+ios	literal	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-literal-375x700.png	clamped
+ios	literal	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-literal-390x844.png	exact
+ios	literal	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-literal-430x932.png	exact
+ios	omission	320x700	375x700	1125x2100	3	calibrated at 390.0x844.0	ios-omission-375x700.png	clamped
+ios	omission	390x844	390x844	1170x2532	3	calibrated at 390.0x844.0	ios-omission-390x844.png	exact
+ios	omission	430x932	430x932	1290x2796	3	calibrated at 390.0x844.0	ios-omission-430x932.png	exact

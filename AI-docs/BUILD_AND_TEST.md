@@ -9,6 +9,7 @@ This document selects verification; the linked guides own commands, scenarios, a
 - [Demo/README.md](../Demo/README.md): running the host, capture presets, signing, and project generation.
 - [Benchmarks/README.md](../Benchmarks/README.md): construction measurements and regression checks.
 - [SUPPORT.md](../SUPPORT.md): supported Markdown behavior.
+- [AI-docs/DEVICE_HUB.md](DEVICE_HUB.md): `devicectl` commands for device state, resizing, and capture, and their failure modes.
 
 ## Toolchain
 
@@ -58,6 +59,8 @@ Match the evidence to the claim:
 - Screenshots need visual inspection and do not establish live VoiceOver or keyboard behavior.
 - Fixture font-size overrides are not system Dynamic Type verification.
 - Live accessibility and actual selection gestures require running-platform checks.
+
+Drive the device instead of pinning a layout. Test a width, Dynamic Type size, or appearance by changing the running device's state with `devicectl`, then capture and inspect. Do not add launch arguments, fixture constants, or hardcoded window sizes that fake a viewport. `scripts/capture-recipe-lab.sh` sweeps widths and records the size each capture actually reached in its manifest; read that note before calling a capture responsive-layout evidence. A `clamped`, `rejected`, or over-cap width is a finding, not a pass. See [AI-docs/DEVICE_HUB.md](DEVICE_HUB.md).
 
 Run relevant checks on both iOS and macOS when shared rendering or interaction changes affect both. Record platform, actions, observations, and unavailable checks. If a lane is unavailable, say so and leave the affected behavior unverified rather than substituting compilation or a semantic tree.
 

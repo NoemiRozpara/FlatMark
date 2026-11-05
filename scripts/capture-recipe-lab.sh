@@ -1,7 +1,33 @@
 #!/usr/bin/env bash
 # Capture the shared playground, not a separate rendering harness.
-# Requires a booted iPhone simulator or a logged-in macOS desktop with Screen Recording
-# and System Events permissions. References are review-only; no pixel comparison.
+#
+# Requires a booted iPhone simulator, or a logged-in macOS desktop session. References are
+# review-only; no pixel comparison. Device Hub does not need to be running; see
+# AI-docs/DEVICE_HUB.md.
+#
+# Width is driven on the running app instead of being baked into one fixed viewport.
+#
+#   macOS  The recipe sets no column cap on macOS, so window width is what drives text layout.
+#          Width is set through System Events and verified against the window server. Two things
+#          make that work, and both are load-bearing:
+#            * The demo bounds the scene root with a fixed maxWidth and uses
+#              .windowResizability(.contentMinSize). Without a bound the root ScrollView proposes an
+#              unbounded ideal width, AppKit recomputes the window from it, and no external width
+#              change is applied at all.
+#            * The window is moved to a fixed origin before each resize, because macOS clamps a
+#              resize against the area the window already occupies.
+#          The geometry that actually applied is read back from the window server, never assumed.
+#   iOS    Uses devicectl resizable app sessions (Xcode 27+) to sweep scene geometry. The recipe
+#          pins a 240-point reading column on iOS, so these captures exercise the host container
+#          and chrome at each width rather than a reflowed reading column. On Xcode 26 there are
+#          no resizable sessions; iOS falls back to one primary-display capture per preset and
+#          records that in the manifest.
+#
+# Presets and widths are overridable per run:
+#   CAPTURES="daylight midnight" IOS_WIDTHS="320x700 430x932" \
+#     bash scripts/capture-recipe-lab.sh ios output-directory
+#   MACOS_WIDTHS="600x900 1000x1200" \
+#     bash scripts/capture-recipe-lab.sh macos output-directory
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLATFORM="${1:?Usage: bash scripts/capture-recipe-lab.sh ios|macos output-directory}"
@@ -12,6 +38,76 @@ case "$PLATFORM" in
   ios|macos) ;;
   *) echo "Use ios or macos" >&2; exit 1 ;;
 esac
+
+# The previous script pinned macOS to one 850 x 1040 window. 850 stays in the default sweep so
+# older references stay comparable; the other widths are what establish responsive behaviour.
+MACOS_WIDTHS="${MACOS_WIDTHS:-480x900 850x1040 1200x900}"
+IOS_WIDTHS="${IOS_WIDTHS:-320x700 390x844 430x932}"
+SEED_SIZE=390x844     # geometry an iOS session starts at, used to calibrate the capture scale
+CAPTURES="${CAPTURES:-daylight midnight generous rightToLeft hostMarkers readOnly literal omission}"
+BUNDLE=dev.flatmark.FlatMarkFixtureHost
+MANIFEST="$OUTPUT/$PLATFORM-widths.tsv"
+printf 'platform\tpreset\trequested\tpoints\tpixels\tscale\tscaleSource\tfile\tnote\n' \
+  > "$MANIFEST"
+
+record() { printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$@" >> "$MANIFEST"; }
+pixels_of() {
+  sips -g pixelWidth -g pixelHeight "$1" 2>/dev/null \
+    | awk '/pixelWidth:/{w=$2} /pixelHeight:/{h=$2} END{if(w&&h) print w"x"h; else print "unknown"}'
+}
+
+# iOS scale comes from a capture whose rendered points are known, so no device table is hardcoded.
+# Prints an integer scale, or unknown when the numbers do not divide cleanly.
+seed_scale() {
+  python3 - "$1" "$2" <<'PY'
+import sys
+
+def parse(value):
+    try:
+        w, h = value.lower().split("x")
+        return float(w), float(h)
+    except (ValueError, AttributeError):
+        return None
+
+px, pts = parse(sys.argv[1]), parse(sys.argv[2])
+if not px or not pts or not all(pts):
+    print("unknown")
+    sys.exit(0)
+ratios = {px[0] / pts[0], px[1] / pts[1]}
+if len(ratios) != 1 or min(ratios) < 1:
+    print("unknown")
+    sys.exit(0)
+scale = round(min(ratios))
+print(scale if scale and abs(min(ratios) - scale) < 0.02 else "unknown")
+PY
+}
+
+points_of_px() {
+  python3 - "$1" "$2" <<'PY'
+import sys
+
+try:
+    w, h = sys.argv[1].lower().split("x")
+    scale = float(sys.argv[2])
+    print(f"{int(round(int(w) / scale))}x{int(round(int(h) / scale))}")
+except (ValueError, IndexError, ZeroDivisionError):
+    print("unknown")
+PY
+}
+
+# Names by what rendered, not by what was asked for. Two requests can clamp to the same geometry,
+# so keep earlier captures instead of overwriting them.
+unique_path() { # unique_path <stem> <suffix>
+  local stem="$1" suffix="${2:-}" candidate n=2
+  candidate="$OUTPUT/$stem${suffix}.png"
+  while [ -e "$candidate" ]; do
+    if [ -n "$suffix" ]; then candidate="$OUTPUT/$stem${suffix}-$n.png"
+    else candidate="$OUTPUT/$stem-requested-$n.png"; fi
+    n=$((n + 1))
+  done
+  printf '%s' "$candidate"
+}
+
 "$ROOT/scripts/run-fixture-host.sh" "$PLATFORM" --capture daylight
 {
   date -u
@@ -19,30 +115,201 @@ esac
   xcodebuild -version
   swift --version
   if [ "$PLATFORM" = ios ]; then xcrun simctl list devices booted; fi
+  printf 'CAPTURES=%s\nMACOS_WIDTHS=%s\nIOS_WIDTHS=%s\nSEED_SIZE=%s\n' \
+    "$CAPTURES" "$MACOS_WIDTHS" "$IOS_WIDTHS" "$SEED_SIZE"
 } > "$OUTPUT/$PLATFORM-environment.txt"
-for capture in daylight midnight generous rightToLeft hostMarkers readOnly literal omission; do
-  if [ "$PLATFORM" = ios ]; then
-    xcrun simctl terminate booted dev.flatmark.FlatMarkFixtureHost || true
-    xcrun simctl launch booted dev.flatmark.FlatMarkFixtureHost --capture "$capture"
+
+if [ "$PLATFORM" = ios ]; then
+  UDID="$(xcrun simctl list devices booted -j | python3 -c '
+import json, sys
+for devices in json.load(sys.stdin)["devices"].values():
+    for device in devices:
+        if device.get("state") == "Booted" and device.get("isAvailable") \
+                and "iPhone" in device["name"]:
+            print(device["udid"])
+            sys.exit(0)
+sys.exit("No booted iPhone simulator.")')"
+  RESIZE_OK=1
+  # Resizable sessions are Xcode 27+. Detect once rather than failing inside every preset.
+  xcrun devicectl device appResize --help >/dev/null 2>&1 || RESIZE_OK=0
+
+  for capture in $CAPTURES; do
+    xcrun simctl terminate booted "$BUNDLE" 2>/dev/null || true
+    xcrun simctl launch booted "$BUNDLE" --capture "$capture" >/dev/null
     sleep 2
-    xcrun simctl io booted screenshot "$OUTPUT/ios-$capture.png"
-  else
-    pkill -x FlatMarkDemo || true
-    open -n "$ROOT/.build/demo/Build/Products/Debug/FlatMarkDemo.app" --args --capture "$capture"
-    sleep 2
-    rect="$(osascript <<'APPLESCRIPT'
-tell application "System Events" to tell process "FlatMarkDemo"
-    set frontmost to true
-    set position of front window to {20, 40}
-    set size of front window to {850, 1040}
-    set {x, y} to position of front window
-    set {w, h} to size of front window
-    return (x as text) & "," & (y as text) & "," & (w as text) & "," & (h as text)
+
+    if [ "$RESIZE_OK" -eq 0 ]; then
+      out="$(unique_path "ios-$capture" "-viewport")"
+      xcrun simctl io booted screenshot "$out"
+      record ios "$capture" "primary display" unknown "$(pixels_of "$out")" none unavailable \
+        "$(basename "$out")" "Xcode 26 has no resizable sessions; single viewport"
+      continue
+    fi
+
+    # Order matters: the app must already be foreground, or the session fails with
+    # CoreDeviceError 24001. See AI-docs/DEVICE_HUB.md.
+    session_log="$OUTPUT/.resizable-$capture.log"
+    xcrun devicectl device appResize start --device "$UDID" --preferred-size "$SEED_SIZE" \
+      > "$session_log" 2>&1 &
+    session=$!
+    sleep 12
+    resid="$(grep -oE 'Resizable \([A-F0-9-]+\)' "$session_log" \
+      | grep -oE '[A-F0-9-]{36}' | head -1 || true)"
+    if [ -z "$resid" ]; then
+      kill "$session" 2>/dev/null || true; wait "$session" 2>/dev/null || true
+      out="$(unique_path "ios-$capture" "-viewport")"
+      xcrun simctl io booted screenshot "$out"
+      record ios "$capture" unknown unknown "$(pixels_of "$out")" none failed "$(basename "$out")" \
+        "resizable session did not start; is the app foreground?"
+      continue
+    fi
+
+    # The requested size is a preference that the system and the app clamp. Neither `info
+    # appResize`, which echoes the request with actualSize null, nor `info displays`, which
+    # reports the display's maximum surface, reflects what rendered. Only captured pixels do, so
+    # calibrate the scale once against the size `start` reported applying and derive points from it.
+    scale=unknown; scale_source=unavailable
+    seed_shot="$OUTPUT/.seed-$capture.png"
+    if xcrun devicectl device capture screenshot --device "$UDID" \
+         --display-unique-id "$resid" --destination "$seed_shot" >/dev/null 2>&1; then
+      applied="$(grep -oE 'Actual size: [0-9.]+x[0-9.]+' "$session_log" \
+        | tail -1 | grep -oE '[0-9.]+x[0-9.]+')"
+      scale="$(seed_scale "$(pixels_of "$seed_shot")" "${applied:-$SEED_SIZE}")"
+      if [ "$scale" != unknown ]; then scale_source="calibrated at ${applied:-$SEED_SIZE}"; fi
+    fi
+    rm -f "$seed_shot"
+
+    for size in $IOS_WIDTHS; do
+      xcrun devicectl device appResize set --device "$UDID" --preferred-size "$size" \
+        >/dev/null 2>&1 || true
+      sleep 3
+      tmp="$OUTPUT/.ios-$capture-$size.png"
+      if ! xcrun devicectl device capture screenshot --device "$UDID" \
+             --display-unique-id "$resid" --destination "$tmp" >/dev/null 2>&1 \
+         || [ ! -s "$tmp" ]; then
+        record ios "$capture" "$size" unknown unknown unknown unknown "-" "capture failed"
+        rm -f "$tmp"; continue
+      fi
+      px="$(pixels_of "$tmp")"
+      if [ "$scale" != unknown ]; then
+        pts="$(points_of_px "$px" "$scale")"
+        if [ "$pts" = "$size" ]; then note=exact; else note=clamped; fi
+      else
+        pts=unknown; note="points unknown"
+      fi
+      if [ "$pts" = unknown ]; then out="$(unique_path "ios-$capture-px-$px" "")"
+      else out="$(unique_path "ios-$capture-$pts" "")"; fi
+      mv "$tmp" "$out"
+      if [ "$note" = clamped ]; then
+        printf '  %s: requested %s, rendered %s\n' "$capture" "$size" "$pts" >&2
+      fi
+      record ios "$capture" "$size" "$pts" "$px" "$scale" "$scale_source" \
+        "$(basename "$out")" "$note"
+    done
+    kill "$session" 2>/dev/null || true; wait "$session" 2>/dev/null || true
+    rm -f "$session_log"
+  done
+  printf 'iOS captures come from the Resizable display. The recipe pins a 240-point reading\n'
+  printf 'column on iOS, so text width does not reflow; these show container and chrome.\n'
+else
+  # Compile once; the helper reports the window server's truth, which is the only readback that
+  # survives AppKit overriding the width. Build outside the output directory, which is a tracked
+  # reference folder when captures are written to Tests/References/RecipeLab.
+  GEOM_DIR="$(mktemp -d)"
+  GEOM_BIN="$GEOM_DIR/capture-window-geometry"
+  trap 'rm -rf "$GEOM_DIR"' EXIT
+  swiftc -O "$ROOT/scripts/support/capture-window-geometry.swift" -o "$GEOM_BIN"
+
+  rejected=0
+  # Anchor the window at a fixed origin before sizing it. macOS clamps a resize against the area the
+  # window already occupies, so sizing a window that sits near a display edge silently lands on a
+  # different size. Moving first makes the requested size the one that applies; order matters here.
+  # The recipe content is capped by the demo's maximumWindowWidth, so a wider window grows the
+  # window without widening the layout. Keep the sweep at or below that value. It lives in
+  # Demo/FlatMarkDemo/FlatMarkDemoApp.swift; raise both together.
+  MACOS_CONTENT_CAP=1280
+  place_and_size() { # place_and_size <width> <height>
+    osascript >/dev/null 2>&1 <<APPLESCRIPT
+tell application "System Events"
+    tell process "FlatMarkDemo" to set frontmost to true
+    delay 0.4
+    tell process "FlatMarkDemo"
+        set position of window 1 to {40, 40}
+        delay 0.3
+        set size of window 1 to {$1, $2}
+        delay 0.6
+    end tell
 end tell
 APPLESCRIPT
-)"
+  }
+
+  for capture in $CAPTURES; do
+    pkill -x FlatMarkDemo 2>/dev/null || true
     sleep 1
-    screencapture -x -R "$rect" "$OUTPUT/macos-$capture.png"
+    open -n "$ROOT/.build/demo/Build/Products/Debug/FlatMarkDemo.app" --args --capture "$capture"
+    sleep 5
+    for size in $MACOS_WIDTHS; do
+      want_w="${size%x*}"; want_h="${size#*x}"
+      place_and_size "$want_w" "$want_h"
+      geom="$("$GEOM_BIN" FlatMark || true)"
+      if [ -z "$geom" ]; then
+        # The window can still be settling after launch; give the resize one more chance.
+        place_and_size "$want_w" "$want_h"
+        geom="$("$GEOM_BIN" FlatMark || true)"
+      fi
+      if [ -z "$geom" ]; then
+        record macos "$capture" "$size" unknown unknown unknown unknown "-" "window not found"
+        rejected=$((rejected + 1))
+        continue
+      fi
+      geom="$("$GEOM_BIN" FlatMark || true)"
+      if [ -z "$geom" ]; then
+        record macos "$capture" "$size" unknown unknown unknown unknown "-" "window not found"
+        continue
+      fi
+      IFS=$'\t' read -r wid pw ph scale cgw cgh <<< "$geom"
+      # Read back the width the window actually got. A width AppKit overrode is a finding, not a
+      # silent pass: labelling such a capture exact would hand a reader a fixed viewport and let it
+      # be reported as responsive-layout evidence.
+      if [ "$pw" = "$want_w" ] && [ "$ph" = "$want_h" ]; then
+        note=exact
+      else
+        note="rejected: window became ${pw}x${ph}"
+        rejected=$((rejected + 1))
+      fi
+      # Past the content cap the window keeps growing while the recipe stops widening, so the
+      # window size would overstate what the layout was actually offered.
+      if [ "$want_w" -gt "$MACOS_CONTENT_CAP" ]; then
+        note="$note; wider than the ${MACOS_CONTENT_CAP}pt content cap"
+        rejected=$((rejected + 1))
+      fi
+      out="$(unique_path "macos-$capture-${pw}x${ph}" "")"
+      if ! screencapture -x -o -l"$wid" "$out" 2>/dev/null || [ ! -s "$out" ]; then
+        rm -f "$out"
+        record macos "$capture" "$size" "${pw}x${ph}" unknown "$scale" window-server \
+          "-" "window capture failed"
+        continue
+      fi
+      px_dim="$(pixels_of "$out")"
+      printf '  %s: requested %s, window is %sx%s points\n' "$capture" "$size" "$pw" "$ph" >&2
+      record macos "$capture" "$size" "${pw}x${ph}" "$px_dim" "$scale" window-server \
+        "$(basename "$out")" "$note"
+    done
+    pkill -x FlatMarkDemo 2>/dev/null || true
+  done
+  printf 'macOS window width drives the recipe layout; each preset was swept per width.\n'
+  if [ "$rejected" -gt 0 ]; then
+    # Do not exit 0 with a manifest that contains widths the window never had.
+    printf '%s of %s macOS captures did not reach the requested size.\n' \
+      "$rejected" "$(( $(wc -l < "$MANIFEST") - 1 ))" >&2
+    printf 'Check that nothing else is stealing focus, that the window is on a display that can\n' >&2
+    printf 'hold the requested height, and that the width is within maximumWindowWidth in\n' >&2
+    printf 'Demo/FlatMarkDemo/FlatMarkDemoApp.swift, which also caps how wide the layout grows.\n' >&2
+    printf 'See AI-docs/DEVICE_HUB.md.\n' >&2
+    exit 1
   fi
-done
+fi
+
+echo "Manifest: $MANIFEST"
+column -t -s "$(printf '\t')" "$MANIFEST"
 printf 'Captured initial viewports only. Scroll to review the rest of each document.\n'
