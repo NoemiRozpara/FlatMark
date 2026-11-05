@@ -281,15 +281,10 @@ struct FlatMarkParagraphText: NSViewRepresentable {
         }
 
         override func accessibilityLabel() -> String? {
-            guard let storage = textStorage else { return super.accessibilityLabel() }
-            let result = NSMutableString(string: storage.string)
-            var replacements: [(NSRange, String)] = []
-            storage.enumerateAttribute(.flatMarkImage, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
-                guard let image = value as? FlatMarkImageAccessibility else { return }
-                replacements.append((range, image.linkLabel ?? image.label))
-            }
-            for (range, label) in replacements.reversed() { result.replaceCharacters(in: range, with: label) }
-            return result as String
+            // Native text already supplies the paragraph's value. Repeating it as a label
+            // makes VoiceOver announce both versions before reaching the link children.
+            guard let image = standaloneImageLink else { return super.accessibilityLabel() }
+            return image.linkLabel ?? image.label
         }
 
         override func accessibilityChildren() -> [Any]? {

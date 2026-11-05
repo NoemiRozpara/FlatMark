@@ -83,7 +83,8 @@ struct FlatMarkAppKitParagraphTextTests {
         let updated = (text.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
             .filter { $0.accessibilityURL() == url }
         #expect(updated.first?.accessibilityTitle() == url.absoluteString + ", not loaded")
-        #expect(text.accessibilityLabel() == "Before https://example.com/details, not loaded between https://example.com/details, failed to load after")
+        #expect(text.accessibilityLabel() == nil)
+        #expect(text.accessibilityValue() == "Before \u{FFFC} A very long first description between \u{FFFC} second after")
         hosted.view.rootView = root(.loaded(NSImage(size: CGSize(width: 300, height: 150))))
         await settleMountedRendering()
         let loaded = (text.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }

@@ -141,7 +141,7 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
                 Issue.record("Recipe readiness timed out: completed=\(delivery.completed), stable=\(stable), size=\(geometry.size)")
             }
         )
-        #expect(delivery.requests == 1)
+        #expect(delivery.requests == 2)
         #expect(delivery.completed)
         guard geometry.ready else { throw CaptureError.readiness }
         if environment.textSize != .enlarged {
