@@ -38,48 +38,20 @@ switches a mounted document between them and checks wording, source, and image r
 native task-interaction host walks `.omit → .literal → .omit` while it toggles a checkbox. Row
 identity and task editing addresses across a policy change are checked in `FlatMarkListRowViewTests`.
 
-### Unsupported-content policy removal
+### Current verification
 
-The `.custom` unsupported-content policy, its host closures, and its checks were removed. The two
-built-in policies and their projection, composition, accessibility, and transition checks remain.
-
-- Removed recipe scenarios: the six `custom*` scenarios, `emptyReplacement`, and iOS
-  `enlargedCustom`; their references were deleted rather than re-recorded.
-- Removed the `InlineFlow` suite, which existed to flow a host replacement run between supported
-  text, together with its two references and its suite namespace.
-- Regenerated both platforms with the `FlatMarkSnapshots-macOS-Record` and
-  `FlatMarkSnapshots-iOS-Record` schemes. Recording assertions were expected. Only 26 macOS PNGs
-  changed: 2 EmptyStructures, 3 ImagePhases, 5 PolicyTransitions, and 16 Recipe references.
-  The iOS references remained byte-identical.
-- Separate non-recording runs passed 49 macOS tests and 50 iOS tests. Reference hashes stayed
-  unchanged through verification and the package run.
-- `swift test`: 190 tests in 27 suites passed, with the existing known LoaderSpy issue.
-  The earlier macOS snapshot mismatches no longer occur against the regenerated references.
-- Verification used macOS 27.0.1 / Swift 6.4 and the iPhone 18 Pro simulator on iOS 27.0.
-- Reviewed reference contact sheets for text, images, links, spacing, and clipping. This is not
-  full-size approval of every PNG. Page-boundary and horizontal table clipping remain expected.
-- The demo installs and keeps running on that simulator after the fixture changes. No capture of the
-  Recipe Lab settings was visually reviewed, so the HTML-handling picker and the counters remain
-  unobserved in the running app.
-
-### Consolidation verification
-
-Verification used Xcode 27 RC / Swift 6.4, macOS 27.0.1 on a 2x display, and the
+Verification used Swift 6.4, macOS 27.0.1 on a 2x display, and the
 iPhone 18 Pro simulator running iOS 27.0.
 
-- Recorded 25 macOS and 53 iOS recipe references. Recording assertions were expected
-  failures, not verification passes. Retired references were removed, not re-recorded.
-- `swift test`: 222 tests in 30 suites passed, with the existing known LoaderSpy issue.
-- Non-recording `FlatMarkSnapshots-macOS`: 51 tests passed.
-- Non-recording `FlatMarkSnapshots-iOS`: 53 tests passed. The 23-case recipe matrix
-  also passed a separate repeat run.
-- Reviewed all 41 scenario contact sheets and 10 representative original PNGs.
-  No unintended blank capture, missing selected-section ending, or actual content
-  overlap was observed within that review. This is not full-size approval of every PNG.
-- Both demo targets compiled. Full running-app observation of every setting, live
-  VoiceOver, selection gestures, and minimum-runtime compatibility remain unverified.
+- `swift test`: 190 tests in 27 suites passed, with the existing known LoaderSpy issue.
+- Non-recording `FlatMarkSnapshots-macOS`: 49 tests passed.
+- Non-recording `FlatMarkSnapshots-iOS`: 50 tests passed.
+- Both platforms' references were regenerated and reviewed in contact sheets, not approved
+  individually at full size. Verification left reference hashes unchanged.
+- Current Recipe Lab settings, live VoiceOver, selection gestures, and minimum-runtime
+  compatibility remain unverified.
 
-Historical suite counts and namespace mappings below predate this consolidation.
+Historical suite counts and namespace mappings below predate the current coverage.
 Manual [Recipe Lab captures](References/RecipeLab/README.md) were not refreshed.
 
 ## Native macOS image paragraphs — issue #41
@@ -2494,9 +2466,8 @@ than the readable recipe. Preserve their markers, numbering, structure, and sour
 
 Earlier iOS simulator and macOS runs observed policy changes, source-preserving task updates,
 independent link actions, marker appearance, and selected layout cases. Mounted tests cover
-initializer parity and mention attributes. These observations predate the current compact recipe,
-the removal of the `.custom` unsupported-content policy, and the current Recipe Lab settings, so they
-do not verify its current UI.
+initializer parity and mention attributes. These observations predate the current recipe and
+Recipe Lab settings, so they do not verify its current UI.
 
 Screenshot artifacts are not included; earlier captures predate the compact recipe. New captures
 need visual review. See the [reference guide](References/RecipeLab/README.md) for limitations.

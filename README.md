@@ -198,9 +198,7 @@ code, and ordinary text stay supported.
 
 Literal runs compose with their supported neighbors in the same paragraph. They carry the enclosing
 Markdown presentation intents and links, and contribute their wording to paragraph accessibility
-text. Paragraphs, headings, list text, and table cells use semantic UIKit or AppKit typography for
-their role and preserve explicit native font and color attributes per run; SwiftUI `Font` attributes
-use semantic native typography instead.
+text.
 
 Neither policy executes HTML or fetches HTML resources. FlatMark is not an HTML sanitizer.
 
@@ -210,8 +208,9 @@ Paragraphs, headings, list text, and table cells compose supported text and lite
 in a noneditable, selectable `UITextView` on iOS or `NSTextView` on macOS. Each uses system-preferred
 semantic typography for its role — body, heading level 1–3 (title/title2/title3), heading level 4–6
 (headline), or bold table header — with no fixed point size. Inline emphasis, strong text, mentions,
-and inline code derive their traits from the resolved role font. Each measures the offered width
-at each finite positive offered width without a fixed reading width. Other proposals use native
+and inline code derive their traits from the resolved role font. Explicit native font and color
+attributes are preserved per run; SwiftUI `Font` attributes use semantic native typography instead.
+Each measures finite positive width proposals without a fixed reading width. Other proposals use native
 sizing behavior. Content, typography, and direction changes refresh layout. Paragraph writing
 direction and leading/trailing alignment remain separate. iOS responds to Dynamic Type; macOS
 uses AppKit's preferred semantic fonts without iOS scaling. Ambient SwiftUI font, foreground style,
