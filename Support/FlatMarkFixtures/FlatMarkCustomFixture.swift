@@ -9,10 +9,8 @@ import SwiftUI
 
 // MARK: - FlatMarkCustomFixture
 
-/// Backend-free playground, shared by the automated suite and `FlatMarkDemo`: a single page
-/// showing the shared recipe with exploration controls above it.
-/// Present `FlatMarkCustomFixture(model:)` for iOS/macOS observation; run the host with
-/// `scripts/run-fixture-host.sh`.
+/// Shared backend-free recipe playground with exploration controls.
+/// Run the iOS/macOS host with `scripts/run-fixture-host.sh`.
 public struct FlatMarkCustomFixture: View {
     @Bindable public var model: FlatMarkCustomFixtureModel
     @State private var settingsExpanded = false
@@ -173,7 +171,6 @@ public struct FlatMarkCustomDocumentFixture: View {
 public final class FlatMarkCustomFixtureModel {
     public static let markdown = FlatMarkRecipeSample.markdown
 
-    /// The same recipe is mounted by the automated suite and shown in the playground.
     public static let baseURL = URL(string: "https://example.com/")
     public var markdown: String {
         didSet { document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL) }
@@ -198,7 +195,6 @@ public final class FlatMarkCustomFixtureModel {
         self.markdown = markdown
         document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL)
         let imageCalls = imageCalls
-        // The recipe reuses these two resources for its block photo and inline leaves.
         var requests: [URL: URL] = [:]
         if let baseURL = Self.baseURL {
             if let file = FlatMarkFixtureResources.focacciaURL {

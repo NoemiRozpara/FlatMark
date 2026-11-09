@@ -73,7 +73,6 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
     }
 
     mutating func visitImage(_ image: Markdown.Image) -> FlatMarkRenderInlineContent {
-        // Image descriptions retain their existing rendering.
         var altProjector = self
         altProjector.excludesMentions = true
         let altContent = altProjector.defaultVisit(image)
@@ -130,7 +129,7 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
         }
     }
 
-    /// The one extraction result every presentation policy of this node will show.
+    /// Extracts literal text once, before render-time policy decisions.
     private func unsupported(_ markup: Markup) -> FlatMarkRenderUnsupportedContent {
         FlatMarkRenderUnsupportedContent(
             literalText: FlatMarkUnsupportedContentExtractor.literal(from: markup, source: source)

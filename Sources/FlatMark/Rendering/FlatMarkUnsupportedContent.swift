@@ -13,7 +13,7 @@ struct FlatMarkRenderUnsupportedContent: Equatable, Sendable {
 
 // MARK: - FlatMarkUnsupportedContentExtractor
 
-/// Turns one unsupported node into the literal text every presentation policy shows.
+/// Extracts one unsupported node's literal text before render-time policy decisions.
 ///
 /// Raw HTML uses the parser's own ``rawHTML`` unchanged, including the trailing newline an
 /// HTML block usually carries. Every other unsupported node first gets the exact source slice

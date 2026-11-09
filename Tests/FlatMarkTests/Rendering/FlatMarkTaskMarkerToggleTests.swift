@@ -81,7 +81,7 @@ struct FlatMarkTaskMarkerToggleNewlineMatrixTests {
             expected[stateOffset] = task.toggledStateByte
             #expect(toggledBytes == expected)
 
-            // A second toggle returns the snapshot byte for byte, covering both replacement directions.
+            // Round-trip bytes exactly to cover both replacement directions.
             let reverted = try #require(
                 FlatMarkTaskMarkerToggle.toggledMarkdown(in: toggled, sourceRange: address.sourceRange)
             )
@@ -220,7 +220,6 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
         #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 1, column: 16), in: cr) == 15)
         #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 1, column: 17), in: cr) == 16)
         #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 1, column: 18), in: cr) == nil)
-        // A line past the snapshot end is nonexistent.
         #expect(FlatMarkSourceRange.utf8Offset(for: .init(line: 5, column: 1), in: cr) == nil)
 
         let crlf = "Intro 🧪 café\r\n- [ ] Alpha café\r\n- [ ] Omega café\r\n- [x] Tail 😀"
@@ -240,7 +239,7 @@ struct FlatMarkTaskMarkerToggleBoundaryTests {
 struct FlatMarkTaskMarkerToggleCoordinateContractTests {
     @Test("a real parsed range endpoint after multibyte text maps to its original byte offset")
     func parsedEndpointAfterMultibyteTextMapsToByteOffset() throws {
-        // One task line whose content ends with two-byte CJK after a combining sequence.
+        // CJK and a combining sequence distinguish UTF-8 byte columns from character counts.
         let markdown = "- [ ] Omega na\u{0308}ve 你好"
         let bytes = Array(markdown.utf8)
 

@@ -108,13 +108,9 @@
         throw MountedTextObservationError.wordingNotFound(expected: wording, observed: try hosted.visibleText)
     }
 
-    /// Polls only a working selection lane for the exact wording a reader gets, across every region.
-    ///
-    /// The wait covers SwiftUI's own re-render after a state change, which is what makes this the
-    /// check for a policy switch: wording that never arrives, and wording that never leaves, both
-    /// fail with what the mounted view really displayed. Equality rather than containment, so a
-    /// region that keeps showing what it showed before the change cannot pass by sitting somewhere
-    /// inside the answer.
+    /// Waits for exact selectable wording across all regions after a state change.
+    /// Equality, not containment, rejects stale wording as well as missing wording.
+    /// Missing selection capability fails immediately.
     @MainActor
     func visibleText<V>(matching wording: String, in hosted: MountedView<V>) async throws -> String {
         for _ in 0 ..< 50 {

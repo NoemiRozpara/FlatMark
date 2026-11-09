@@ -2,13 +2,13 @@
 
 ## Goal and scope
 
-Implement the smallest correct change that satisfies the current task. Optimize for clarity, correctness, maintainability, and reviewability.
+Implement the smallest correct change. Favor clarity, maintainability, and reviewability.
 
 FlatMark is a native SwiftUI Markdown preview renderer, not an editor, browser, HTML sanitizer, or application framework. Preserve host ownership of persistence, image fetching, navigation decisions, and custom content. See [README.md](README.md) for scope and public contracts.
 
-- Follow the agreed direction; do not add unrelated cleanup, speculative abstractions, or hypothetical future requirements.
-- Preserve existing architecture. Obtain agreement before materially changing scope or architecture or adding dependencies.
-- If implementation invalidates an important agreed assumption, stop and explain the conflict before redesigning.
+- Follow agreed scope; avoid unrelated cleanup, speculative abstractions, and hypothetical requirements.
+- Obtain agreement before material scope/architecture changes or new dependencies.
+- If an important agreed assumption fails, stop and explain before redesigning.
 
 ## Read relevant guidance
 
@@ -33,13 +33,11 @@ Search narrowly first. Prefer existing project code, then Swift Standard Library
 
 Use concise, plain language in everything you produce: replies, reports, plans, specs, issues, review findings, doc comments, and code comments.
 
-- Write short sentences with one idea each. Split long or nested sentences.
-- Use common, concrete words. Prefer the plain word over the formal one.
-- Prefer active voice and name the actor: "FlatMark cancels the request," not "the request is cancelled by the renderer."
-- Cut filler and hype: "it's important to note", "simply", "actually", "robust", "seamless", "comprehensive", "leverage", "utilize", "delve".
-- Use bullets or tables for lists of facts instead of long prose.
-- Link to the authoritative document instead of restating it.
-- Keep hedges that carry evidence. "iOS is unverified" is required; "it may possibly behave differently" is not.
+- Use short sentences, one idea each, and common, concrete words.
+- Use active voice and name the actor: "FlatMark cancels the request."
+- Cut filler and hype such as "simply", "robust", "seamless", and "leverage".
+- Use bullets or tables for lists; link to authoritative guidance instead of repeating it.
+- Keep evidence-bearing qualifications: "iOS is unverified", not "it may possibly behave differently".
 
 Brevity must not cost precision. Do not shorten a verification claim, public contract, or security statement until it becomes vague or wrong.
 
@@ -47,9 +45,9 @@ Brevity must not cost precision. Do not shorten a verification claim, public con
 
 Write comments under [Write plainly](#write-plainly). Say why, or name the invariant that holds; do not narrate the next line. Doc comments state the contract a caller can rely on. Omit parameter restatements.
 
-Extract code only when there is a meaningful responsibility or UI component to separate. Cohesive SwiftUI layout need not be split to meet an arbitrary size metric.
+Extract meaningful responsibilities or UI components, not arbitrary line counts. Prefer inlining over one-caller helpers or empty proxies without a distinct responsibility. Consider decomposition before lint suppression.
 
-Prefer inlining over one-caller functions or empty proxies that add no meaningful responsibility. Do not introduce lint suppressions without first considering decomposition. Do not run repository-wide formatting or automatic lint fixes as unrelated cleanup; do not assume a formatting hook is installed.
+Do not run unrelated repository-wide formatting or automatic lint fixes, or assume a formatting hook exists.
 
 ## Git
 

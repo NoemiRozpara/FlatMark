@@ -262,11 +262,7 @@ enum FlatMarkRenderProjector {
 
 // MARK: - FlatMarkDocumentProjector
 
-/// Projects the block values of one Markdown snapshot.
-///
-/// The snapshot and the base address are read-only state that every destination and every
-/// unsupported-content extraction needs, so the projector holds them instead of threading
-/// them through each call.
+/// Projects block values using one snapshot and base URL for source extraction and resolution.
 private struct FlatMarkDocumentProjector {
     let source: String
     let baseURL: URL?
@@ -527,7 +523,7 @@ private struct FlatMarkDocumentProjector {
         return projector.project(markup)
     }
 
-    /// The one extraction result every presentation policy of this node will show.
+    /// Extracts literal text once, before render-time policy decisions.
     func unsupported(_ markup: any Markup) -> FlatMarkRenderUnsupportedContent {
         FlatMarkRenderUnsupportedContent(
             literalText: FlatMarkUnsupportedContentExtractor.literal(from: markup, source: source)

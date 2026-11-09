@@ -236,14 +236,9 @@ struct FlatMarkImageLoadingTests {
             }
         }
 
-        /// The control for every enlarged-text case below.
-        ///
-        /// macOS body text does not scale from `dynamicTypeSize` alone — the Recipe Lab fixture applies a
-        /// font-size override for the same reason — so a mounted case that wants bigger text has to ask
-        /// for it explicitly. This proves the override the cases below rely on really does change the
-        /// effective size: a pair of variants that came out equal is then a layout failure rather than an
-        /// override that did nothing. A font override is not system Dynamic Type or VoiceOver
-        /// verification.
+        /// Proves the font override used by enlarged-text cases changes the effective size.
+        /// macOS body text does not scale from `dynamicTypeSize` alone. This control does not
+        /// verify system Dynamic Type or VoiceOver.
         @Test
         func `font size override changes the effective size of mounted text`() {
             let wording = "A long introduction explains the diagram and gives enough context to wrap naturally"
@@ -272,8 +267,7 @@ struct FlatMarkImageLoadingTests {
             let bodyHeight = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: .body).height
             let enlargedHeight = fittedSize(of: linkedContent, width: flowColumnWidth, textSize: .enlarged).height
 
-            // This document really does take more room once text is enlarged, so the cases below cannot
-            // pass with both variants rendered at one effective size.
+            // iOS must enlarge the document; AppKit semantic fonts ignore the ambient override.
             #if os(iOS)
             #expect(enlargedHeight > bodyHeight)
             #else
@@ -282,12 +276,10 @@ struct FlatMarkImageLoadingTests {
             #endif
 
             for textSize in [MountedTextSize.body, .enlarged] {
-                // Read from the view's own drawing rather than from what the layout reported, so a line
-                // that ran past the column is caught whether or not the layout admitted it.
+                // Measure drawn pixels to catch overflow even when reported layout fits.
                 let drawn = try await waitForFlowInk(of: linkedContent, textSize: textSize)
 
-                // The whole drawing sat inside the capture, so the edges below are the drawing's own and
-                // not the border of the region it was read back from.
+                // Reject clipped captures before trusting the measured edges.
                 #expect(drawn.edgeInset > drawnGeometryTolerance)
                 #expect(
                     drawn.frame.minX >= flowCaptureInset - drawnGeometryTolerance,
@@ -316,8 +308,7 @@ struct FlatMarkImageLoadingTests {
             let content = imageContent(url: URL(string: "https://example.com/image.png"))
             let raster = try paintedFixtureRaster()
             let proposedWidth: CGFloat = 200
-            // A 2:1 raster offered 200 points of width can only be drawn 200x100 while keeping its
-            // shape, and it is far wider than the offer, so fitting it is the thing under test.
+            // The oversized 2:1 raster must fit the 200-point offer as 200x100.
             let expectedFittedSize = CGSize(
                 width: proposedWidth,
                 height: proposedWidth * fixtureRasterSize.height / fixtureRasterSize.width
@@ -334,17 +325,14 @@ struct FlatMarkImageLoadingTests {
             )
             .frame(width: proposedWidth, alignment: .leading))
 
-            // The capture is a fixed frame larger than any correctly fitted image, and not the size
-            // the hosting view would choose for itself: a container that shrinks to its own content
-            // clips an oversized image to exactly the geometry this test is looking for.
+            // A fixed, oversized capture exposes overflow that a content-sized host would clip.
             hostingView.sizingOptions = []
             hostingView.frame = CGRect(origin: .zero, size: fixtureCaptureSize)
 
             try await withTemporaryWindow(hosting: hostingView) {
                 await expectImageLoad(in: spy)
 
-                // Measured from the fixture's own drawn pixels, so these read the image itself rather
-                // than the space around it.
+                // Measure the raster's pixels, not its surrounding layout.
                 let drawn = try await waitForDrawn(.fixtureRaster, in: hostingView)
 
                 #expect(await spy.loadedURLs == [URL(string: "https://example.com/image.png")!])
@@ -358,8 +346,7 @@ struct FlatMarkImageLoadingTests {
                     abs(drawn.frame.height - expectedFittedSize.height) <= drawnGeometryTolerance,
                     "fitted height measured \(drawn.frame.height)pt, expected \(expectedFittedSize.height)pt"
                 )
-                // The whole raster sat inside the capture, so the edges above were the image's own
-                // and not the border of the region it was read back from.
+                // Reject clipping that would make an oversized raster appear fitted.
                 #expect(drawn.edgeInset > drawnGeometryTolerance)
             }
         }
@@ -408,7 +395,7 @@ struct FlatMarkImageLoadingTests {
             }
         }
 
-        /// The package lane checks throwing completion; ticket 06 observes the resulting failure state.
+        /// Checks throwing completion, not the drawn failure state.
         @Test
         func `generic loader error renders the failure state`() async throws {
             let spy = LoaderSpy()
@@ -436,7 +423,6 @@ struct FlatMarkImageLoadingTests {
                     }
                     await settleRendering()
                 }
-                // Ticket 06 verifies the resulting failure pixels with a real throwing loader.
                 #expect(await gate.didThrow)
                 #expect(await spy.loadedURLs == [URL(string: "https://example.com/image.png")!])
             }
@@ -620,13 +606,8 @@ private actor SuspensionGate {
         }
     }
 
-    /// Consumes one host loader invocation, whenever it arrived, then lets SwiftUI render what it
-    /// returned.
-    ///
-    /// Swift Testing owns the count: the loader confirms through ``LoaderSpy``, so a load that never
-    /// arrives is reported against this expectation rather than against a polling bound. The spy
-    /// retains an invocation that arrived while nothing was armed, so triggering the load and then
-    /// waiting for it is as valid as the other way round.
+    /// Consumes one loader invocation through ``LoaderSpy``, then settles rendering.
+    /// The spy retains early callbacks; Swift Testing reports missing ones.
     @MainActor
     private func expectImageLoad(in spy: LoaderSpy) async {
         await confirmation("the host loader is invoked", expectedCount: 1) { loaded in
@@ -661,12 +642,9 @@ private actor SuspensionGate {
 
     // MARK: - MountedTextSize
 
-    /// An effective mounted text size.
-    ///
-    /// macOS does not scale body text from `dynamicTypeSize` alone — the Recipe Lab fixture applies a
-    /// font-size override for the same reason — so a layout case that wants bigger text has to ask for
-    /// it. The Dynamic Type environment value is carried because the fixture carries one; the font size
-    /// is what changes the glyphs. Neither is system Dynamic Type or VoiceOver verification.
+    /// Effective text size driven by a font override, not system Dynamic Type.
+    /// macOS body text does not scale from `dynamicTypeSize` alone. The environment value matches
+    /// Recipe Lab; these checks do not verify system Dynamic Type or VoiceOver.
     private struct MountedTextSize {
         let name: String
         let dynamicTypeSize: DynamicTypeSize
@@ -690,7 +668,6 @@ private actor SuspensionGate {
     /// as oversized instead of being clipped into the size the test is looking for.
     private let fixtureCaptureSize = CGSize(width: 320, height: 240)
 
-    /// The column the flow cases offer their document.
     private let flowColumnWidth: CGFloat = 180
 
     /// The flow capture region: wider and taller than any correctly wrapped flow at the tested sizes, so
@@ -707,8 +684,7 @@ private actor SuspensionGate {
     /// placeholder symbols, a tinted link — is green-dominant.
     private let fixtureChannelThreshold: UInt8 = 128
 
-    /// How many settle passes to allow for drawn output to reach the screen before concluding it never
-    /// drew.
+    /// Bounds the wait for drawn output.
     private let drawnWaitAttempts = 50
 
     /// The allowance for geometry read out of pixels: a capture is only as fine as a device pixel,
@@ -765,8 +741,8 @@ private actor SuspensionGate {
         case contentNotDrawn(DrawnContent, attempts: Int)
     }
 
-    /// A real raster, painted rather than only sized: an `NSImage(size:)` with no representation
-    /// reports a size while drawing nothing, which is what let a collapsed image pass for a fitted one.
+    /// Paints a real raster. An `NSImage(size:)` without a representation draws nothing and could
+    /// let a collapsed image pass a fitting check.
     private func paintedFixtureRaster() throws -> NSImage {
         let bitmap = try #require(NSBitmapImageRep(
             bitmapDataPlanes: nil,
@@ -826,12 +802,8 @@ private actor SuspensionGate {
         throw MountedDrawingObservationError.contentNotDrawn(content, attempts: attempt)
     }
 
-    /// Mounts an inline flow at ``flowColumnWidth`` inside the wider ``flowInkCaptureSize`` and returns
-    /// where the view's own drawing landed.
-    ///
-    /// The capture is a fixed frame rather than the size the hosting view would choose for itself: a
-    /// container that shrinks to its own content clips a line that ran past the column into exactly the
-    /// shape a test looking for overflow would read as correct.
+    /// Measures drawn flow at ``flowColumnWidth`` inside the wider ``flowInkCaptureSize``.
+    /// The fixed capture exposes overflow that a content-sized host would clip.
     @MainActor
     private func waitForFlowInk(
         of content: FlatMarkRenderInlineContent,

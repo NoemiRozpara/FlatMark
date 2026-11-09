@@ -2,76 +2,71 @@
 
 [Usage and rendering policies](README.md) · [Testing](Tests/README.md)
 
-FlatMark uses swift-markdown to parse the GitHub Flavored Markdown (GFM) specification, then projects the parsed document into native SwiftUI views. This matrix covers every CommonMark block and inline construct plus GFM's table, task-list, strikethrough, extended-autolink, and disallowed-raw-HTML extensions.
+FlatMark parses GitHub Flavored Markdown with swift-markdown, then projects the parsed document into
+native SwiftUI views. This matrix covers every CommonMark block and inline construct plus GFM's table,
+task-list, strikethrough, extended-autolink, and disallowed-raw-HTML extensions.
 
-Status meanings:
+**Fully rendered** preserves Markdown meaning. **Rendered with documented policy** follows the Notes
+column. **Parsed but omitted** supplies structure or metadata without separate output. **Unsupported**
+is not projected as that construct. **Not applicable** describes source processing or GitHub-web behavior.
 
-- **Fully rendered:** projected as its Markdown meaning without an intentional loss of semantic content.
-- **Rendered with documented policy:** visible in the preview, with the policy in the Notes column.
-- **Parsed but omitted:** accepted because it supplies structure or metadata, but has no separate visible output.
-- **Unsupported:** not projected as that construct.
-- **Not applicable:** a source-processing or GitHub-web behavior, rather than a native-preview construct.
-
-Paragraphs, headings, list text, and table cells use noneditable, selectable `UITextView` controls
-on iOS or `NSTextView` on macOS, including inline image attachments. System semantic fonts resolve body and heading roles;
-table headers use bold body text. Explicit host native fonts and colors win per run. Fixed host
-fonts remain host-owned. iOS follows Dynamic Type; macOS uses AppKit's preferred sizes, not iOS
-scaling. Arbitrary ambient SwiftUI font, foreground style, and tint are not styling contracts.
-Selection may reset on content, styling, or measurement updates; cross-block selection is not
-promised.
-See [layout and selection limits](README.md#layout-and-selection-limits).
+Paragraphs, headings, list text, and table cells render in noneditable, selectable `UITextView`
+(iOS) or `NSTextView` (macOS), including inline image attachments and semantic system fonts. See
+[layout and selection limits](README.md#layout-and-selection-limits) for the authoritative typography,
+font-override, and selection contract.
 
 ### Block constructs
 
 | Construct | Status | Notes |
 | --- | --- | --- |
-| Paragraphs | Fully rendered | Native selectable text with inline image attachments; iOS uses `UITextView` and macOS uses `NSTextView`. |
-| ATX headings (`#`) | Fully rendered | Native heading text in a semantic level role (levels 1–3 title/title2/title3, 4–6 headline) with header accessibility trait. |
-| Setext headings (`===` / `---`) | Fully rendered | Parsed as the same heading node as ATX headings and given the same native treatment. |
+| Paragraphs | Fully rendered | Native selectable text with inline image attachments. |
+| ATX headings (`#`) | Fully rendered | Semantic heading role by level, with the header accessibility trait. |
+| Setext headings (`===` / `---`) | Fully rendered | Same heading node and treatment as ATX. |
 | Thematic breaks | Fully rendered | Native `Divider`. |
-| Indented code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; the source indentation is not reproduced. |
-| Fenced code blocks | Rendered with documented policy | Code is rendered in a monospaced native block; fence characters and the optional info string are omitted. |
-| HTML blocks | Rendered with documented policy | Inert literal text under `.literal`, using the parser's raw HTML unchanged with no diagnostic label; removed with its layout slot under `.omit`. Neither policy executes HTML or fetches HTML resources. |
-| Link reference definitions | Parsed but omitted | Definitions have no standalone output, but provide destinations for reference links. |
-| Blank lines | Parsed but omitted | They delimit block structure and have no native view of their own. |
+| Indented code blocks | Rendered with documented policy | Monospaced native block; source indentation is not reproduced. |
+| Fenced code blocks | Rendered with documented policy | Monospaced native block; fence characters and info string are omitted. |
+| HTML blocks | Rendered with documented policy | `.literal`: inert parser raw HTML, no diagnostic label. `.omit`: removed with its layout slot. `.custom`: same raw HTML handed to a host-owned native replacement. Only built-in policies guarantee no HTML execution or fetching. |
+| Link reference definitions | Parsed but omitted | No standalone output; they supply reference destinations. |
+| Blank lines | Parsed but omitted | They delimit block structure. |
 | Block quotes | Fully rendered | Nested native block list with a leading rule. |
-| List items | Fully rendered | Each item becomes a native row or an ordered child block within its list. |
-| Bullet lists | Fully rendered | Native rows preserve list nesting through indentation. |
-| Ordered lists, including start number | Fully rendered | Native rows retain their authored starting number. |
-| List items with continuation blocks | Fully rendered | Paragraphs, quotes, code blocks, and nested lists following an item remain ordered child content. |
-| Nested containers (quotes, lists, and blocks within list items) | Fully rendered | Containers are recursively projected; list rows use a flat rendering sequence with indentation. |
-| GFM tables | Rendered with documented policy | Header and body cells render in a horizontally scrollable native grid; cells use native attributed text and headers keep native emphasis. |
-| GFM table column alignment | Parsed but omitted | Alignment delimiters are parsed as table metadata but do not affect native cell alignment. |
-| GFM task-list items | Fully rendered | Checked and unchecked markers render as task rows; supplying `taskToggleAction` makes an addressable marker interactive, and an unaddressable task stays static content that keeps its state. |
+| List items | Fully rendered | Native row, or ordered child block within its list. |
+| Bullet lists | Fully rendered | Nesting preserved through indentation. |
+| Ordered lists, including start number | Fully rendered | Authored starting number retained. |
+| List items with continuation blocks | Fully rendered | Following paragraphs, quotes, code, and nested lists stay ordered child content. |
+| Nested containers | Fully rendered | Containers recurse; list rows use a flat sequence with indentation. |
+| GFM tables | Rendered with documented policy | Horizontally scrollable native grid; cells use native attributed text and headers keep native emphasis. |
+| GFM table column alignment | Parsed but omitted | Alignment delimiters are parsed but do not change native cell alignment. |
+| GFM task-list items | Fully rendered | Task rows; `taskToggleAction` makes an addressable marker interactive, and an unaddressable task stays static content that keeps its state. |
 
 ### Inline constructs
 
 | Construct | Status | Notes |
 | --- | --- | --- |
 | Text, including punctuation | Fully rendered | Native attributed text. |
-| Backslash escapes | Fully rendered | The parser resolves escapes before the text projection. |
-| Character references (named, decimal, hexadecimal) | Fully rendered | The parser resolves references before the text projection. |
-| Soft line breaks | Fully rendered | Projected as a newline in native text. |
-| Hard line breaks (two spaces or backslash) | Fully rendered | Projected as a newline in native text. |
-| Emphasis | Fully rendered | Native emphasized attributed run. |
-| Strong emphasis | Fully rendered | Native strongly emphasized attributed run. |
-| Nested emphasis and strong emphasis | Fully rendered | Both presentation intents are retained on the same run. |
-| GFM strikethrough | Fully rendered | Native strikethrough attributed run. |
-| Code spans | Fully rendered | Native code attributed run. |
-| Inline links | Rendered with documented policy | Link labels are native attributed text. Absolute destinations become tappable links; relative destinations do so when `baseURL` can resolve them. Titles are parsed but omitted. |
-| Full, collapsed, and shortcut reference links | Rendered with documented policy | Definitions resolve these forms; they use the same absolute-or-`baseURL` policy as inline links. |
-| CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links and use the same absolute-URL policy. |
-| GFM extended autolinks (`www.` and bare email forms) | Unsupported | The parser is not configured with GFM's extended-autolink extension, so these forms remain text rather than link nodes. |
-| Images | Rendered with documented policy | The network-free default is a native alt-text placeholder. Hosts can supply an async loader returning `UIImage` (iOS) or `NSImage` (macOS); relative sources use `baseURL`, and the image scheme policy is applied before loading. Loaded images use native attachments at intrinsic size or shrink proportionally to paragraph width. Other phases show a photo, static hourglass, or warning icon and policy-resolved label without reserving raster space. Cancellation is not failure, and titles are omitted. macOS exports meaningful descriptions and destination-first image-link names with phase wording. iOS attachment announcements may be generic; live speech remains platform-dependent. See [image accessibility limits](README.md#layout-and-selection-limits). |
-| Inline raw HTML | Rendered with documented policy | Inert literal source text under `.literal`, keeping enclosing Markdown styling and links; absent under `.omit`, with authored spaces and surrounding structure retained. Opening and closing tags are separate parser nodes, so omitting `<u>x</u>` retains supported `x`. See [unsupported content](README.md#unsupported-content) and [native typography](README.md#layout-and-selection-limits). |
+| Backslash escapes | Fully rendered | Resolved by the parser before projection. |
+| Character references | Fully rendered | Resolved by the parser before projection. |
+| Soft line breaks | Fully rendered | Newline in native text. |
+| Hard line breaks (two spaces or backslash) | Rendered with documented policy | Newline in native text; consecutive-break snapshots record current output, not qualified break semantics. See [coverage](Tests/README.md#coverage). |
+| Emphasis | Fully rendered | Native emphasized run. |
+| Strong emphasis | Fully rendered | Native strongly emphasized run. |
+| Nested emphasis and strong emphasis | Fully rendered | Both intents retained on the same run. |
+| GFM strikethrough | Fully rendered | Native strikethrough run. |
+| Code spans | Fully rendered | Native code run. |
+| Inline links | Rendered with documented policy | Labels are native attributed text; absolute destinations become tappable, relative ones when `baseURL` resolves them. Titles are parsed but omitted. |
+| Reference links (full, collapsed, shortcut) | Rendered with documented policy | Same absolute-or-`baseURL` policy as inline links. |
+| CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links with the same absolute-URL policy. |
+| GFM extended autolinks (`www.`, bare email) | Unsupported | The extension is not enabled, so these stay text. |
+| Images | Rendered with documented policy | Default is a network-free alt-text placeholder. Hosts supply an async loader returning `UIImage` or `NSImage`; relative sources use `baseURL`, and the image scheme policy applies before loading. Loaded images attach inline at intrinsic size or shrink to paragraph width; other phases show a photo, static hourglass, or warning icon with the policy-resolved label and no reserved raster space. Cancellation is not failure, and titles are omitted. macOS exports meaningful descriptions, destination-first image-link names, and phase wording; iOS attachment announcements can be generic. See [image accessibility limits](README.md#layout-and-selection-limits). |
+| Inline raw HTML | Rendered with documented policy | `.literal`: inert source text that keeps enclosing Markdown styling and links. `.omit`: absent, with authored spaces and surrounding structure retained. `.custom`: each parser node contributes host-returned attributed text beside supported neighbors, inheriting enclosing intents and links per run where the host omits them, with explicit host values (including an empty intent set) winning on its run. Replacement links use the existing host navigation path. Typography and font-attribute rules follow the [layout contract](README.md#layout-and-selection-limits). |
 
 ### Parsing and GitHub-web behaviors
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| LF, CRLF, and CR source line endings | Not applicable | They are normalized by Markdown parsing; line ending style is not a rendered construct or preserved source format. |
-| GFM disallowed-raw-HTML tag filtering | Not applicable | FlatMark does not create an HTML DOM. Raw HTML is shown literally or omitted according to `unsupportedContentPolicy`, and GitHub's own filtering is not reproduced. GitHub's tag filtering and sanitization are post-parse stages, not this native projection policy. |
-| GitHub sanitization and post-processing | Not applicable | FlatMark does not reproduce GitHub's repository-context links, issue/reference expansion, web UI, server-side transformations, or sanitization pipeline. |
-| Parsed node types without a native structural view | Rendered with documented policy | Under `.literal`: the exact source slice the parser addressed, else readable descendant text, else empty text. Under `.omit` the node is removed whole rather than re-presented through its descendants. Known containers recurse under both policies. |
+| LF, CRLF, and CR line endings | Not applicable | Parsing normalizes rendered breaks; the retained source and task-toggle output preserve original line endings. |
+| GFM disallowed-raw-HTML tag filtering | Not applicable | FlatMark builds no HTML DOM. Raw HTML is literal or omitted per `unsupportedContentPolicy`, and GitHub's filtering is not reproduced. Custom output is host-owned and may interpret its input. |
+| GitHub sanitization and post-processing | Not applicable | No repository-context links, issue or reference expansion, web UI, server-side transforms, or sanitization pipeline. |
+| Parsed nodes with no native structural view | Rendered with documented policy | `.literal`: the exact source slice the parser addressed, else readable descendant text, else empty text. `.omit`: the node is removed whole, not re-presented through descendants. `.custom`: that same string, including `""`, reaches a native replacement with no literal fallback. Known containers recurse under every policy. |
 
-No construct in this matrix is silently omitted: any omission is identified above as metadata, source normalization, or an explicit rendering policy.
+These statuses describe projection, not verified pixels or live accessibility; see
+[verification limits](Tests/README.md#verification-status).

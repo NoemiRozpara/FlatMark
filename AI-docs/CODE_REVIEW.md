@@ -4,18 +4,17 @@ For Swift and Apple-platform code review:
 
 - Start with the installed `swift-code-review` skill as the primary reviewer.
 - Review only; do not modify code unless explicitly asked to fix findings.
-- Prefer concrete correctness, regression, lifecycle, public-contract, and behavioral findings over style or subjective architecture comments.
-- Ground findings in reachable behavior and affected code. Distinguish demonstrated failures from unresolved risks.
-- Write findings under [Write plainly](../AGENTS.md#write-plainly): state the failure first, then evidence and impact in short sentences.
+- Prioritize correctness, regressions, lifecycle, contracts, and behavior over style or subjective architecture.
+- Ground findings in reachable code; distinguish demonstrated failures from unresolved risks.
+- Follow [Write plainly](../AGENTS.md#write-plainly): failure first, then evidence and impact.
 
 ## Specialist selection
 
-- Use `swift-concurrency-expert` when concurrency is materially involved, including actor isolation, Sendable, tasks, async/await, cancellation, callbacks crossing isolation boundaries, or data-race concerns.
-- Use `swiftui-pro` when SwiftUI-specific behavior is materially involved, especially state/observation, identity, accessibility, layout, interaction, animation, or rendering performance.
-- Do not run escalation skills merely because a file imports SwiftUI or uses async/await. Escalate when that area is relevant to the risk being reviewed.
-- UIKit/AppKit-only changes normally need only `swift-code-review`.
+- Add `swift-concurrency-expert` for material isolation, Sendable, task, cancellation, cross-isolation callback, or data-race risks.
+- Add `swiftui-pro` for material state/observation, identity, accessibility, layout, interaction, animation, or rendering-performance risks.
+- Imports or async/await alone do not justify escalation. UIKit/AppKit-only changes normally need only `swift-code-review`.
 
-Read a selected skill's instructions before applying it. When multiple skills are used, reconcile overlapping findings into one report rather than reporting the same issue several times.
+Read selected skills before use. Reconcile overlapping findings into one report.
 
 ## FlatMark review priorities
 

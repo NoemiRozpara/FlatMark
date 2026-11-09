@@ -3,29 +3,16 @@ import Testing
 
 // MARK: - LoaderSpy
 
-/// Records what the host loader was asked to do, and lets a test suspend until the callback it is
-/// about to trigger has arrived.
+/// Records loader callbacks and waits for them with Swift Testing confirmations.
+/// Missing callbacks fail their confirmation when the wait reaches its deadline.
 ///
-/// The waiting is event-driven and the counting is Swift Testing's: a test arms an expectation with
-/// a ``Confirmation``, the matching callback confirms it, and the waiter returns the moment it
-/// arrives. A confirmation that never arrives is therefore reported by Swift Testing as falling
-/// short, rather than by a polling bound here.
+/// Each callback remains available until one expectation of its kind consumes it, even if it
+/// arrives before arming. ``unconsumedLoadCount`` and ``unconsumedCancellationCount`` expose this.
 ///
-/// The contract with a test is that a callback is never lost, so the order of the two sides does not
-/// matter: a recorded callback is retained until an expectation of its own kind consumes it, which
-/// means a test may trigger the loader and arm afterwards, or arm and let the callback arrive
-/// whenever it does. Consuming is what removes a callback, so one callback satisfies exactly one
-/// expectation, a callback recorded while nothing was armed still satisfies the expectation armed for
-/// it later, and no callback is attributed to nothing. ``unconsumedLoadCount`` and
-/// ``unconsumedCancellationCount`` make that retention observable.
-///
-/// An expectation belongs to the wait that armed it. Once that wait ends at its deadline, the spy
-/// stops expecting the callback that did not come, so a negative check can arm, wait, and then arm
-/// again, and a later arm never quietly replaces an expectation somebody is still waiting on.
+/// Only the owning wait can release an expectation. A deadline clears an unmet expectation so
+/// another can be armed; arming over an active expectation reports misuse.
 actor LoaderSpy {
-    /// The comment this harness records when a test arms a second expectation while an earlier one is
-    /// still waiting to be consumed, whose confirmation can then never arrive. Its focused check
-    /// matches on this text.
+    /// Diagnostic for arming over an active expectation. The focused test matches this text.
     static let droppedExpectationComment =
         "Armed a second image loader expectation while an earlier one was still waiting to be confirmed."
 
@@ -97,10 +84,7 @@ actor LoaderSpy {
             }
         }
 
-        // A wait that ran out its own deadline while still unmet will not be met: the confirmation is
-        // reported by Swift Testing as falling short, and the callback cannot arrive to a wait that
-        // has ended. So stop expecting it. The callback itself stays recorded and unconsumed, which
-        // is what a count assertion in the test reads.
+        // Clear only this wait's unmet expectation. Keep recorded callbacks for count assertions.
         if releasedByDeadline, expectation?.generation == armedGeneration {
             expectation = nil
         }
@@ -141,9 +125,7 @@ actor LoaderSpy {
         confirmArmedExpectation()
     }
 
-    /// Satisfies the armed expectation with one callback of its own kind, if one is waiting, and
-    /// consumes only that one. A callback of another kind is left untouched, and a callback recorded
-    /// while nothing was armed is still here for the expectation armed for it later.
+    /// Consumes one matching callback for the armed expectation. Other callbacks remain available.
     private func confirmArmedExpectation() {
         guard let expectation else {
             return

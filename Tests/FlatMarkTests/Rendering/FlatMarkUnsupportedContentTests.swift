@@ -5,13 +5,9 @@ import Testing
 
 // MARK: - FlatMarkUnsupportedContentTests
 
-/// The default literal behavior for content the parser reports as unsupported.
-///
-/// Most checks here read projection values: the blocks and spans the projector produces for one
-/// snapshot. Two exceptions state what they observe: one builds the native inline element list a
-/// text view would display, and one constructs every `FlatMarkView` initializer to keep the API
-/// source-compatible. No check in this suite mounts a view, so none of them says what a screen
-/// showed.
+/// Checks default literal behavior through projection values and native inline elements.
+/// Initializer constructions check source compatibility. No test here mounts a view or verifies
+/// screen output.
 struct FlatMarkUnsupportedContentTests {
     @Test
     func `keeps each inline HTML tag distinct and styled inside strong emphasis`() throws {

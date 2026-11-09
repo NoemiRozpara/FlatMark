@@ -8,12 +8,9 @@ private let flatMarkListIndentationSpacing: CGFloat = 8
 private extension View {
     /// Indents nested list content inward and reserves that space from the offered width.
     ///
-    /// Padding rather than an alignment-guide offset keeps the content inside the reading column:
-    /// the proposal the content receives shrinks by the indentation, so wrapped wording, quote
-    /// rules, and code backgrounds end at the far column edge instead of drawing past it. The
-    /// `leading` edge follows the layout direction, so a right-to-left list indents from the right.
-    /// A continuation block is projected one level below its own row, so a caller may pass a level
-    /// of zero; it clamps instead of letting a negative indent draw outward.
+    /// Padding shrinks the proposed width so content stays inside the reading column.
+    /// Leading padding follows the layout direction. Clamp at zero because continuation
+    /// blocks are projected one level below their row and callers may pass zero.
     func markdownListIndentation(_ indentation: Int, spacing: CGFloat) -> some View {
         padding(.leading, CGFloat(max(indentation, 0)) * spacing)
     }
@@ -73,15 +70,11 @@ struct FlatMarkListRowView: View {
     let row: FlatMarkListRenderRow
     let context: FlatMarkRenderContext
 
-    /// The change this row's checkbox performs, or `nil` when the row is static content.
+    /// The checkbox action, or `nil` without both an editing address and a host callback.
+    /// Static tasks still show their checked state.
     ///
-    /// A task is interactive only when it has both a typed editing address and a host callback.
-    /// Without either one the row keeps showing its checked state and offers no mutation, so the
-    /// callback cannot be invoked for a marker that cannot be addressed safely.
-    ///
-    /// Handing an unaddressable task a callback is a renderer bug rather than a host choice:
-    /// Markdown projected from a string always gives a task marker its address, so a `nil`
-    /// address here means a render value was built without one. The debug build says so.
+    /// String projection supplies task addresses. An unaddressable task with a callback
+    /// indicates an invalid render value and triggers a debug assertion.
     var taskToggleAction: (() -> Void)? {
         guard case let .task(_, sourceRange) = row.marker else {
             return nil

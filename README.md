@@ -1,7 +1,7 @@
 # FlatMark
 
-A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS 14+,
-with optional interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftlang/swift-markdown).
+A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS 14+, with optional
+interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftlang/swift-markdown).
 
 [Markdown support](SUPPORT.md) · [Demo](Demo/README.md) · [Testing and playground](Tests/README.md) · [Benchmarks](Benchmarks/README.md)
 
@@ -13,15 +13,11 @@ with optional interactive task lists. Parsing uses [swift-markdown](https://gith
 
 ## Demo
 
-After cloning the repository, open [Demo/FlatMarkDemo.xcodeproj](Demo/FlatMarkDemo.xcodeproj),
-select **FlatMarkDemo-iOS** (an iOS simulator) or **FlatMarkDemo-macOS** (My Mac), and press Run.
-
-See [demo setup](Demo/README.md) for capture presets and device-signing instructions.
-The demo and shared fixtures are not built or embedded when consuming the `FlatMark` package product.
+Open [Demo/FlatMarkDemo.xcodeproj](Demo/FlatMarkDemo.xcodeproj), select **FlatMarkDemo-iOS** or
+**FlatMarkDemo-macOS**, and Run. See [demo setup](Demo/README.md) for signing and capture presets.
+The demo and shared fixtures are not built or embedded in the `FlatMark` package product.
 
 ## Usage
-
-Add the FlatMark package to the project and import the library:
 
 ```swift
 import FlatMark
@@ -38,34 +34,28 @@ struct MarkdownPreview: View {
 
 ### Interactive tasks
 
-Provide `taskToggleAction` to receive the complete updated source. The host owns persistence:
+`taskToggleAction` receives the complete updated source. The host owns persistence:
 
 ```swift
-struct InteractivePreview: View {
-    @State private var markdown = "- [ ] Review the pull request"
-
-    var body: some View {
-        FlatMarkView(
-            markdown: markdown,
-            taskToggleAction: { markdown = $0 }
-        )
-    }
-}
+FlatMarkView(
+    markdown: markdown,
+    taskToggleAction: { markdown = $0 }
+)
 ```
 
-Only the selected marker's state byte changes (`[ ]` ↔ `[x]`, lowercase `x`); all other bytes,
-including Unicode and line endings, are preserved. Editing addresses belong to the rendered
-snapshot, not a newer host string. Hosts that defer accepting callback results must prevent an
-older result from overwriting newer content. Tasks without a parser-provided editing address
-remain static and never invoke the callback.
+Only the tapped marker's state byte changes (`[ ]` ↔ `[x]`, lowercase `x`); every other byte,
+including Unicode and line endings, is preserved. Editing addresses belong to the rendered snapshot,
+not to a newer host string, and task updates always derive from that snapshot's source. A host that
+defers accepting a callback result must stop an older result from overwriting newer content. Tasks
+without a parser-provided address stay static and never invoke the callback.
 
-Without a callback, tasks expose their label, state, and nesting level as static accessible content.
-Addressable interactive tasks expose a native toggle action; inherited `.disabled(...)` disables
-editing. Live VoiceOver and keyboard behavior still require platform verification.
+Without a callback, tasks expose label, state, and nesting level as static accessible content.
+Addressable tasks expose a native toggle action, and inherited `.disabled(...)` disables editing.
+Live VoiceOver and keyboard behavior still need platform verification.
 
 ### Custom task markers
 
-Both view initializers accept a passive checked-state drawing:
+Both initializers accept a passive checked-state drawing:
 
 ```swift
 FlatMarkView(
@@ -78,13 +68,13 @@ FlatMarkView(
 )
 ```
 
-Do not add a button, toggle, or gesture to the drawing. FlatMark owns interaction, hit testing,
-and accessibility; the marker is not a separate accessibility element. Custom markers apply to
+Do not add a button, toggle, or gesture to the drawing: FlatMark owns interaction, hit testing, and
+accessibility, and the marker is not a separate accessibility element. Custom markers apply to
 interactive, read-only, and nested tasks. The default square marker is shared across platforms.
 
 ## Reusing a document
 
-`FlatMarkView(markdown:)` constructs a document on each initialization. Retain a snapshot to avoid
+`FlatMarkView(markdown:)` constructs a document on each initialization. Retain a snapshot to skip
 repeated parsing and projection:
 
 ```swift
@@ -96,37 +86,33 @@ let document = FlatMarkDocument(
 FlatMarkView(document: document)
 ```
 
-Construct a new document when the source or `baseURL` changes. Equality compares
-those inputs. Image loading, unsupported-content policy, link/task callbacks, and marker appearance
-remain render-time settings and can change without reparsing. Task updates always use
-`document.markdown`, keeping source coordinates paired with their snapshot.
+Construction inputs are the source and `baseURL`; build a new document when either changes, and
+equality compares those inputs. Image loading, unsupported-content policy, link and task callbacks,
+and marker appearance are render-time settings that can change without reparsing. Construction is
+synchronous and can be expensive for large documents; see the
+[benchmarks](Benchmarks/README.md). Retained reuse avoids construction, not layout or rendering.
 
-Construction is synchronous and can be expensive for large documents. See the
-[desktop and physical-device benchmarks](Benchmarks/README.md); retained reuse avoids construction,
-not layout or rendering.
-
-Lexical `@username` mentions always render in bold without links or actions. Detection scans each
-Markdown text node independently and excludes code, link labels, and image descriptions. Handles
-use ASCII letters, digits, and underscores, with optional internal dots or hyphens. No user lookup
-is performed.
+Lexical `@username` mentions always render in bold, with no links or actions. Detection scans each
+Markdown text node independently and excludes code, link labels, and image descriptions. Handles use
+ASCII letters, digits, and underscores, with optional internal dots or hyphens. No user lookup happens.
 
 ## Links and document bases
 
-Foundation resolves parsed destinations against `baseURL`, preserving file/directory semantics.
-For example, `intro` resolves under `/docs/` with a base ending in `/docs/page`, but under
-`/docs/page/` with a base ending in `/docs/page/`. Network-path references can change hosts.
-Destinations are not manually decoded or re-encoded.
+Foundation resolves parsed destinations against `baseURL`, preserving file and directory semantics.
+For example, `intro` resolves under `/docs/` when the base ends in `/docs/page`, but under
+`/docs/page/` when the base ends in `/docs/page/`. Destinations are not manually decoded or
+re-encoded, and network-path references can change hosts.
 
-Only nonempty, resolved absolute URLs are actionable. Empty, invalid, or unresolved destinations
-retain their labels and formatting without navigation semantics. This applies to inline/reference
-links, supported autolinks, linked images, tables, and nested blocks.
+Only nonempty, resolved absolute URLs are actionable. Empty, invalid, or unresolved destinations keep
+their labels and formatting without navigation semantics, for inline and reference links, supported
+autolinks, linked images, tables, and nested blocks.
 
-Navigation has **no scheme allowlist or same-origin restriction**. HTTP(S), `mailto`, file, and
-custom schemes can reach the inherited SwiftUI `openURL` action. Rendering never opens URLs;
-activation attempts opening without guaranteeing success or providing fallback UI. Fragment links
-open normally rather than scrolling inside the document.
+There is **no scheme allowlist or same-origin restriction**. HTTP(S), `mailto`, file, and custom schemes
+can reach the inherited SwiftUI `openURL` action. Rendering never opens a URL; activation attempts to open,
+with no guarantee of success and no fallback UI. Fragment links open normally rather than scrolling inside
+the document.
 
-Use a synchronous callback to route or reject activation:
+Route or reject activation with a synchronous callback:
 
 ```swift
 FlatMarkView(
@@ -138,51 +124,50 @@ FlatMarkView(
 )
 ```
 
-- `.handled`: the host handled the URL; no default opening follows.
-- `.rejected`: no opening or fallback UI.
+- `.handled`: the host took the URL; no default opening follows.
+- `.rejected`: no opening and no fallback UI.
 - `.useDefaultOpening`: delegate once to the inherited `openURL` action.
 
-The callback runs only on activation, not during projection or rendering. Rejected links can still
-appear actionable before activation. Navigation permission is independent of image-fetching policy.
+The callback runs on activation only, never during projection or rendering. A rejected link can still
+look actionable before activation. Navigation permission is independent of image-fetching policy.
 
 ## Images
 
-By default, images are network-free alt-text placeholders (`Image` when alt text is empty).
-Provide an asynchronous loader that returns a native image: `UIImage` on iOS, `NSImage` on macOS
-(`NativeImage`).
+By default, images are network-free alt-text placeholders (`Image` when alt text is empty). Provide an
+async loader that returns a native image — `UIImage` on iOS, `NSImage` on macOS (`NativeImage`):
 
 ```swift
 let loaderID = UUID() // Retain this ID while the loader configuration is unchanged.
 let loader = FlatMarkImageLoader(configurationID: loaderID) { url in
-    try await imageService.image(for: url) // UIImage on iOS, NSImage on macOS.
+    try await imageService.image(for: url)
 }
 
 FlatMarkView(markdown: markdown, imageLoader: loader)
 ```
 
 The host owns fetching, decoding, authentication, and caching. FlatMark draws the returned image at
-its intrinsic size and scales larger images down to the paragraph's proposed width. FlatMark also
-manages loading, success, failure, and cancellation states. Change the configuration ID only when
-requests should restart.
+its intrinsic size, scales larger images down to the paragraph's proposed width, and manages loading,
+success, failure, and cancellation. Change the configuration ID only when requests should restart.
 
-Relative image sources use `baseURL`. The default `FlatMarkImageURLPolicy.webOnly` permits only
-HTTP(S); custom policies can allow other schemes. Rejected or unresolved sources never reach the
-loader. Allowing a linked image to navigate does not authorize fetching its image source.
+Relative image sources use `baseURL`. The default `FlatMarkImageURLPolicy.webOnly` permits HTTP(S)
+only; custom policies can allow other schemes. Rejected or unresolved sources never reach the loader,
+and allowing a linked image to navigate does not authorize fetching its source.
 
 ## Unsupported content
 
-Raw HTML and other nodes without a native renderer follow `unsupportedContentPolicy`:
+Raw HTML and other nodes with no native renderer follow `unsupportedContentPolicy`:
 
 | Policy | Behavior |
 | --- | --- |
 | `.literal` (default) | Inert source text; HTML uses parser-provided raw HTML |
-| `.omit` | Remove unsupported nodes and recursively emptied paragraphs, headings, and blockquotes |
+| `.omit` | Removes unsupported nodes, plus paragraphs, headings, and blockquotes the removal empties |
+| `.custom` | Replaces each unsupported node with attributed text, with an optional native block-view override |
 
-Omission follows parser nodes, not HTML element boundaries: `before <u>important</u> after`
-retains `important`, while a whole HTML block may disappear. Authored spaces, supported structures,
-and pre-existing empty constructs remain. Image descriptions follow the same text policy.
-Switching policies preserves surviving node IDs, task addresses, and unaffected image-loading state;
-state inside views that omission removes is not preserved.
+Omission follows parser nodes, not HTML element boundaries: `before <u>important</u> after` keeps
+`important`, while a whole HTML block can disappear. Authored spaces, supported structures, and
+pre-existing empty constructs remain. Image descriptions follow the same text policy. Switching
+policies preserves surviving node IDs, task addresses, and unaffected image-loading state; state
+inside removed views is not preserved.
 
 ```swift
 FlatMarkView(
@@ -191,50 +176,69 @@ FlatMarkView(
 )
 ```
 
-Under `.literal` the renderer prints what the parser reported: raw HTML for an HTML node, otherwise
-the original source slice the parser addressed, readable descendants, or an empty string. Opening
-and closing tags are separate nodes, not paired elements. Known containers recurse; escaped tags,
-code, and ordinary text stay supported.
+The inline closure is required and returns `AttributedString`; for text-only replacements use
+`.custom { source in AttributedString(source) }`. Inline nodes always use it. Block nodes use the
+optional block override when supplied, and otherwise render the inline output as native text. Both
+closures receive the same extracted source as `.literal`: raw HTML, otherwise a valid original source
+slice, readable descendants, or `""`. Empty extraction still reaches the selected closure. Opening and
+closing tags are separate nodes, not paired elements. Known containers recurse; escaped tags, code, and
+ordinary text invoke neither closure.
 
-Literal runs compose with their supported neighbors in the same paragraph. They carry the enclosing
-Markdown presentation intents and links, and contribute their wording to paragraph accessibility
-text.
+Replacements keep their structural position and ambient environment, and FlatMark adds no literal
+fallback or minimum-size box. Block controls stay independently actionable beside tasks and supported
+links. For inline replacements:
 
-Neither policy executes HTML or fetches HTML resources. FlatMark is not an HTML sanitizer.
+- They compose with supported neighbors as native text and contribute their wording to paragraph
+  accessibility text.
+- They use semantic UIKit or AppKit typography for the role — paragraph, heading, list text, or table
+  cell — and keep explicit native font and color attributes per run. SwiftUI `Font` attributes use
+  semantic native typography instead, and host-supplied fixed fonts stay host-owned.
+- Each run inherits enclosing Markdown presentation intents and links when the host omits them. An
+  explicit host intent replaces the enclosing intent, including an empty intent set that suppresses
+  inheritance. A host link overrides the enclosing destination on its run; a missing link inherits it.
+- Replacement links use the same `linkActivationAction` and inherited `openURL` path as supported links.
+
+Empty attributed output and block overrides returning `AnyView(EmptyView())` do not imply recursive
+omission: parent spacing may remain. No spaces are synthesized. These are presentation closures;
+invocation counts are not lifecycle guarantees.
+
+Built-in policies never execute HTML or fetch HTML resources. **Custom output is host-owned**,
+including interpretation, sanitization, navigation, and resource access. FlatMark is not an HTML
+sanitizer.
 
 ## Layout and selection limits
+Paragraphs, headings, list text, and table cells compose supported and custom text in a noneditable,
+selectable `UITextView` on iOS or `NSTextView` on macOS.
 
-Paragraphs, headings, list text, and table cells compose supported text and literal unsupported text
-in a noneditable, selectable `UITextView` on iOS or `NSTextView` on macOS. Each uses system-preferred
-semantic typography for its role — body, heading level 1–3 (title/title2/title3), heading level 4–6
-(headline), or bold table header — with no fixed point size. Inline emphasis, strong text, mentions,
-and inline code derive their traits from the resolved role font. Explicit native font and color
-attributes are preserved per run; SwiftUI `Font` attributes use semantic native typography instead.
-Each measures finite positive width proposals without a fixed reading width. Other proposals use native
-sizing behavior. Content, typography, and direction changes refresh layout. Paragraph writing
-direction and leading/trailing alignment remain separate. iOS responds to Dynamic Type; macOS
-uses AppKit's preferred semantic fonts without iOS scaling. Ambient SwiftUI font, foreground style,
-and tint are not styling contracts for this path. Selection may reset on any update, including
-styling and measurement. Selection preservation and cross-block selection are not promised.
+- Each uses system-preferred semantic typography for its role — body, heading 1–3
+  (title/title2/title3), heading 4–6 (headline), or bold table header — with no fixed point size.
+  Inline emphasis, strong text, mentions, and inline code derive their traits from the resolved role
+  font.
+- Each measures at every finite positive offered width, with no fixed reading width; other proposals
+  use native sizing behavior. Content, typography, and direction changes refresh layout.
+- Paragraph writing direction and leading/trailing alignment stay separate.
+- iOS responds to Dynamic Type; macOS uses AppKit's preferred semantic fonts without iOS scaling.
+  Ambient SwiftUI font, foreground style, and tint are not styling contracts for this path.
+- Selection may reset on any update, including styling and measurement. Selection preservation and
+  cross-block selection are not promised.
 
-On both platforms, images share native attributed storage with surrounding text. Loaded images use inline
-attachments at intrinsic size, shrinking proportionally to the paragraph width. Other phases use
-an inline photo, static hourglass, or warning icon with the policy-resolved label.
-Long non-success labels wrap without a reserved raster box; empty alt text uses `Image`.
-iOS keeps native attachment accessibility. On macOS, FlatMark supplies policy-resolved image
-descriptions and phase wording in the paragraph label. It replaces native image-link children
-with destination-first link names while preserving ordinary native links. Image-link actions use
-the current native delegate and the existing host navigation path. Actual VoiceOver speech and
-focus behavior still require running-platform qualification; exported names are not live speech evidence.
-Generic attachment announcements remain an iOS limitation.
+On both platforms, images share native attributed storage with surrounding text. Loaded images use
+inline attachments at intrinsic size, shrinking proportionally to the paragraph width; other phases use
+an inline photo, static hourglass, or warning icon with the policy-resolved label. Long non-success
+labels wrap without a reserved raster box, and empty alt text uses `Image`. iOS keeps native attachment
+accessibility. macOS supplies policy-resolved descriptions and phase wording in the paragraph label,
+and destination-first image-link names while preserving ordinary native links. Image-link actions use
+the same host navigation path. Live VoiceOver speech and focus behavior still need running-platform
+qualification, and exported names are not live speech evidence. Generic attachment announcements remain
+an iOS limitation.
 
-Tables scroll horizontally; parsed column alignment does not change native cell alignment.
+Tables scroll horizontally, and parsed column alignment does not change native cell alignment.
 
 See the [support matrix](SUPPORT.md) for construct-specific behavior and the
-[runtime guide](Tests/README.md) for verification limits.
+[testing guide](Tests/README.md) for verification limits.
 
 ## Scope
 
-FlatMark is a preview renderer, not a Markdown editor, general serializer, browser, HTML sanitizer,
-or GitHub web clone. Its only source mutation is an interacted task marker. Repository-context links,
-issue expansion, server-side transformations, and other GitHub-specific post-processing are out of scope.
+FlatMark is a preview renderer, not a Markdown editor, general serializer, browser, HTML sanitizer, or
+GitHub web clone. Its only source mutation is an interacted task marker. Repository-context links, issue
+expansion, server-side transformations, and other GitHub-specific post-processing are out of scope.

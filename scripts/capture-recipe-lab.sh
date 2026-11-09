@@ -7,14 +7,10 @@
 #
 # Width is driven on the running app instead of being baked into one fixed viewport.
 #
-#   macOS  The recipe sets no column cap on macOS, so window width is what drives text layout.
-#          Width is set through System Events and verified against the window server. Resizing only
-#          works because FlatMark measures zero-width proposals correctly
-#          (FlatMarkAppKitParagraphText.sizeThatFits): a zero proposal used to fall through to
-#          .greatestFiniteMagnitude, which made the window ~10,000,000 points wide and unsortable.
-#          If that regresses, no amount of harness code can fix it; check there first. The window is
-#          moved to a fixed origin first so captures are reproducible and never partly off-screen.
-#          The size that actually applied is read back from the window server, never assumed.
+#   macOS  Window width drives the uncapped recipe column. System Events resizes the window;
+#          the window server verifies the applied size. A fixed origin keeps captures on-screen.
+#          If resizing fails, check FlatMarkAppKitParagraphText.sizeThatFits: zero-width proposals
+#          must not fall through to .greatestFiniteMagnitude.
 #   iOS    Uses devicectl resizable app sessions (Xcode 27+) to sweep scene geometry. The recipe
 #          pins a 240-point reading column on iOS, so these captures exercise the host container
 #          and chrome at each width rather than a reflowed reading column. On Xcode 26 there are
@@ -37,8 +33,7 @@ case "$PLATFORM" in
   *) echo "Use ios or macos" >&2; exit 1 ;;
 esac
 
-# The previous script pinned macOS to one 850 x 1040 window. 850 stays in the default sweep so
-# older references stay comparable; the other widths are what establish responsive behaviour.
+# Keep 850 points for comparison with older references; other widths exercise responsive layout.
 MACOS_WIDTHS="${MACOS_WIDTHS:-480x900 850x1040 1200x900}"
 IOS_WIDTHS="${IOS_WIDTHS:-320x700 390x844 430x932 430x1280}"
 SEED_SIZE=390x844     # geometry an iOS session starts at, used to calibrate the capture scale
@@ -269,18 +264,14 @@ APPLESCRIPT
         continue
       fi
       IFS=$'\t' read -r wid pw ph scale cgw cgh <<< "$geom"
-      # Read back the width the window actually got. A width AppKit overrode is a finding, not a
-      # silent pass: labelling such a capture exact would hand a reader a fixed viewport and let it
-      # be reported as responsive-layout evidence.
+      # Read back the applied width. An overridden width is not exact responsive-layout evidence.
       if [ "$pw" = "$want_w" ] && [ "$ph" = "$want_h" ]; then
         note=exact
       else
         note="rejected: window became ${pw}x${ph}"
         rejected=$((rejected + 1))
       fi
-      # Three scroll positions. The initial viewport cannot reach the tasks, task markers, or
-      # HTML-policy content, which is how hostMarkers and readOnly came out byte-identical to
-      # daylight. Home, two pages down, then End.
+      # Capture Home, two pages down, and End to include tasks, markers, and HTML-policy content.
       for scroll in top middle end; do
         case "$scroll" in
           top) send_keys 115 1 ;;     # Home

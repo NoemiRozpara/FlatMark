@@ -1,25 +1,17 @@
 // MARK: - FlatMarkRenderContext
 
-/// The host-provided authorities one rendering pass carries from the document view down
-/// through blocks, lists, and inline content.
+/// Host settings and callbacks shared by blocks, lists, and inline content.
 ///
-/// Bundles what the renderer needs rather than what each view wants: image loading, the URL
-/// scheme policy applied before that loader runs, what to do with content that has no native
-/// view, and the task-marker toggle. The image fields are read by inline content and tables;
-/// `unsupportedContentPolicy` is read wherever an unsupported node appears; `taskToggleAction`
-/// is read only by task rows, so a `nil` action renders tasks as static content, and a task with
-/// no editing address is static content even when this action exists. Handing the second row a
-/// callback is a renderer bug rather than a host choice, and a development build asserts on it.
+/// Tasks stay static without both an editing address and a callback. Supplying a callback
+/// for an unaddressable task is a renderer bug and triggers a debug assertion.
 ///
-/// The context is not `Sendable`, and that is deliberate. Its `taskToggleAction` forwards to the
-/// plain `(String) -> Void` closure supplied to ``FlatMarkView``. Making this type `Sendable`
-/// would require that parameter to become `@Sendable`, a breaking change for
-/// callers that capture non-`Sendable` state. If a call site ever needs an isolated context,
-/// change the public signature first; `readOnly` can then return to being a `static let`.
+/// This type is not `Sendable`: its task callback forwards to FlatMarkView's plain
+/// `(String) -> Void` closure. Requiring `@Sendable` would break callers that capture
+/// non-`Sendable` state.
 struct FlatMarkRenderContext {
     /// A read-only pass: static placeholder images, web-only schemes, and no task mutation.
     ///
-    /// Computed rather than `static let` for the same non-`Sendable` reason described above.
+    /// Computed to avoid sharing a non-`Sendable` value.
     static var readOnly: Self {
         Self()
     }

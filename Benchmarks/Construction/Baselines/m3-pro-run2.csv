@@ -1,33 +1,28 @@
 FlatMark construction benchmark: Release required; 5 warmups; 30 samples; ms; no SwiftUI rendering
 fixture,scenario,samples,median_ms,p95_ms,min_ms
 # ordinary: 1 section; UTF8=172
-ordinary,initial,30,0.071209,0.076333,0.066667
-ordinary,source-change,30,0.069125,0.072334,0.068625
-ordinary,baseURL-change,30,0.061458,0.071166,0.060166
-ordinary,mentions-change,30,0.411500,0.481958,0.394625
-ordinary,retained-copy-per-value,30,0.000014,0.000015,0.000013
+ordinary,initial,30,0.409958,0.452333,0.400375
+ordinary,source-change,30,0.450500,0.483209,0.443083
+ordinary,baseURL-change,30,0.398084,0.470083,0.383333
+ordinary,retained-copy-per-value,30,0.000016,0.000017,0.000014
 # large-100: 100 sections; UTF8=17200
-large-100,initial,30,4.763042,4.881042,4.710084
-large-100,source-change,30,4.753458,4.843125,4.699417
-large-100,baseURL-change,30,4.764500,4.828458,4.729625
-large-100,mentions-change,30,38.556708,38.910792,36.741417
-large-100,retained-copy-per-value,30,0.000014,0.000015,0.000014
+large-100,initial,30,38.244041,39.525291,37.175958
+large-100,source-change,30,37.389750,37.931333,37.146875
+large-100,baseURL-change,30,40.556083,43.876667,37.195834
+large-100,retained-copy-per-value,30,0.000016,0.000017,0.000014
 # large-1000: 1000 sections; UTF8=172000
-large-1000,initial,30,47.679500,48.025584,46.626916
-large-1000,source-change,30,47.669458,48.310334,46.573167
-large-1000,baseURL-change,30,47.773917,48.278958,46.635292
-large-1000,mentions-change,30,383.224375,385.485875,375.094042
-large-1000,retained-copy-per-value,30,0.000014,0.000014,0.000014
+large-1000,initial,30,387.431209,437.857666,375.512542
+large-1000,source-change,30,390.288042,429.608542,372.976167
+large-1000,baseURL-change,30,390.994500,448.509750,375.432042
+large-1000,retained-copy-per-value,30,0.000016,0.000024,0.000014
 # nested: 32 quote levels + 32 list levels; UTF8=1416
-nested,initial,30,0.307667,0.311500,0.307125
-nested,source-change,30,0.312250,0.328125,0.311083
-nested,baseURL-change,30,0.307375,0.312667,0.306833
-nested,mentions-change,30,1.691041,1.723250,1.686333
-nested,retained-copy-per-value,30,0.000015,0.000015,0.000015
+nested,initial,30,1.720375,1.860917,1.591792
+nested,source-change,30,1.746833,1.806917,1.729167
+nested,baseURL-change,30,1.708625,1.801708,1.656542
+nested,retained-copy-per-value,30,0.000015,0.000016,0.000015
 # links-tables: 500 rows, 3 columns, 1500 relative links; UTF8=37107
-links-tables,initial,30,13.514417,13.601459,13.418125
-links-tables,source-change,30,13.473417,13.703417,13.351208
-links-tables,baseURL-change,30,13.445625,13.718916,12.974667
-links-tables,mentions-change,30,13.713750,13.874084,13.584708
-links-tables,retained-copy-per-value,30,0.000014,0.000015,0.000014
-Consumed snapshot checksum: 573663895
+links-tables,initial,30,13.724875,14.384750,13.480208
+links-tables,source-change,30,13.766584,14.197584,13.324625
+links-tables,baseURL-change,30,14.215542,22.056500,13.675833
+links-tables,retained-copy-per-value,30,0.000015,0.000017,0.000015
+Consumed snapshot checksum: 468834905

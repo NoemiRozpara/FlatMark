@@ -9,7 +9,7 @@ This document selects verification; the linked guides own commands, scenarios, a
 - [Demo/README.md](../Demo/README.md): running the host, capture presets, signing, and project generation.
 - [Benchmarks/README.md](../Benchmarks/README.md): construction measurements and regression checks.
 - [SUPPORT.md](../SUPPORT.md): supported Markdown behavior.
-- [AI-docs/DEVICE_HUB.md](DEVICE_HUB.md): `devicectl` commands for device state, resizing, and capture, and their failure modes.
+- [DEVICE_HUB.md](DEVICE_HUB.md): device targeting, resizing, capture, and settings.
 
 ## Toolchain
 
@@ -27,7 +27,8 @@ Run the narrowest meaningful check that covers affected behavior. Broaden when d
 - UI changes: run the relevant automated checks and observe affected behavior in the demo on the affected platforms.
 - Parser/projector, dependency, or performance changes: consider the benchmark guide's regression procedure. Do not add noisy CI timing assertions.
 
-Prefer Swift Testing for new tests. Use the installed TDD skill for behavior changes suited to test-first work or when requested. Work one meaningful failing example → minimal implementation → small green-state refactoring at a time. Reuse existing support and avoid redundant tests that merely mirror implementation details.
+Prefer Swift Testing for new tests. Use the installed TDD skill when requested or suited to the change.
+Reuse existing test support and test behavior rather than implementation details.
 
 A consumer application's green build or test run does not run FlatMark's dependency tests. Run FlatMark verification in this repository.
 
@@ -35,11 +36,13 @@ A consumer application's green build or test run does not run FlatMark's depende
 
 Use the available package tooling for package checks; do not require a particular MCP integration or wrapper to run `swift test`.
 
-For Apple-platform build, run, debug, or UI automation through MobileBuildMCP, read the installed MobileBuildMCP skill before invoking its tools. Discover actual schemes and destinations rather than inventing simulator names or copying machine-local identifiers. Report fallbacks or unavailable tooling when they limit verification.
+Read the installed MobileBuildMCP skill before using it for Apple-platform build, run, debug, or UI
+automation. Discover schemes and destinations rather than copying machine-local identifiers. Report
+fallbacks or unavailable tooling when they limit verification.
 
-Inspect returned diagnostics and failure logs when a run fails. Do not read or paste an entire successful log by default. When an exact count or test selection matters, inspect the result summary and confirm that intended tests actually ran; a successful command that selected no tests is not behavioral verification.
+Inspect diagnostics and failure logs when a run fails; do not read or paste an entire successful log by default. When an exact count or selection matters, inspect the result summary and confirm the intended tests ran. A successful command that selected no tests is not behavioral verification.
 
-Do not assume todo's tool tiers, session defaults, CI hooks, formatter hooks, or coverage configuration exist here.
+Do not assume session defaults, CI or formatter hooks, or coverage configuration exist.
 
 ## Demo project changes
 
@@ -60,7 +63,11 @@ Match the evidence to the claim:
 - Fixture font-size overrides are not system Dynamic Type verification.
 - Live accessibility and actual selection gestures require running-platform checks.
 
-Drive the device instead of pinning a layout. Test a width, Dynamic Type size, or appearance by changing the running device's state with `devicectl`, then capture and inspect. Do not add launch arguments, fixture constants, or hardcoded window sizes that fake a viewport. `scripts/capture-recipe-lab.sh` sweeps widths and records the size each capture actually reached in its manifest; read that note before calling a capture responsive-layout evidence. A `clamped`, `rejected`, or over-cap width is a finding, not a pass. See [AI-docs/DEVICE_HUB.md](DEVICE_HUB.md).
+Drive the device instead of pinning a layout. Test a width, Dynamic Type size, or appearance by changing
+the running device's state with `devicectl`, then capture and inspect. Do not add launch arguments,
+fixture constants, or hardcoded window sizes that fake a viewport. `scripts/capture-recipe-lab.sh` is the
+reference sweep: inspect its requested/measured geometry and scale provenance. A `clamped`, `rejected`,
+unknown, or over-cap width is a finding, not a pass. See [DEVICE_HUB.md](DEVICE_HUB.md).
 
 Run relevant checks on both iOS and macOS when shared rendering or interaction changes affect both. Record platform, actions, observations, and unavailable checks. If a lane is unavailable, say so and leave the affected behavior unverified rather than substituting compilation or a semantic tree.
 

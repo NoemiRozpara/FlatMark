@@ -1,10 +1,8 @@
 import FlatMark
 import SwiftUI
 
-/// Host that presents the shared backend-free fixture without any call-site overrides, so runtime
-/// observations isolate FlatMark itself from a host app's environment. The fixture is one page
-/// holding every document the runtime checks need; `--capture <preset>` selects its initial settings.
-/// Open Demo/FlatMarkDemo.xcodeproj or use `scripts/run-fixture-host.sh` to launch it.
+/// Presents the shared backend-free fixture without call-site overrides.
+/// `--capture <preset>` selects initial settings. Launch with `scripts/run-fixture-host.sh`.
 @main
 struct FlatMarkDemoApp: App {
     @State private var model: FlatMarkCustomFixtureModel

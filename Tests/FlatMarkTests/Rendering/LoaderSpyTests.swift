@@ -3,14 +3,8 @@ import Testing
 
 // MARK: - LoaderSpyTests
 
-/// Focused checks for the harness the mounted image tests wait on.
-///
-/// A mounted test that waits for a loader callback trusts two things of ``LoaderSpy``: that a
-/// callback cannot be lost between the loader and the expectation meant to observe it, whichever of
-/// the two happens first, and that a callback which never arrives fails the test instead of hanging
-/// it. Both are properties of this harness rather than of the renderer, so they are checked here
-/// directly. The mounted tests keep observing what they observe about SwiftUI; they only need this
-/// waiting to be trustworthy.
+/// Checks that ``LoaderSpy`` retains callbacks regardless of arrival order and reports missing
+/// callbacks without hanging. These are harness checks, not renderer observations.
 struct LoaderSpyTests {
     private static let imageURL = URL(string: "https://example.com/image.png")!
 
@@ -76,8 +70,7 @@ struct LoaderSpyTests {
         ) { confirmed in
             await event.expect(on: spy, confirmedBy: confirmed)
 
-            // Consuming the retained callback is what arms the expectation, so the wait below has
-            // nothing left to wait for.
+            // Arming consumes the retained callback, so waiting must return immediately.
             #expect(await spy.isAwaitingExpectation == false)
             #expect(await event.unconsumedCount(on: spy) == 0)
             await spy.awaitExpectation(deadline: .seconds(2))
@@ -234,9 +227,8 @@ struct LoaderSpyTests {
             await spy.awaitExpectation(deadline: .milliseconds(100))
         }
 
-        // The wait ran to its bound rather than hanging the suite or returning before it: a callback
-        // that never arrives is reported by the unmet confirmation, and only by that. Once the wait
-        // has ended the spy stops expecting the callback, so arming again starts from scratch.
+        // A missing callback must reach the deadline and report only an unmet confirmation.
+        // The expired expectation must not prevent arming again.
         let elapsed = started.duration(to: clock.now)
         #expect(elapsed >= .milliseconds(80))
         #expect(elapsed <= .seconds(5))

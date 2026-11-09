@@ -5,13 +5,8 @@ import Testing
 
 // MARK: - FlatMarkOmittedContentTests
 
-/// The `.omit` policy, which removes unsupported content instead of showing it.
-///
-/// Most checks here read projection values: the blocks, spans, markers, and IDs one snapshot
-/// projects, plus what `presents` and `plainText` decide about them. One check builds the native
-/// inline element list a text view would display. No check in this suite mounts a view, so none of
-/// them says what a screen showed, and the layout an omitted node used to occupy is stated by
-/// `presents`, not measured.
+/// Checks `.omit` through projection values and native inline elements, without mounting views.
+/// `presents` states layout participation; these tests do not measure geometry or screen output.
 struct FlatMarkOmittedContentTests {
     @MainActor
     @Test(arguments: [
@@ -312,12 +307,8 @@ struct FlatMarkOmittedContentTests {
             baseURL: URL(string: "https://example.com/")
         )
 
-        // What omission leaves is the same document, typed by hand with the content left out. Both
-        // sides get the same policy, so a survivor's own wording decides the comparison; whether a
-        // survivor sits in a tighter slot is layout, which no tree comparison measures. These are
-        // the container cases, where nothing else states the result: one continuation block and the
-        // three containers whose remaining supported content has to survive the walk. The inline,
-        // image, marker, cell, and shell cases are each stated by the direct value checks above.
+        // Compare container survivors with a hand-written reference under the same policy.
+        // This checks structure and wording, not tighter layout. Direct checks above cover leaves.
         #expect(visibleDocument(omitted, policy: .omit) == visibleDocument(typed, policy: .omit))
     }
 
@@ -332,11 +323,8 @@ struct FlatMarkOmittedContentTests {
             baseURL: URL(string: "https://example.com/")
         )
 
-        // The one source that carries every omission shape in a single document, so the survivors'
-        // order and nesting are stated once for all of them together. The mounted lane holds the
-        // renderer to the wording a reader gets; which blocks survive is stated here. The hand-typed
-        // side has to be presentable in full, or the comparison could be won by an omission that
-        // quietly drops a survivor along with the tags.
+        // Check all omission shapes together for survivor order and nesting.
+        // The reference must be fully presentable so dropping supported content cannot pass.
         #expect(visibleDocument(omitted, policy: .omit) == visibleDocument(typed, policy: .omit))
         #expect(typed.blocks.allSatisfy { omit.presents($0) })
     }

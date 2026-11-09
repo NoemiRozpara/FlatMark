@@ -1,57 +1,41 @@
 # UI
 
-## Philosophy
+## Native rendering
 
-Build native SwiftUI rendering that embeds in a host's interface without requiring its application architecture. Prefer composition and platform capabilities over custom infrastructure. Support iOS, iPadOS, and macOS, including VoiceOver, Dynamic Type, and right-to-left layout.
+Use native SwiftUI composition and platform capabilities without requiring host application architecture. Support iOS, iPadOS, macOS, VoiceOver, Dynamic Type, and RTL. The [README](../README.md) and [support matrix](../SUPPORT.md) own behavior and layout/selection limits; do not promise browser typesetting or continuous selection across arbitrary native views.
 
-The [README](../README.md) and [support matrix](../SUPPORT.md) own public behavior and documented layout/selection limits. Do not promise browser-like typesetting or continuous selection across arbitrary native views.
+Use specialized native controls and styling APIs rather than wrappers or recreated semantics. Extract components for meaningful responsibilities, not line counts. Read inherited state such as `isEnabled` from the environment. Override accessibility only when native semantics are missing, ambiguous, duplicated, misleading, or wrong.
 
-## Components and semantics
-
-Use the most specialized appropriate native control and styling APIs. Do not wrap controls only for styling or recreate semantics SwiftUI already provides. Extract custom components for meaningful rendering or interaction responsibilities, not arbitrary line-count targets.
-
-Read inherited state such as `isEnabled` from the environment rather than duplicating it in initializers. Override accessibility only when native semantics are missing, ambiguous, duplicated, misleading, or incorrect.
-
-Keep implementation components internal unless there is a justified host need. Unlike an application's screen library, FlatMark deliberately exposes an embeddable view and supporting types; do not impose a rule that only full screens may be public.
+Keep implementation components internal unless hosts need them. FlatMark exposes an embeddable view and supporting types; public APIs need not be full screens.
 
 ## State and ownership
 
-Follow [ARCHITECTURE.md](ARCHITECTURE.md): source and persistence belong to the host; documents pair source with projection; render-time settings remain independent of construction inputs.
+Follow [ARCHITECTURE.md](ARCHITECTURE.md) for snapshots, construction inputs, render settings, and host responsibilities. Local state serves renderer-owned presentation and lifecycle only. Do not require screen Binding Models, routers, coordinators, repositories, or an application environment. Use established host callbacks for semantic actions.
 
-Use local state only for renderer-owned presentation and lifecycle needs. Do not introduce required screen Binding Models, routers, coordinators, repositories, or an application environment. Keep semantic actions explicit through the established host callbacks.
+Unrelated render-setting changes must not reset surviving tasks or image requests. State inside views removed by policy changes need not survive.
 
-Avoid making unrelated render-setting changes reset surviving tasks or image requests. Respect the documented distinction between surviving identity and state inside views removed by a policy change.
+## Tasks and links
 
-## Task markers
+Custom marker drawings are passive: no button, toggle, gesture, or separate accessibility element. FlatMark owns interaction, hit testing, checked-state semantics, and disabling. Drawing remains independent of editing, including read-only and nested tasks; tasks without addresses stay static. Verify that activation changes only the selected source marker and inherited disabling prevents edits.
 
-Custom marker drawings are passive. Do not add a button, toggle, gesture, or separate accessibility element to them. FlatMark owns interaction, hit testing, checked-state semantics, and disabled behavior.
-
-Keep drawing and editing independent: custom markers also apply to read-only and nested tasks. Tasks without an editing address remain static. Verify that one activation affects only its selected source marker and that inherited disabling prevents edits.
-
-## Links
-
-Keep Markdown-link activation and task activation independently actionable. Do not add enclosing actions or accessibility proxies that swallow or duplicate an existing control's behavior.
-
-Application routing remains host-owned. Do not add navigation containers, choose presentation styles, or turn fragment links into internal document scrolling without an agreed public change.
+Keep Markdown links and task activation independently actionable. Enclosing actions or accessibility proxies must not swallow or duplicate controls. Routing stays host-owned: do not add navigation containers, choose presentation styles, or implement fragment scrolling without an agreed public change.
 
 ## Images
 
-The host owns fetching, decoding, authentication, and caching. FlatMark owns loading presentation, failure/success transitions, and cancellation. Use the existing loader configuration identity contract to decide when requests restart; do not let unrelated view refreshes become new requests.
+Follow architecture's host-loader ownership. FlatMark owns presentation, failure/success transitions, and cancellation. Restart requests according to the loader configuration identity contract, not unrelated refreshes.
 
-Keep image-fetch policy separate from linked-image navigation permission. Do not introduce implicit network access for default placeholders, raw HTML, or rejected sources.
+Keep image-fetch policy separate from linked-image navigation permission. Default placeholders, raw HTML, and rejected sources must not cause implicit network access.
 
 ## Layout and appearance
 
-Design for changing content, not fixed device sizes. Prefer intrinsic sizing, natural reflow, multiline text, and adaptive layout. Avoid fixed text dimensions, fixed font sizes, and single-line assumptions unless required by a deliberate documented behavior.
+Prefer intrinsic sizing, reflow, multiline text, and adaptive layout over fixed device sizes. Avoid fixed text dimensions, font sizes, and single-line assumptions unless deliberate documented behavior requires them. Numeric constants should represent visual properties, not device workarounds.
 
-Use numeric constants for meaningful visual properties rather than device-specific workarounds. Respect ambient host styles where supported; do not impose ToDoo theme infrastructure or require a global theme environment.
-
-Check narrow and wide widths, enlarged system text, RTL, nested blocks, tables, mixed inline content, and empty structures when relevant. A nonzero measured size does not establish readable geometry. Do not add synthetic content merely to make an inspection helper succeed.
+Respect supported ambient host styles; do not require host theme infrastructure or a global theme environment. Where relevant, check narrow/wide widths, enlarged text, RTL, nested blocks, tables, mixed inline content, and empty structures. Nonzero size does not prove readable geometry; do not add synthetic content to satisfy inspection helpers.
 
 ## Accessibility and previews
 
-Prefer correct native semantics over manual labels and actions. Check labels, checked state, nesting, focus order, independent actions, keyboard activation, and disabled/read-only behavior where applicable. State must remain distinguishable without color alone.
+Prefer native semantics over manual labels/actions. Check labels, checked state, nesting, focus order, independent actions, keyboard activation, and disabled/read-only behavior where applicable. State must be distinguishable without color alone.
 
-Previews and verification hosts must work without live services or a bootstrapped application. Reuse shared fixtures and lightweight callbacks; do not duplicate the Recipe Lab into a second fixture system. Add representative previews where they make the component easier to inspect; use `@Previewable` state only where available on the supported preview toolchain.
+Previews and verification hosts must run without live services or application bootstrap. Reuse shared fixtures and lightweight callbacks, not a second Recipe Lab fixture system. Add previews where they aid inspection; use `@Previewable` only with a supported toolchain.
 
-Follow [BUILD_AND_TEST.md](BUILD_AND_TEST.md) and the [testing guide](../Tests/README.md) for evidence. Exported native text, semantic trees, automated callbacks, and screenshots answer different questions. Live VoiceOver, actual selection gestures, and visual layout require corresponding runtime observations.
+Follow [BUILD_AND_TEST.md](BUILD_AND_TEST.md) and the [testing guide](../Tests/README.md). Exported text, semantic trees, callbacks, and screenshots prove different things. Live VoiceOver, selection gestures, and visual layout require corresponding runtime observations.
