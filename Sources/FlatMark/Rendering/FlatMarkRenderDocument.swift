@@ -242,10 +242,9 @@ struct FlatMarkListChildRenderBlock: Equatable, Sendable {
 enum FlatMarkRenderProjector {
     static func project(
         markdown: String,
-        baseURL: URL? = nil,
-        detectMentions: Bool = false
+        baseURL: URL? = nil
     ) -> FlatMarkRenderDocument {
-        project(Document(parsing: markdown), source: markdown, baseURL: baseURL, detectMentions: detectMentions)
+        project(Document(parsing: markdown), source: markdown, baseURL: baseURL)
     }
 
     /// Projects a document the caller already parsed, against the snapshot it was parsed from.
@@ -255,10 +254,9 @@ enum FlatMarkRenderProjector {
     static func project(
         _ document: Document,
         source: String,
-        baseURL: URL? = nil,
-        detectMentions: Bool = false
+        baseURL: URL? = nil
     ) -> FlatMarkRenderDocument {
-        FlatMarkDocumentProjector(source: source, baseURL: baseURL, detectMentions: detectMentions).document(from: document)
+        FlatMarkDocumentProjector(source: source, baseURL: baseURL).document(from: document)
     }
 }
 
@@ -272,7 +270,6 @@ enum FlatMarkRenderProjector {
 private struct FlatMarkDocumentProjector {
     let source: String
     let baseURL: URL?
-    let detectMentions: Bool
 
     func document(from markup: some Markup) -> FlatMarkRenderDocument {
         FlatMarkRenderDocument(blocks: projectChildren(of: markup, path: [], indentation: 0))
@@ -524,8 +521,7 @@ private struct FlatMarkDocumentProjector {
     func inlineContent(of markup: some Markup) -> FlatMarkRenderInlineContent {
         var projector = FlatMarkInlineAttributedStringProjector(
             source: source,
-            baseURL: baseURL,
-            detectMentions: detectMentions
+            baseURL: baseURL
         )
 
         return projector.project(markup)

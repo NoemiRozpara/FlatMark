@@ -92,11 +92,6 @@ public struct FlatMarkView: View {
     ///   - linkActivationAction: An optional synchronous action receiving the resolved
     ///     absolute destination on activation. Handling or rejecting suppresses opening;
     ///     default opening delegates once to the inherited SwiftUI environment opener.
-    ///   - detectMentions: Whether to render lexical `@username` tokens in bold, without
-    ///     adding actions or link semantics. Each Markdown text node is scanned independently;
-    ///     formatting is a hard boundary. Code and link labels are excluded.
-    ///     Handles are ASCII letters, digits, and underscores, optionally
-    ///     separated by internal dots or hyphens. No user lookup is performed.
     ///   - taskToggleAction: An optional closure called with the complete updated
     ///     Markdown source when a task checkbox is toggled.
     ///   - taskMarker: A passive task-marker visual, independent of whether editing is enabled.
@@ -107,12 +102,11 @@ public struct FlatMarkView: View {
         imageURLPolicy: FlatMarkImageURLPolicy = .webOnly,
         unsupportedContentPolicy: FlatMarkUnsupportedContentPolicy = .literal,
         linkActivationAction: ((URL) -> FlatMarkLinkActivationResult)? = nil,
-        detectMentions: Bool = false,
         taskToggleAction: ((String) -> Void)? = nil,
         taskMarker: FlatMarkTaskMarker = .default
     ) {
         self.init(
-            document: FlatMarkDocument(markdown: markdown, baseURL: baseURL, detectMentions: detectMentions),
+            document: FlatMarkDocument(markdown: markdown, baseURL: baseURL),
             imageLoader: imageLoader,
             imageURLPolicy: imageURLPolicy,
             unsupportedContentPolicy: unsupportedContentPolicy,

@@ -14,7 +14,6 @@ public enum FlatMarkRecipeCapture: String, CaseIterable, Identifiable {
         model.replacementLabel = "Baker’s tip"
         model.showsButtons = true
         model.showsEmpty = false
-        model.detectMentions = true
         model.loadsImages = true
         model.usesRetainedDocument = false
         model.refreshRequests = 0

@@ -177,7 +177,6 @@ public struct FlatMarkCustomDocumentFixture: View {
                 imageLoader: model.loadsImages ? model.loader : nil,
                 unsupportedContentPolicy: policy,
                 linkActivationAction: activateLink,
-                detectMentions: model.detectMentions,
                 taskToggleAction: toggleTask,
                 taskMarker: marker
             )
@@ -195,7 +194,7 @@ public final class FlatMarkCustomFixtureModel {
     /// The same recipe is mounted by the automated suite and shown in the playground.
     public static let baseURL = URL(string: "https://example.com/")
     public var markdown: String {
-        didSet { rebuildDocument() }
+        didSet { document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL) }
     }
     public private(set) var document: FlatMarkDocument
     public var usesRetainedDocument = false
@@ -212,9 +211,6 @@ public final class FlatMarkCustomFixtureModel {
     public var darkAppearance = false
     public var enlargedText = false
     public var rightToLeft = false
-    public var detectMentions = true {
-        didSet { rebuildDocument() }
-    }
     public var lastActivity = "Your recipe notes and task confirmations appear here."
     public var customActivations = 0
     public var linkActivations = 0
@@ -226,7 +222,7 @@ public final class FlatMarkCustomFixtureModel {
 
     public init(markdown: String = FlatMarkCustomFixtureModel.markdown) {
         self.markdown = markdown
-        document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL, detectMentions: true)
+        document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL)
         let imageCalls = imageCalls
         // The recipe reuses these two resources for its block photo and inline leaves.
         var requests: [URL: URL] = [:]
@@ -246,10 +242,6 @@ public final class FlatMarkCustomFixtureModel {
             }
             return image
         }
-    }
-
-    private func rebuildDocument() {
-        document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL, detectMentions: detectMentions)
     }
 
     public func policy() -> FlatMarkUnsupportedContentPolicy {

@@ -90,14 +90,13 @@ repeated parsing and projection:
 ```swift
 let document = FlatMarkDocument(
     markdown: markdown,
-    baseURL: URL(string: "https://example.com/docs/"),
-    detectMentions: true
+    baseURL: URL(string: "https://example.com/docs/")
 )
 
 FlatMarkView(document: document)
 ```
 
-Construct a new document when the source, `baseURL`, or `detectMentions` changes. Equality compares
+Construct a new document when the source or `baseURL` changes. Equality compares
 those inputs. Image loading, unsupported-content policy, link/task callbacks, and marker appearance
 remain render-time settings and can change without reparsing. Task updates always use
 `document.markdown`, keeping source coordinates paired with their snapshot.
@@ -105,6 +104,11 @@ remain render-time settings and can change without reparsing. Task updates alway
 Construction is synchronous and can be expensive for large documents. See the
 [desktop and physical-device benchmarks](Benchmarks/README.md); retained reuse avoids construction,
 not layout or rendering.
+
+Lexical `@username` mentions always render in bold without links or actions. Detection scans each
+Markdown text node independently and excludes code, link labels, and image descriptions. Handles
+use ASCII letters, digits, and underscores, with optional internal dots or hyphens. No user lookup
+is performed.
 
 ## Links and document bases
 

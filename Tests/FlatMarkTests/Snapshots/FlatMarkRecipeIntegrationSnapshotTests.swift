@@ -21,7 +21,7 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
     enum Scenario: String, CaseIterable {
         case primary, dark, narrow, rtlNarrow, rtlWide
         case customNarrow, customWide, customRTL, customDisabled, customReadOnly, customRetained
-        case omission, emptyReplacement, mentionsOff, readOnly, disabled
+        case omission, emptyReplacement, readOnly, disabled
         case noLoaderNarrow, noLoaderWide
         #if os(iOS)
         case enlarged, enlargedCustom, enlargedRTL, enlargedNoLoaderNarrow, enlargedNoLoaderWide
@@ -40,8 +40,6 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
             case .omission, .emptyReplacement:
                 return ([FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.notes]
                     .joined(separator: "\n\n"), 2)
-            case .mentionsOff:
-                return ([FlatMarkRecipeSample.introduction, FlatMarkRecipeSample.notes].joined(separator: "\n\n"), 1)
             case .noLoaderNarrow, .noLoaderWide:
                 return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.notes]
                     .joined(separator: "\n\n"), 3)
@@ -88,7 +86,6 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         model.usesHostTaskMarker = scenario.custom
         model.allowsTaskEditing = scenario != .readOnly && scenario != .customReadOnly
         model.usesRetainedDocument = scenario == .customRetained
-        model.detectMentions = scenario != .mentionsOff
         let environment = FlatMarkSnapshotEnvironment(
             captureSize: CGSize(width: scenario.column + 80, height: scenario.enlarged ? 1800 : 1200),
             columnWidth: scenario.column, contentInset: 40, pixelScale: 2,

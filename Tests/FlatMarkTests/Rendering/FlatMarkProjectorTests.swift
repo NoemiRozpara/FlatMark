@@ -629,7 +629,13 @@ struct FlatMarkRenderProjectorTests {
         #expect(document.blocks[0].kind == .heading(level: 4, content: "Heading"))
         #expect(document.blocks[1].kind == .codeBlock("let value = 1\n"))
 
-        #expect(document.blocks[2].kind == .paragraph("@Unknown {}"))
+        guard case let .paragraph(content) = document.blocks[2].kind else {
+            Issue.record("Expected a paragraph for directive-like text")
+            return
+        }
+        #expect(content.plainText == "@Unknown {}")
+        #expect(run(containing: "@Unknown", in: content)?.inlinePresentationIntent?
+            .contains(.stronglyEmphasized) == true)
     }
 }
 
