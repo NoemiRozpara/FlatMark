@@ -88,8 +88,10 @@ struct FlatMarkBlockView: View {
             FlatMarkTableView(table: table, context: context)
 
         case let .unsupported(content):
-            Text(context.unsupportedContentPolicy.literalText(for: content))
-                .frame(maxWidth: .infinity, alignment: .leading)
+            FlatMarkInlineView(
+                content: FlatMarkRenderInlineContent(components: [.unsupported(content)]),
+                context: context
+            )
         }
     }
 }

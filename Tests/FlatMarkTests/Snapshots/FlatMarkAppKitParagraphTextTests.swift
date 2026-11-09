@@ -266,6 +266,29 @@ struct FlatMarkAppKitParagraphTextTests {
         #expect(heights[0] == heights[2])
     }
 
+    @Test func literalBlockUsesTheSameNativeBodyFontAsParagraphs() async throws {
+        let literal = "<div>Print this recipe · Subscribe to the newsletter</div>"
+        let hosted = await mountTestView(
+            FlatMarkView(markdown: "Body paragraph.\n\n\(literal)")
+                .font(.system(size: 28)),
+            size: CGSize(width: 600, height: 400)
+        )
+        defer { hosted.close() }
+        func textViews(in view: NSView) -> [NSTextView] {
+            if let text = view as? NSTextView { return [text] }
+            return view.subviews.flatMap { textViews(in: $0) }
+        }
+        let views = textViews(in: hosted.view)
+        #expect(views.count == 2)
+        let body = try #require(views.first)
+        let block = try #require(views.last)
+        #expect(block.string == literal + "\n")
+        let bodyFont = try #require(body.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        let blockFont = try #require(block.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        #expect(blockFont == bodyFont)
+        #expect(blockFont == NSFont.preferredFont(forTextStyle: .body))
+    }
+
     @Test func retainedLiteralContentFollowsLayoutDirectionWithoutOverlappingItsNeighbor() async throws {
         let document = FlatMarkDocument(markdown: "Before <tag> after.\n\nFollowing paragraph.")
         func root(_ direction: LayoutDirection) -> some View {
