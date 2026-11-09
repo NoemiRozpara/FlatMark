@@ -47,13 +47,17 @@ built-in policies and their projection, composition, accessibility, and transiti
   `enlargedCustom`; their references were deleted rather than re-recorded.
 - Removed the `InlineFlow` suite, which existed to flow a host replacement run between supported
   text, together with its two references and its suite namespace.
-- `swift test` (macOS, Xcode toolchain on this machine): 190 tests in 27 suites. Every non-snapshot
-  suite passed, with the existing known LoaderSpy issue. The same snapshot suites that fail on the
-  untouched tree still fail here: EmptyStructures, ImagePhase, PolicyTransitions, and
-  RecipeIntegration. See [macOS snapshot lane is currently unreliable](#macos-snapshot-lane-is-currently-unreliable).
-- `FlatMarkSnapshots-iOS` on the iPhone 18 Pro simulator: `FlatMarkParagraphTextTests`,
-  `FlatMarkPolicyTransitionSnapshotTests`, and the 15-case `FlatMarkRecipeIntegrationSnapshotTests`
-  passed against the committed references.
+- Regenerated both platforms with the `FlatMarkSnapshots-macOS-Record` and
+  `FlatMarkSnapshots-iOS-Record` schemes. Recording assertions were expected. Only 26 macOS PNGs
+  changed: 2 EmptyStructures, 3 ImagePhases, 5 PolicyTransitions, and 16 Recipe references.
+  The iOS references remained byte-identical.
+- Separate non-recording runs passed 49 macOS tests and 50 iOS tests. Reference hashes stayed
+  unchanged through verification and the package run.
+- `swift test`: 190 tests in 27 suites passed, with the existing known LoaderSpy issue.
+  The earlier macOS snapshot mismatches no longer occur against the regenerated references.
+- Verification used macOS 27.0.1 / Swift 6.4 and the iPhone 18 Pro simulator on iOS 27.0.
+- Reviewed reference contact sheets for text, images, links, spacing, and clipping. This is not
+  full-size approval of every PNG. Page-boundary and horizontal table clipping remain expected.
 - The demo installs and keeps running on that simulator after the fixture changes. No capture of the
   Recipe Lab settings was visually reviewed, so the HTML-handling picker and the counters remain
   unobserved in the running app.
