@@ -1,7 +1,6 @@
 #if os(macOS)
     import AppKit
     import FlatMark
-    import FlatMarkFixtures
     import SwiftUI
     import Testing
 
@@ -24,26 +23,8 @@
         }
 
         @Test
-        func `recipe mention detection updates without replacing its source`() async throws {
-            let model = FlatMarkCustomFixtureModel()
-            let mounted = await mountTestView(FlatMarkCustomDocumentFixture(model: model))
-            defer { mounted.close() }
-            _ = try await visibleText(showing: "@jane.doe", in: mounted)
-            let enabled = try mounted.visibleAttributedText
-            #expect(boldText(in: enabled).contains("@jane.doe"))
-            #expect(!attributeText(.link, in: enabled).contains("@jane.doe"))
-
-            model.detectMentions = false
-            await settleMountedRendering()
-            let disabled = try mounted.visibleAttributedText
-            #expect(disabled.string.contains("@jane.doe"))
-            #expect(!boldText(in: disabled).contains("@jane.doe"))
-            #expect(model.markdown == FlatMarkRecipeSample.markdown)
-        }
-
-        @Test
-        func `opted in mentions render the entire token bold without a link`() async throws {
-            let mounted = await mountTestView(FlatMarkView(markdown: "Before @jane after", detectMentions: true))
+        func `mentions render the entire token bold without a link`() async throws {
+            let mounted = await mountTestView(FlatMarkView(markdown: "Before @jane after"))
             defer { mounted.close() }
             _ = try await visibleText(showing: "Before @jane after", in: mounted)
             let text = try mounted.visibleAttributedText
@@ -63,7 +44,7 @@
         func `formatting is a hard boundary for independent text node detection`(
             markdown: String, plain: String, bold: String, italic: String
         ) async throws {
-            let mounted = await mountTestView(FlatMarkView(markdown: markdown, detectMentions: true))
+            let mounted = await mountTestView(FlatMarkView(markdown: markdown))
             defer { mounted.close() }
             _ = try await visibleText(showing: plain, in: mounted)
             let text = try mounted.visibleAttributedText
@@ -88,7 +69,7 @@
         func `code and link content are excluded and cannot be crossed`(
             markdown: String, plain: String, bold: String, linked: String
         ) async throws {
-            let mounted = await mountTestView(FlatMarkView(markdown: markdown, detectMentions: true))
+            let mounted = await mountTestView(FlatMarkView(markdown: markdown))
             defer { mounted.close() }
             _ = try await visibleText(showing: plain, in: mounted)
             let text = try mounted.visibleAttributedText
@@ -109,27 +90,13 @@
         func `mention grammar uses ASCII handles and excludes punctuation and email boundaries`(
             source: String, bold: String
         ) async throws {
-            let mounted = await mountTestView(FlatMarkView(markdown: source, detectMentions: true))
+            let mounted = await mountTestView(FlatMarkView(markdown: source))
             defer { mounted.close() }
             _ = try await visibleText(showing: source, in: mounted)
             let text = try mounted.visibleAttributedText
             #expect(text.string == source)
             #expect(boldText(in: text) == bold)
             #expect(attributeText(.link, in: text).isEmpty)
-        }
-
-        @Test(arguments: [false, true])
-        func `omitted and explicitly disabled detection preserve existing rendering`(omitFlag: Bool) async throws {
-            let source = "@jane *italic* **bold** [normal](https://example.com)"
-            let view = omitFlag ? FlatMarkView(markdown: source) : FlatMarkView(markdown: source, detectMentions: false)
-            let mounted = await mountTestView(view)
-            defer { mounted.close() }
-            _ = try await visibleText(showing: "@jane italic bold normal", in: mounted)
-            let text = try mounted.visibleAttributedText
-            #expect(text.string == "@jane italic bold normal")
-            #expect(boldText(in: text) == "bold")
-            #expect(fontText(with: .italicFontMask, in: text) == "italic")
-            #expect(attributeText(.link, in: text) == "normal")
         }
 
         @Test(arguments: [
@@ -142,7 +109,7 @@
         func `mentions render in headings list rows table cells and quotes`(
             markdown: String, plain: String, bold: String
         ) async throws {
-            let mounted = await mountTestView(FlatMarkView(markdown: markdown, detectMentions: true))
+            let mounted = await mountTestView(FlatMarkView(markdown: markdown))
             defer { mounted.close() }
             _ = try await visibleText(showing: "@jane", in: mounted)
             let text = try mounted.visibleAttributedText
@@ -155,7 +122,7 @@
         func `mention styling preserves whitespace surrounding text and other attributes`() async throws {
             let source = "Before  ~~*@jane*~~ after\nnext  [normal](https://example.com) @other."
             let mounted = await mountTestView(
-                FlatMarkView(markdown: source, detectMentions: true),
+                FlatMarkView(markdown: source),
                 size: .init(width: 150, height: 700)
             )
             defer { mounted.close() }

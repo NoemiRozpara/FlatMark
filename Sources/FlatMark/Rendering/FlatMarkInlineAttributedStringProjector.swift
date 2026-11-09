@@ -7,7 +7,7 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
 
     let source: String
     let baseURL: URL?
-    let detectMentions: Bool
+    private var excludesMentions = false
 
     mutating func project(_ markup: Markup) -> FlatMarkRenderInlineContent {
         visit(markup)
@@ -25,7 +25,7 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
 
     mutating func visitText(_ text: Markdown.Text) -> FlatMarkRenderInlineContent {
         var value = AttributedString(text.string)
-        if detectMentions {
+        if !excludesMentions {
             Self.boldMentions(in: &value)
         }
         return FlatMarkRenderInlineContent(text: value)
@@ -59,7 +59,8 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
 
     mutating func visitLink(_ link: Link) -> FlatMarkRenderInlineContent {
         // A separate label projection leaves even unresolved links ineligible for detection.
-        var labelProjector = Self(source: source, baseURL: baseURL, detectMentions: false)
+        var labelProjector = self
+        labelProjector.excludesMentions = true
         var result = labelProjector.defaultVisit(link)
 
         if let destination = link.destination,
@@ -73,7 +74,8 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
 
     mutating func visitImage(_ image: Markdown.Image) -> FlatMarkRenderInlineContent {
         // Image descriptions retain their existing rendering.
-        var altProjector = Self(source: source, baseURL: baseURL, detectMentions: false)
+        var altProjector = self
+        altProjector.excludesMentions = true
         let altContent = altProjector.defaultVisit(image)
         return FlatMarkRenderInlineContent(
             components: [.image(FlatMarkRenderImage(

@@ -64,17 +64,16 @@ for fixture in fixtures {
     print("# \(fixture.name): \(fixture.parameters); UTF8=\(fixture.markdown.utf8.count)")
     let retained = FlatMarkDocument(markdown: fixture.markdown, baseURL: baseURL)
     // Build all changed inputs outside the timed region. No cache exists: each scenario constructs anew.
-    let scenarios: [(String, String, URL, Bool)] = [
-        ("initial", fixture.markdown, baseURL, false),
-        ("source-change", fixture.markdown + "\nUpdated description.\n", baseURL, false),
-        ("baseURL-change", fixture.markdown, changedURL, false),
-        ("mentions-change", fixture.markdown, baseURL, true),
+    let scenarios: [(String, String, URL)] = [
+        ("initial", fixture.markdown, baseURL),
+        ("source-change", fixture.markdown + "\nUpdated description.\n", baseURL),
+        ("baseURL-change", fixture.markdown, changedURL),
     ]
-    for (name, source, url, mentions) in scenarios {
+    for (name, source, url) in scenarios {
         var samples: [Double] = []
         for iteration in 0..<(sampleCount + 5) {
             let start = clock.now
-            let document = FlatMarkDocument(markdown: source, baseURL: url, detectMentions: mentions)
+            let document = FlatMarkDocument(markdown: source, baseURL: url)
             let elapsed = milliseconds(start.duration(to: clock.now))
             checksum &+= consume(document)
             if iteration >= 5 { samples.append(elapsed) }

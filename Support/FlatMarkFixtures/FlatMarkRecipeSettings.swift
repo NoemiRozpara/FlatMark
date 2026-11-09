@@ -8,7 +8,6 @@ struct FlatMarkRecipeSettings: View {
         VStack(alignment: .leading, spacing: 16) {
             GroupBox("Appearance") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Toggle("Detect mentions", isOn: $model.detectMentions)
                     Toggle("Load bundled images", isOn: $model.loadsImages)
                     Toggle("Dark mode", isOn: $model.darkAppearance)
                     Toggle("Larger recipe text", isOn: $model.enlargedText)

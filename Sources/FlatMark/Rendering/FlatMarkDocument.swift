@@ -6,7 +6,7 @@ import Foundation
 ///
 /// For live previews and long documents, retain one value and pass it to ``FlatMarkView``'s
 /// `document:` initializer to render repeatedly without reparsing. Changing the source,
-/// base URL, or mention detection requires a new document.
+/// or base URL requires a new document.
 ///
 /// Task toggles use this snapshot, not newer Markdown the host may hold.
 public struct FlatMarkDocument: Equatable, Sendable {
@@ -16,9 +16,6 @@ public struct FlatMarkDocument: Equatable, Sendable {
     /// The base URL used to resolve relative links and images.
     public let baseURL: URL?
 
-    /// Whether lexical `@username` tokens are rendered in bold.
-    public let detectMentions: Bool
-
     /// The retained projection used by the renderer.
     let renderDocument: FlatMarkRenderDocument
 
@@ -27,20 +24,17 @@ public struct FlatMarkDocument: Equatable, Sendable {
     /// - Parameters:
     ///   - markdown: The source to parse once and retain unchanged.
     ///   - baseURL: Resolves relative links and images using Foundation's file/directory semantics.
-    ///   - detectMentions: Whether to render lexical `@username` tokens in bold.
-    public init(markdown: String, baseURL: URL? = nil, detectMentions: Bool = false) {
+    public init(markdown: String, baseURL: URL? = nil) {
         self.markdown = markdown
         self.baseURL = baseURL
-        self.detectMentions = detectMentions
         renderDocument = FlatMarkRenderProjector.project(
             markdown: markdown,
-            baseURL: baseURL,
-            detectMentions: detectMentions
+            baseURL: baseURL
         )
     }
 
-    /// Compares source, base URL, and mention detection settings.
+    /// Compares source and base URL.
     public static func == (lhs: FlatMarkDocument, rhs: FlatMarkDocument) -> Bool {
-        lhs.markdown == rhs.markdown && lhs.baseURL == rhs.baseURL && lhs.detectMentions == rhs.detectMentions
+        lhs.markdown == rhs.markdown && lhs.baseURL == rhs.baseURL
     }
 }

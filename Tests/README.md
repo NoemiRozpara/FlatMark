@@ -17,7 +17,6 @@ Markdown sampler for these cases.
 | Dimpling paragraph and checklist with custom replacements | Mixed image/text flow and inline/block HTML replacement |
 | Default/custom tasks, interactive/read-only/disabled, retained document | Task-marker presentation matrix |
 | Omit and empty replacements | Static unsupported-policy presentation |
-| Mentions disabled | Mention-toggle sampler |
 | Images without a loader, narrow/wide and enlarged iOS text | Linked/unlinked placeholders and adjacent hard breaks |
 
 The matrix has 18 macOS scenarios and 23 iOS scenarios. Enlarged iOS captures use
@@ -2435,12 +2434,12 @@ macOS follows window width. No login or backend data is needed. See the
 | --- | --- |
 | HTML | **Show HTML / Replace tags / Hide HTML** correspond to literal/custom/omit |
 | Replacements | Edit the label; toggle **Make replacements tappable** and **Replace with nothing** |
-| Appearance | **Detect mentions**, **Larger recipe text**, **Right-to-left recipe layout** |
+| Appearance | **Larger recipe text**, **Right-to-left recipe layout** |
 | Tasks | **Use custom checkmarks** and **Allow ticking tasks** independently control drawing/editing |
 | Snapshot reuse | **Use retained document**, **Re-render without editing**, **Add a tasting note** |
 
-Refresh counters count host requests, not renderer evaluations or parser calls. Source edits and
-mention-detection changes replace the snapshot; unchanged refreshes retain it. Both initializers
+Refresh counters count host requests, not renderer evaluations or parser calls. Source edits
+replace the snapshot; unchanged refreshes retain it. Both initializers
 should agree on wording, attributes, links, and task behavior.
 
 ## Manual checklist

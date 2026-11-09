@@ -17,20 +17,18 @@ struct FlatMarkDocumentTests {
 
         #expect(document.markdown == Self.source)
         #expect(document.baseURL == nil)
-        #expect(!document.detectMentions)
         #expect(document == FlatMarkDocument(markdown: Self.source))
     }
 
     @Test(arguments: [
-        (source + "\n\n- [ ] Task added afterwards", nil, false),
-        (source, baseURL, false),
-        (source, nil, true),
+        (source + "\n\n- [ ] Task added afterwards", nil),
+        (source, baseURL),
     ])
     func `changing any equality input yields a different document`(
-        markdown: String, baseURL: URL?, detectMentions: Bool
+        markdown: String, baseURL: URL?
     ) {
         let reference = FlatMarkDocument(markdown: Self.source)
-        let changed = FlatMarkDocument(markdown: markdown, baseURL: baseURL, detectMentions: detectMentions)
+        let changed = FlatMarkDocument(markdown: markdown, baseURL: baseURL)
 
         #expect(reference != changed)
     }
@@ -67,7 +65,7 @@ struct FlatMarkDocumentTests {
 
         @Test
         func `a retained document renders the same content as the same source given as a string`() async throws {
-            let document = FlatMarkDocument(markdown: Self.source, baseURL: Self.baseURL, detectMentions: true)
+            let document = FlatMarkDocument(markdown: Self.source, baseURL: Self.baseURL)
             let retained = await mountTestView(
                 FlatMarkView(document: document, linkActivationAction: { _ in .handled })
             )
@@ -76,8 +74,7 @@ struct FlatMarkDocumentTests {
                 FlatMarkView(
                     markdown: Self.source,
                     baseURL: Self.baseURL,
-                    linkActivationAction: { _ in .handled },
-                    detectMentions: true
+                    linkActivationAction: { _ in .handled }
                 )
             )
             defer { stringBacked.close() }
@@ -93,7 +90,7 @@ struct FlatMarkDocumentTests {
         }
 
         @Test
-        func `recipe initializers stay equivalent after edits and mention changes`() async throws {
+        func `recipe initializers stay equivalent after edits`() async throws {
             let model = FlatMarkCustomFixtureModel()
             model.policyKind = .omit
             let retained = await mountTestView(FlatMarkCustomDocumentFixture(model: model, usesRetainedDocument: true))
@@ -104,7 +101,6 @@ struct FlatMarkDocumentTests {
             for edited in [false, true] {
                 if edited {
                     model.markdown += "\n\n- [ ] Try olives next Sunday"
-                    model.detectMentions = false
                 }
                 await settleMountedRendering()
                 let retainedText = try retained.visibleAttributedText
@@ -112,7 +108,6 @@ struct FlatMarkDocumentTests {
                 #expect(retainedText.string.contains("Sunday focaccia"))
                 #expect(renderSignature(of: retainedText) == renderSignature(of: stringText))
                 #expect(model.document.markdown == model.markdown)
-                #expect(model.document.detectMentions == model.detectMentions)
             }
 
             let snapshot = model.document

@@ -54,11 +54,13 @@ not process startup.
 
 | Scenario | Work measured |
 | --- | --- |
-| `initial` | Fresh snapshot, mentions disabled |
+| `initial` | Fresh snapshot |
 | `source-change` | Fresh snapshot after appending `\nUpdated description.\n` (22 bytes) |
 | `baseURL-change` | Fresh snapshot with `/archive/` instead of `/tasks/` as URL base |
-| `mentions-change` | Fresh snapshot with mention detection enabled |
 | `retained-copy-per-value` | Per-value cost of 1,000 copies into a preallocated array |
+
+Mention detection is now always enabled. Historical baselines below include a `mentions-change`
+scenario from when detection was optional; new runs omit that scenario.
 
 Construction includes parsing, projection, and returned-document allocation. Input generation,
 result consumption, final snapshot destruction, and all rendering are excluded. Changed-input
