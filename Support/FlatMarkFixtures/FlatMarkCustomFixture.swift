@@ -7,22 +7,6 @@ import SwiftUI
     import UIKit
 #endif
 
-// MARK: - FlatMarkCustomPolicyKind
-
-public enum FlatMarkCustomPolicyKind: String, CaseIterable, Identifiable, Hashable {
-    case literal
-    case omit
-
-    public var id: String { rawValue }
-
-    public var title: String {
-        switch self {
-        case .literal: "Literal"
-        case .omit: "Omit"
-        }
-    }
-}
-
 // MARK: - FlatMarkCustomFixture
 
 /// Backend-free playground, shared by the automated suite and `FlatMarkDemo`: a single page
@@ -135,7 +119,7 @@ public struct FlatMarkCustomDocumentFixture: View {
 
     public var body: some View {
         let _ = model.refreshRequests
-        let policy = model.policy()
+        let policy = model.policyKind
         let activateLink: (URL) -> FlatMarkLinkActivationResult = { url in
             switch url.lastPathComponent {
             case "herbs":
@@ -198,7 +182,7 @@ public final class FlatMarkCustomFixtureModel {
     public var usesRetainedDocument = false
     public var loadsImages = true
     public var refreshRequests = 0
-    public var policyKind: FlatMarkCustomPolicyKind = .literal
+    public var policyKind: FlatMarkUnsupportedContentPolicy = .literal
     public var allowsTaskEditing = true
     public var usesHostTaskMarker = false
     public var darkAppearance = false
@@ -231,15 +215,6 @@ public final class FlatMarkCustomFixtureModel {
                 return missingImagePlaceholder
             }
             return image
-        }
-    }
-
-    public func policy() -> FlatMarkUnsupportedContentPolicy {
-        switch policyKind {
-        case .literal:
-            return .literal
-        case .omit:
-            return .omit
         }
     }
 }

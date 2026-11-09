@@ -72,7 +72,7 @@
                         linkActivationAction: action
                     )
                 }
-                return AnyView(view.coordinateSpace(name: "navigationHost").environment(\.openURL, OpenURLAction { url in
+                return AnyView(view.environment(\.openURL, OpenURLAction { url in
                     opened.append((updatesOpener ? (updated ? "new:" : "old:") : "") + url.absoluteString)
                     return .discarded
                 }))

@@ -43,11 +43,7 @@ struct FlatMarkParagraphText: UIViewRepresentable {
 
     func updateUIView(_ view: UITextView, context: Context) {
         context.coordinator.openURL = openURL
-        let policyKey: Int = switch self.context.unsupportedContentPolicy {
-        case .literal: 0
-        case .omit: 1
-        }
-        let inputs = CompositionInputs(content: content, role: role, policyKey: policyKey,
+        let inputs = CompositionInputs(content: content, role: role, policy: self.context.unsupportedContentPolicy,
                                        dynamicTypeSize: dynamicTypeSize, layoutDirection: layoutDirection,
                                        alignment: alignment, imagePhases: imagePhases)
         if context.coordinator.compositionInputs != inputs {
@@ -209,7 +205,7 @@ struct FlatMarkParagraphText: UIViewRepresentable {
     struct CompositionInputs: Equatable {
         let content: FlatMarkRenderInlineContent
         let role: FlatMarkTextRole
-        let policyKey: Int
+        let policy: FlatMarkUnsupportedContentPolicy
         let dynamicTypeSize: DynamicTypeSize
         let layoutDirection: LayoutDirection
         let alignment: TextAlignment

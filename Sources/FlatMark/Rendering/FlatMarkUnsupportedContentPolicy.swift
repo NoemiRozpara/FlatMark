@@ -12,10 +12,7 @@ import Foundation
 ///
 /// - ``literal`` renders unsupported content as inert source text.
 /// - ``omit`` removes unsupported content, layout slot and all.
-///
-/// The policy is neither `Equatable` nor `Sendable`: it travels in the non-`Sendable` render
-/// context and is read while views are built.
-public enum FlatMarkUnsupportedContentPolicy {
+public enum FlatMarkUnsupportedContentPolicy: Hashable, Sendable {
     /// Show inert literal text, with the enclosing Markdown styling and links retained.
     ///
     /// The renderer never interprets HTML attributes: it does not restyle from them, navigate

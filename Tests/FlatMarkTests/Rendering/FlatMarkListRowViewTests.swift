@@ -92,19 +92,14 @@ struct FlatMarkListRowViewTests {
     }
 
     @Test(arguments: [
-        ("literal", "Level 1 task: Buy <u>milk</u>", "Level 1 task: Call <u>doctor</u>"),
-        ("omit", "Level 1 task: Buy milk", "Level 1 task: Call doctor"),
-    ] as [(String, String, String)])
+        (.literal, "Level 1 task: Buy <u>milk</u>", "Level 1 task: Call <u>doctor</u>"),
+        (.omit, "Level 1 task: Buy milk", "Level 1 task: Call doctor"),
+    ] as [(FlatMarkUnsupportedContentPolicy, String, String)])
     func `task controls resolve distinct names under every unsupported-content policy`(
-        policyName: String,
+        policy: FlatMarkUnsupportedContentPolicy,
         firstName: String,
         secondName: String
     ) throws {
-        let policy: FlatMarkUnsupportedContentPolicy =
-            switch policyName {
-            case "literal": .literal
-            default: .omit
-            }
         let rows = try #require(taskRows(in: "- [ ] Buy <u>milk</u>\n- [ ] Call <u>doctor</u>"))
 
         // Two tasks at the same level must never collapse into one generic name, under any policy.

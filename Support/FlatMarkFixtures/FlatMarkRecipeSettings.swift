@@ -1,3 +1,4 @@
+import FlatMark
 import SwiftUI
 
 /// Exploration controls shown before the shared recipe.
@@ -32,8 +33,8 @@ struct FlatMarkRecipeSettings: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     Picker("HTML handling", selection: $model.policyKind) {
-                        Text("Show HTML (default)").tag(FlatMarkCustomPolicyKind.literal)
-                        Text("Hide HTML").tag(FlatMarkCustomPolicyKind.omit)
+                        Text("Show HTML (default)").tag(FlatMarkUnsupportedContentPolicy.literal)
+                        Text("Hide HTML").tag(FlatMarkUnsupportedContentPolicy.omit)
                     }
                     Text("Show HTML keeps the source visible. Hide HTML removes unsupported markup, keeping supported recipe text.")
                         .font(.callout)
