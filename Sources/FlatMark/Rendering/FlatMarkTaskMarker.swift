@@ -23,10 +23,15 @@ public struct FlatMarkTaskMarker {
     func view(isChecked: Bool) -> some View {
         if let render {
             render(isChecked)
-        } else {
-            Image(systemName: isChecked ? "checkmark.square.fill" : "square")
+        } else if isChecked {
+            Image(systemName: "checkmark.square.fill")
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, .tint)
                 .font(.body)
-                .foregroundStyle(isChecked ? .green : .secondary)
+        } else {
+            Image(systemName: "square.fill")
+                .foregroundStyle(.quaternary)
+                .font(.body)
         }
     }
 }
