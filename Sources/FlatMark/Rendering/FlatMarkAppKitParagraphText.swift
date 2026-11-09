@@ -27,11 +27,11 @@ struct FlatMarkParagraphText: NSViewRepresentable {
 
     init(content: FlatMarkRenderInlineContent, role: FlatMarkTextRole, context: FlatMarkRenderContext,
          imagePhases: [Int: FlatMarkInlineView.ImagePhase] = [:]) {
-        // Resolve host output with this render value, not during later native layout updates.
+        // Resolve unsupported text with this render value, not during later native layout updates.
         self.content = FlatMarkRenderInlineContent(components: content.components.map { component in
             switch component {
             case let .unsupported(value):
-                return .text(FlatMarkInlineView.replacementText(for: value, policy: context.unsupportedContentPolicy))
+                return .text(context.unsupportedContentPolicy.literalText(for: value))
             case let .image(image):
                 return .image(FlatMarkRenderImage(url: image.url,
                     altText: context.unsupportedContentPolicy.imageLabel(for: image), link: image.link))
@@ -137,7 +137,7 @@ struct FlatMarkParagraphText: NSViewRepresentable {
             switch component {
             case let .text(value): text = value
             case let .unsupported(value):
-                text = FlatMarkInlineView.replacementText(for: value, policy: policy)
+                text = policy.literalText(for: value)
             case let .image(image):
                 let native = NSMutableAttributedString(attributedString:
                     FlatMarkImagePresentation(image: image, phase: imagePhases[index] ?? .placeholder, policy: policy)

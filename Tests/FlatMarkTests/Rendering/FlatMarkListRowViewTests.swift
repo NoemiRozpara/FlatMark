@@ -47,10 +47,53 @@ struct FlatMarkListRowViewTests {
         }
     }
 
+    /// Switching the unsupported-content policy keeps row identity and the task's editing address.
+    @Test
+    func `policy changes preserve structural IDs and task editing addresses`() throws {
+        let markdown = "Before\n\n<div>raw</div>\n\n- [ ] task <u>x</u>\n\n  <div>continuation</div>\n\nAfter"
+        let document = FlatMarkRenderProjector.project(markdown: markdown)
+        #expect(document.blocks.map(\.id) == (0 ..< 4).map { FlatMarkRenderNodeID(path: [$0]) })
+        guard case let .list(entries) = document.blocks[2].kind,
+              case let .row(row) = try #require(entries.first),
+              case let .task(_, optionalAddress) = row.marker
+        else {
+            Issue.record("Expected an addressable task row")
+            return
+        }
+
+        let address = try #require(optionalAddress)
+        #expect(entries.map(\.id) == [
+            FlatMarkRenderNodeID(path: [2, 0]), FlatMarkRenderNodeID(path: [2, 0, 1]),
+        ])
+
+        var toggled: [String] = []
+        let policies: [FlatMarkUnsupportedContentPolicy] = [.literal, .omit, .literal]
+        for policy in policies {
+            let view = FlatMarkListRowView(row: row, context: FlatMarkRenderContext(
+                unsupportedContentPolicy: policy,
+                taskToggleAction: { receivedAddress in
+                    #expect(receivedAddress == address)
+                    if let updated = FlatMarkTaskMarkerToggle.toggledMarkdown(
+                        in: markdown, sourceRange: receivedAddress
+                    ) {
+                        toggled.append(updated)
+                    }
+                }
+            ))
+            let toggle = try #require(view.taskToggleAction)
+            toggle()
+        }
+
+        // One address serves every policy, so a switch never strands an edit on a stale range.
+        #expect(toggled == Array(
+            repeating: markdown.replacingOccurrences(of: "[ ]", with: "[x]"),
+            count: policies.count
+        ))
+    }
+
     @Test(arguments: [
         ("literal", "Level 1 task: Buy <u>milk</u>", "Level 1 task: Call <u>doctor</u>"),
         ("omit", "Level 1 task: Buy milk", "Level 1 task: Call doctor"),
-        ("custom", "Level 1 task: Buy milk", "Level 1 task: Call doctor"),
     ] as [(String, String, String)])
     func `task controls resolve distinct names under every unsupported-content policy`(
         policyName: String,
@@ -60,8 +103,7 @@ struct FlatMarkListRowViewTests {
         let policy: FlatMarkUnsupportedContentPolicy =
             switch policyName {
             case "literal": .literal
-            case "omit": .omit
-            default: .custom(inline: { _ in AttributedString() })
+            default: .omit
             }
         let rows = try #require(taskRows(in: "- [ ] Buy <u>milk</u>\n- [ ] Call <u>doctor</u>"))
 

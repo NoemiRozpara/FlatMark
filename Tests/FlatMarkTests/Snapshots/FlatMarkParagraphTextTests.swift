@@ -56,62 +56,6 @@ struct FlatMarkParagraphTextTests {
                 compatibleWith: UITraitCollection(preferredContentSizeCategory: .large)))
     }
 
-    @Test func replacementInheritsIntentAndLinkWithoutChangingNeighbors() throws {
-        let inheritedURL = try #require(URL(string: "https://example.com/inherited"))
-        let neighborURL = try #require(URL(string: "https://example.com/neighbor"))
-        var literal = AttributedString("<tag>")
-        literal.inlinePresentationIntent = [.stronglyEmphasized, .emphasized]
-        literal.link = inheritedURL
-        var neighbor = AttributedString("after")
-        neighbor.inlinePresentationIntent = .code
-        neighbor.link = neighborURL
-        let content = FlatMarkRenderInlineContent(components: [
-            .text(AttributedString("before")),
-            .unsupported(.init(literalText: literal)),
-            .text(neighbor)
-        ])
-        let native = render(content, policy: .custom { _ in AttributedString("🦊\n\nR") })
-        #expect(native.string == "before🦊\n\nRafter")
-        let replacementRange = (native.string as NSString).range(of: "🦊\n\nR")
-        for offset in replacementRange.location..<NSMaxRange(replacementRange) {
-            let font = try #require(native.attribute(.font, at: offset, effectiveRange: nil) as? UIFont)
-            #expect(font.fontDescriptor.symbolicTraits.contains([.traitBold, .traitItalic]))
-            #expect(native.attribute(.link, at: offset, effectiveRange: nil) as? URL == inheritedURL)
-        }
-        #expect(native.attribute(.link, at: 0, effectiveRange: nil) == nil)
-        let last = native.length - 1
-        #expect(native.attribute(.link, at: last, effectiveRange: nil) as? URL == neighborURL)
-        let font = try #require(native.attribute(.font, at: last, effectiveRange: nil) as? UIFont)
-        #expect(font.fontDescriptor.symbolicTraits.contains(.traitMonoSpace))
-        #expect(!font.fontDescriptor.symbolicTraits.contains(.traitBold))
-    }
-
-    @Test func explicitEmptyIntentAndNativeHostAttributesWinPerRun() throws {
-        let inheritedURL = try #require(URL(string: "https://example.com/inherited"))
-        let hostURL = try #require(URL(string: "https://example.com/host"))
-        var literal = AttributedString("<tag>")
-        literal.inlinePresentationIntent = [.stronglyEmphasized, .emphasized, .strikethrough]
-        literal.link = inheritedURL
-        var plain = AttributedString("plain")
-        plain.inlinePresentationIntent = []
-        var host = AttributedString("host")
-        let hostFont = UIFont.monospacedSystemFont(ofSize: 23, weight: .medium)
-        host.uiKit.font = hostFont
-        host.uiKit.foregroundColor = .systemPurple
-        host.link = hostURL
-        let replacement = plain + host
-        let native = render(.init(components: [.unsupported(.init(literalText: literal))]),
-                            policy: .custom { _ in replacement })
-        let plainFont = try #require(native.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
-        #expect(!plainFont.fontDescriptor.symbolicTraits.contains(.traitBold))
-        #expect(!plainFont.fontDescriptor.symbolicTraits.contains(.traitItalic))
-        #expect(native.attribute(.strikethroughStyle, at: 0, effectiveRange: nil) == nil)
-        #expect(native.attribute(.link, at: 0, effectiveRange: nil) as? URL == inheritedURL)
-        #expect(native.attribute(.font, at: 5, effectiveRange: nil) as? UIFont == hostFont)
-        #expect(native.attribute(.foregroundColor, at: 5, effectiveRange: nil) as? UIColor == .systemPurple)
-        #expect(native.attribute(.link, at: 5, effectiveRange: nil) as? URL == hostURL)
-    }
-
     @Test(arguments: [CGFloat(140), CGFloat(280)])
     func nativeParagraphsMeasureOfferedWidthWithoutOverlappingFollowingText(width: CGFloat) async throws {
         let environment = FlatMarkSnapshotEnvironment(
@@ -256,21 +200,17 @@ struct FlatMarkParagraphTextTests {
         #expect(sizes[3] > sizes[0])
     }
 
-    @Test func retainedReplacementUpdatesAttributesDirectionAndHeight() async throws {
+    @Test func retainedLiteralContentUpdatesDirectionTypeSizeAndHeight() async throws {
         let document = FlatMarkDocument(markdown: "Before <tag> after.\n\nFollowing paragraph.")
-        let font = UIFont.monospacedSystemFont(ofSize: 23, weight: .medium)
-        func root(_ wording: String, direction: LayoutDirection, size: DynamicTypeSize = .large) -> some View {
-            var replacement = AttributedString(wording)
-            replacement.uiKit.font = font
-            replacement.uiKit.foregroundColor = .systemPurple
-            return FlatMarkView(document: document, unsupportedContentPolicy: .custom { _ in replacement })
+        func root(_ direction: LayoutDirection, size: DynamicTypeSize = .large) -> some View {
+            FlatMarkView(document: document, unsupportedContentPolicy: .literal)
                 .environment(\.layoutDirection, direction)
                 .environment(\.dynamicTypeSize, size)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 260)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        let host = UIHostingController(rootView: root("short", direction: .leftToRight))
+        let host = UIHostingController(rootView: root(.leftToRight))
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 340, height: 900))
         window.rootViewController = host
         window.isHidden = false
@@ -278,20 +218,17 @@ struct FlatMarkParagraphTextTests {
         await settle(host.view)
         let original = try #require(textViews(in: host.view).first)
         var heights: [CGFloat] = []
-        for (wording, direction) in [("short", LayoutDirection.leftToRight),
-                                     ("café مرحبا 123\nsecond\nthird", .rightToLeft), ("short", .leftToRight)] {
-            host.rootView = root(wording, direction: direction,
-                                 size: direction == .rightToLeft ? .accessibility3 : .large)
+        for (direction, size) in [(LayoutDirection.leftToRight, DynamicTypeSize.large),
+                                  (.rightToLeft, DynamicTypeSize.accessibility3),
+                                  (.leftToRight, .large)] {
+            host.rootView = root(direction, size: size)
             await settle(host.view)
             let views = textViews(in: host.view)
             #expect(views.count == 2)
             let first = try #require(views.first)
             #expect(first === original)
-            #expect(first.text == "Before \(wording) after.")
+            #expect(first.text == "Before <tag> after.")
             let storage = try #require(first.attributedText)
-            let offset = (storage.string as NSString).range(of: wording).location
-            #expect(storage.attribute(.font, at: offset, effectiveRange: nil) as? UIFont == font)
-            #expect(storage.attribute(.foregroundColor, at: offset, effectiveRange: nil) as? UIColor == .systemPurple)
             let paragraph = try #require(storage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
             #expect(paragraph.baseWritingDirection == (direction == .rightToLeft ? .rightToLeft : .leftToRight))
             #expect(paragraph.alignment == (direction == .rightToLeft ? .left : .right))

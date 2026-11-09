@@ -7,7 +7,7 @@
     @MainActor
     enum TaskInteractionTestHost {
         static func run(mode: String, markdown: String) {
-            guard ["custom", "omit", "marker-interactive", "marker-readOnly"].contains(mode)
+            guard ["omit", "marker-interactive", "marker-readOnly"].contains(mode)
             else { exit(2) }
 
             let application = NSApplication.shared
@@ -51,34 +51,16 @@
                 }
                 guard let frame = model.markerFrames[false] else { exit(7) }
                 let checkboxPoint = NSPoint(x: frame.midX, y: frame.midY)
-                let hostPoint: NSPoint
-                if mode == "custom" {
-                    guard let replacement = model.replacementFrame else { exit(7) }
-                    hostPoint = NSPoint(x: replacement.midX, y: replacement.midY)
-                } else {
-                    hostPoint = checkboxPoint
-                }
                 var report = [
                     "initialMarkdown": [model.markdown],
                     "initialLoaded": model.loadedURLs,
-                    "initialCustomActivations": [String(model.customActivations)],
                     "initialTaskUpdates": [String(model.updates.count)],
                 ]
-                var points = mode == "custom" ? [hostPoint, checkboxPoint, hostPoint] : [checkboxPoint]
-                if mode == "custom", let linkPoint = linkPoint(in: hosting) {
-                    points.append(linkPoint)
-                }
-                for point in points {
-                    click(at: point, in: hosting, window: window)
-                    await settle(hosting)
-                    report["customActivations", default: []].append(String(model.customActivations))
-                    report["taskUpdates", default: []].append(String(model.updates.count))
-                    report["markdown", default: []].append(model.markdown)
-                    report["linkActivations", default: []].append(String(model.linkActivations))
-                }
-                report["destinations"] = model.destinations
+                click(at: checkboxPoint, in: hosting, window: window)
+                await settle(hosting)
+                report["taskUpdates"] = [String(model.updates.count)]
+                report["markdown"] = [model.markdown]
                 report["updates"] = model.updates
-                report["customPayloads"] = model.payloads
                 report["loaded"] = model.loadedURLs
                 report["completed"] = ["true"]
                 guard let data = try? JSONSerialization.data(withJSONObject: report) else { exit(5) }
@@ -94,29 +76,6 @@
             try? await Task.sleep(for: .milliseconds(30))
             hosting.layoutSubtreeIfNeeded()
             hosting.displayIfNeeded()
-        }
-
-        /// Locate the rendered link glyph rather than assume a task-label coordinate.
-        private static func linkPoint(in hosting: NSView) -> NSPoint? {
-            func textViews(in view: NSView) -> [NSTextView] {
-                if let text = view as? NSTextView { return [text] }
-                return view.subviews.flatMap { textViews(in: $0) }
-            }
-            for text in textViews(in: hosting) {
-                guard let storage = text.textStorage, let manager = text.layoutManager,
-                      let container = text.textContainer else { continue }
-                manager.ensureLayout(for: container)
-                for offset in 0..<storage.length where storage.attribute(.link, at: offset, effectiveRange: nil) != nil {
-                    let glyph = manager.glyphIndexForCharacter(at: offset)
-                    let rect = manager.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: container)
-                    guard !rect.isEmpty else { continue }
-                    let point = NSPoint(x: rect.midX + text.textContainerOrigin.x,
-                                        y: rect.midY + text.textContainerOrigin.y)
-                    guard text.bounds.contains(point) else { exit(7) }
-                    return hosting.convert(point, from: text)
-                }
-            }
-            return nil
         }
 
         private static func click(
@@ -151,13 +110,8 @@
         var markdown: String
         var policy: FlatMarkUnsupportedContentPolicy = .literal
         let mode: String
-        var customActivations = 0
-        var linkActivations = 0
-        var destinations: [String] = []
         var updates: [String] = []
         @ObservationIgnored var markerFrames: [Bool: CGRect] = [:]
-        @ObservationIgnored var replacementFrame: CGRect?
-        @ObservationIgnored var payloads: [String] = []
         @ObservationIgnored var loadedURLs: [String] = []
         let loaderID = UUID()
 
@@ -194,26 +148,8 @@
                         await MainActor.run { model.loadedURLs.append(url.absoluteString) }
                         return loadedFixtureImage
                     },
-                    unsupportedContentPolicy: model.mode == "custom" ? .custom(inline: { payload in
-                        model.payloads.append(payload)
-                        return AttributedString("Replacement")
-                    }, block: { payload in
-                        model.payloads.append(payload)
-                        return AnyView(
-                            Button("Replacement") { model.customActivations += 1 }
-                                .buttonStyle(.plain)
-                                .onGeometryChange(for: CGRect.self) { proxy in
-                                    proxy.frame(in: .named("host"))
-                                } action: { frame in
-                                    model.replacementFrame = frame
-                                }
-                        )
-                    }) : model.policy,
-                    linkActivationAction: { url in
-                        model.destinations.append(url.absoluteString)
-                        model.linkActivations += 1
-                        return .handled
-                    },
+                    unsupportedContentPolicy: model.policy,
+                    linkActivationAction: { _ in .handled },
                     taskToggleAction: model.mode == "marker-readOnly" ? nil : {
                         model.updates.append($0)
                         model.markdown = $0

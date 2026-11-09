@@ -94,8 +94,8 @@ scripts/run-fixture-host.sh ios --capture generous
 
 ## Presets
 
-Defaults: standard text, light appearance, LTR, interactive tasks, default markers, and custom
-unsupported-content replacements. iOS uses a 240-point reading column; macOS follows window width.
+Defaults: standard text, light appearance, LTR, interactive tasks, default markers, and literal
+unsupported content. iOS uses a 240-point reading column; macOS follows window width.
 The recipe's two rasters are bundled PNG/JPEG files that the fixture loader serves; a URL the loader
 does not serve falls back to a `leaf.fill` SF Symbol, whose appearance depends on the OS.
 
@@ -132,14 +132,14 @@ Keep the following checks open:
   during a resizable session remains unverified. The existing captures do not reach `hostMarkers`
   or `readOnly` content, and reach `omission` only at the tallest geometry.
 - Decide what `readOnly` is for. It changes editability only, so no screenshot can verify it.
-- Exercise settings and inline replacement buttons with real input. The previous automation attempt
+- Exercise settings with real input. The previous automation attempt
   reported taps but did not change their state; this established neither working nor broken behavior.
 - Inspect lower scroll content, tables, code, mixed-content wrapping, and selection gestures.
   macOS covers top, middle, and end; iOS still needs scrolled captures.
-- Reproduce earlier macOS quote truncation and narrow-table clipping. Shorter replacement wording
-  is not evidence of a renderer fix; horizontal scrolling and complete cell reachability remain unverified.
+- Reproduce earlier macOS quote truncation and narrow-table clipping. Horizontal scrolling and
+  complete cell reachability remain unverified.
 - Perform live VoiceOver checks on both platforms: task labels/state/nesting, focus order, toggle
-  actions, read-only semantics, and independent links/replacements. Custom marker drawings must not
+  actions, read-only semantics, and independent links. Custom marker drawings must not
   become extra focus stops.
 - Verify system-level enlarged text on macOS separately from the fixture's explicit font-size preset.
 

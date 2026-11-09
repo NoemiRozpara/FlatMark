@@ -14,12 +14,11 @@ Markdown sampler for these cases.
 | --- | --- |
 | Full document, light and dark | Typography sampler and fixed recipe section crops |
 | Narrow/wide and RTL baking instructions | Nested quotes, list continuations, and wrapping |
-| Dimpling paragraph and checklist with custom replacements | Mixed image/text flow and inline/block HTML replacement |
-| Default/custom tasks, interactive/read-only/disabled, retained document | Task-marker presentation matrix |
-| Omit and empty replacements | Static unsupported-policy presentation |
+| Dimpling paragraph and checklist with HTML hidden | Mixed image/text flow and inline/block HTML removal |
+| Default tasks, interactive/read-only/disabled | Task-marker presentation matrix |
 | Images without a loader, narrow/wide and enlarged iOS text | Linked/unlinked placeholders and adjacent hard breaks |
 
-The matrix has 18 macOS scenarios and 23 iOS scenarios. Enlarged iOS captures use
+The matrix has 11 macOS scenarios and 15 iOS scenarios. Enlarged iOS captures use
 real Dynamic Type. Each scenario keeps one scroll view and document mounted across
 its pages. Captures check the actual scroll offset, reach the content bottom, and
 assert that scrolling does not start new image requests. A final page may overlap
@@ -32,13 +31,32 @@ Focused fixtures remain where the demo does not express the tested contract:
 - retained policy/image transitions and request lifecycle checks;
 - table scroll offsets, internal empty tables, and native cell layout bounds;
 - omission/control pairs and deliberately empty tasks, ordered rows, and table cells;
-- the consecutive-hard-break regression and native baseline/paragraph probes.
+- native baseline/paragraph probes.
 
-The empty-replacement payload-dispatch assertion remains in the mounted shared-fixture
-policy test. The duplicate initializer-path pixel test is retired; that same mounted
-test still traverses all six policy edges through both initializers and checks source,
-requests, task updates, and host dispatch. Removing static captures did not remove
-those semantic checks.
+Both built-in policies stay covered at the mounted layer: `FlatMarkOmissionLiveUpdateTests`
+switches a mounted document between them and checks wording, source, and image requests, and the
+native task-interaction host walks `.omit → .literal → .omit` while it toggles a checkbox. Row
+identity and task editing addresses across a policy change are checked in `FlatMarkListRowViewTests`.
+
+### Unsupported-content policy removal
+
+The `.custom` unsupported-content policy, its host closures, and its checks were removed. The two
+built-in policies and their projection, composition, accessibility, and transition checks remain.
+
+- Removed recipe scenarios: the six `custom*` scenarios, `emptyReplacement`, and iOS
+  `enlargedCustom`; their references were deleted rather than re-recorded.
+- Removed the `InlineFlow` suite, which existed to flow a host replacement run between supported
+  text, together with its two references and its suite namespace.
+- `swift test` (macOS, Xcode toolchain on this machine): 190 tests in 27 suites. Every non-snapshot
+  suite passed, with the existing known LoaderSpy issue. The same snapshot suites that fail on the
+  untouched tree still fail here: EmptyStructures, ImagePhase, PolicyTransitions, and
+  RecipeIntegration. See [macOS snapshot lane is currently unreliable](#macos-snapshot-lane-is-currently-unreliable).
+- `FlatMarkSnapshots-iOS` on the iPhone 18 Pro simulator: `FlatMarkParagraphTextTests`,
+  `FlatMarkPolicyTransitionSnapshotTests`, and the 15-case `FlatMarkRecipeIntegrationSnapshotTests`
+  passed against the committed references.
+- The demo installs and keeps running on that simulator after the fixture changes. No capture of the
+  Recipe Lab settings was visually reviewed, so the HTML-handling picker and the counters remain
+  unobserved in the running app.
 
 ### Consolidation verification
 
@@ -781,8 +799,8 @@ swift test
 ```
 
 Model-level tests cover projection, source-preserving task updates, and unsupported-content policy.
-macOS-mounted tests exercise selectable native content, host replacements, tasks, image loading,
-and navigation. They do not replace visual, gesture, or live accessibility checks.
+macOS-mounted tests exercise selectable native content, tasks, image loading, and navigation. They do
+not replace visual, gesture, or live accessibility checks.
 
 ### Snapshot baselines
 
@@ -2358,8 +2376,7 @@ git status --short
 ### Observation boundaries
 
 - **Structure:** `visibleDocument(_:policy:)` records surviving literal/omitted blocks and nesting.
-  `customHosts(in:)` records replacement positions, not what host views draw. Helpers live in
-  `FlatMarkRenderObservation.swift`.
+  Helpers live in `FlatMarkRenderObservation.swift`.
 - **Native content:** `MountedView.visibleText` / `visibleAttributedText` export native selection
   through public `NSServicesMenuRequestor` APIs into a temporary pasteboard. Assertions cover
   wording and exported bold, italic, strikethrough, and link attributes. The general pasteboard
@@ -2423,7 +2440,7 @@ scripts/run-fixture-host.sh ios
 scripts/run-fixture-host.sh macos
 ```
 
-The default `daylight` preset uses custom replacements and standard text. Pass
+The default `daylight` preset shows unsupported HTML literally with standard text. Pass
 `--capture generous` after the platform for enlarged text. iOS uses a 240-point reading column;
 macOS follows window width. No login or backend data is needed. See the
 [capture guide](References/RecipeLab/README.md) for all presets.
@@ -2432,8 +2449,7 @@ macOS follows window width. No login or backend data is needed. See the
 
 | Area | Checks |
 | --- | --- |
-| HTML | **Show HTML / Replace tags / Hide HTML** correspond to literal/custom/omit |
-| Replacements | Edit the label; toggle **Make replacements tappable** and **Replace with nothing** |
+| HTML | **Show HTML / Hide HTML** correspond to literal/omit |
 | Appearance | **Larger recipe text**, **Right-to-left recipe layout** |
 | Tasks | **Use custom checkmarks** and **Allow ticking tasks** independently control drawing/editing |
 | Snapshot reuse | **Use retained document**, **Re-render without editing**, **Add a tasting note** |
@@ -2446,23 +2462,20 @@ should agree on wording, attributes, links, and task behavior.
 
 Run on both iOS and macOS; record OS, build, actions, observed results, and unavailable checks.
 
-- **Policy changes:** exercise literal → custom → omit → literal → omit → custom → literal without
-  source edits. Unsupported content should refresh, surviving tasks keep their addresses, and
-  unaffected image loads should not restart. Empty paragraphs/headings/quotes removed by omission
-  should leave no layout slot or quote rule. Supported list/table structure remains.
-- **Custom content:** opening/closing tags create separate replacements. Empty custom views add no
-  fallback or synthetic spaces, but parent spacing may remain. Supported neighboring text retains
-  formatting and navigation.
-- **Independent actions:** activate a host replacement, adjacent Markdown link, and task separately.
-  Only the matching feedback/counter should change. HTML attributes must not cause navigation or
-  fetching; supported Markdown images remain subject to the loader policy.
+- **Policy changes:** exercise literal → omit → literal → omit without source edits. Unsupported
+  content should refresh, surviving tasks keep their addresses, and unaffected image loads should not
+  restart. Empty paragraphs/headings/quotes removed by omission should leave no layout slot or quote
+  rule. Supported list/table structure remains.
+- **Independent actions:** activate an adjacent Markdown link and a task separately. Only the matching
+  feedback/counter should change. HTML attributes must not cause navigation or fetching; supported
+  Markdown images remain subject to the loader policy.
 - **Task markers:** compare default/custom, checked/unchecked, nested, interactive/read-only, enlarged
   text, and RTL. One activation changes only its source marker. Read-only tasks offer no toggle
   action; marker drawings are not extra accessibility elements.
 - **Mentions:** `@ja*ne*` bolds only `@ja`; whole-token emphasis/strikethrough remains. Code and link
   labels are excluded. Text nodes are scanned independently: `*email*@example.com` can bold
   `@example.com`, while plain `email@example.com` remains unchanged.
-- **Layout:** inspect headings, tables, nested blocks, multiline text, images, and custom views at
+- **Layout:** inspect headings, tables, nested blocks, multiline text, and images at
   narrow/wide widths and enlarged text. Check RTL, clipping, overflow, and table-cell reachability.
 - **Selection:** try selecting within and across native regions; record fragmentation rather than
   assuming continuous selection across mixed views.
@@ -2476,9 +2489,10 @@ than the readable recipe. Preserve their markers, numbering, structure, and sour
 ## Verification status
 
 Earlier iOS simulator and macOS runs observed policy changes, source-preserving task updates,
-independent custom/link actions, marker appearance, and selected layout cases. Mounted tests cover
-initializer parity and mention attributes. These observations predate the current compact recipe
-and do not verify its current UI.
+independent link actions, marker appearance, and selected layout cases. Mounted tests cover
+initializer parity and mention attributes. These observations predate the current compact recipe,
+the removal of the `.custom` unsupported-content policy, and the current Recipe Lab settings, so they
+do not verify its current UI.
 
 Screenshot artifacts are not included; earlier captures predate the compact recipe. New captures
 need visual review. See the [reference guide](References/RecipeLab/README.md) for limitations.

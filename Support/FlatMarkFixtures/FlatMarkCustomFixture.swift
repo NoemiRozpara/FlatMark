@@ -12,7 +12,6 @@ import SwiftUI
 public enum FlatMarkCustomPolicyKind: String, CaseIterable, Identifiable, Hashable {
     case literal
     case omit
-    case custom
 
     public var id: String { rawValue }
 
@@ -20,7 +19,6 @@ public enum FlatMarkCustomPolicyKind: String, CaseIterable, Identifiable, Hashab
         switch self {
         case .literal: "Literal"
         case .omit: "Omit"
-        case .custom: "Custom"
         }
     }
 }
@@ -93,7 +91,7 @@ public struct FlatMarkCustomFixture: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("The recipe")
                 .font(.title2.bold())
-            Text("This recipe is an interactive rendering demo. Tick a baking step to update its checkbox and the Markdown source. Recipe links—including the photo—show a local note in the activity strip above instead of opening a browser. With Replace tags and Make replacements tappable enabled in Settings, block replacement buttons show a baker’s tip in that same strip. These actions only change this demo’s state; they don’t send data or navigate away.")
+            Text("This recipe is an interactive rendering demo. Tick a baking step to update its checkbox and the Markdown source. Recipe links—including the photo—show a local note in the activity strip above instead of opening a browser. These actions only change this demo’s state; they don’t send data or navigate away.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: Self.columnWidth, alignment: .leading)
@@ -200,23 +198,15 @@ public final class FlatMarkCustomFixtureModel {
     public var usesRetainedDocument = false
     public var loadsImages = true
     public var refreshRequests = 0
-    public var policyKind: FlatMarkCustomPolicyKind = .literal {
-        didSet { payloads = [] }
-    }
-    public var replacementLabel = "Replacement"
+    public var policyKind: FlatMarkCustomPolicyKind = .literal
     public var allowsTaskEditing = true
     public var usesHostTaskMarker = false
-    public var showsButtons = false
-    public var showsEmpty = false
     public var darkAppearance = false
     public var enlargedText = false
     public var rightToLeft = false
     public var lastActivity = "Your recipe notes and task confirmations appear here."
-    public var customActivations = 0
     public var linkActivations = 0
     public var taskUpdates = 0
-    @ObservationIgnored public var payloads: [String] = []
-    @ObservationIgnored public var presentedLabels: [String] = []
     public let imageCalls = FlatMarkRecordedImageLoads()
     public let loader: FlatMarkImageLoader
 
@@ -250,29 +240,6 @@ public final class FlatMarkCustomFixtureModel {
             return .literal
         case .omit:
             return .omit
-        case .custom:
-            let label = replacementLabel
-            let showsButtons = showsButtons
-            let showsEmpty = showsEmpty
-            return .custom(
-                inline: { payload in
-                    self.payloads.append(payload)
-                    self.presentedLabels.append(label)
-                    return showsEmpty ? AttributedString() : AttributedString(label)
-                },
-                block: { payload in
-                    self.payloads.append(payload)
-                    self.presentedLabels.append(label)
-                    if showsEmpty { return AnyView(EmptyView()) }
-                    if showsButtons {
-                        return AnyView(Button(label) {
-                            self.customActivations += 1
-                            self.lastActivity = "The recipe: Dimpling tip: oil your fingertips, then press gently into the risen dough."
-                        })
-                    }
-                    return AnyView(Text(label))
-                }
-            )
         }
     }
 }

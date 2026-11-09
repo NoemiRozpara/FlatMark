@@ -88,20 +88,8 @@ struct FlatMarkBlockView: View {
             FlatMarkTableView(table: table, context: context)
 
         case let .unsupported(content):
-            // A host renderer owns what appears here: no literal fallback, label, border, or
-            // minimum-size box is added around what it returns.
-            if case let .custom(inline, block) = context.unsupportedContentPolicy {
-                let source = String(content.literalText.characters)
-                if let block {
-                    block(source)
-                } else {
-                    Text(inline(source))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            } else {
-                Text(context.unsupportedContentPolicy.literalText(for: content))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            Text(context.unsupportedContentPolicy.literalText(for: content))
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -232,28 +220,6 @@ struct FlatMarkInlineView: View {
             await loadImages()
         }
         #endif
-    }
-
-    /// The single composition point for unsupported inline attributed output.
-    nonisolated static func replacementText(
-        for unsupported: FlatMarkRenderUnsupportedContent,
-        policy: FlatMarkUnsupportedContentPolicy
-    ) -> AttributedString {
-        if case let .custom(inline, _) = policy {
-            var replacement = inline(String(unsupported.literalText.characters))
-            let defaults = unsupported.literalText.runs.first?.attributes
-            for run in replacement.runs {
-                // Inspect the attribute container: an explicitly empty intent suppresses inheritance.
-                if run.attributes.inlinePresentationIntent == nil {
-                    replacement[run.range].inlinePresentationIntent = defaults?.inlinePresentationIntent
-                }
-                if run.link == nil {
-                    replacement[run.range].link = defaults?.link
-                }
-            }
-            return replacement
-        }
-        return policy.literalText(for: unsupported)
     }
 
     private var imageRequests: [ImageRequest] {

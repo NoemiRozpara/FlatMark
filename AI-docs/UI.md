@@ -20,7 +20,7 @@ Follow [ARCHITECTURE.md](ARCHITECTURE.md): source and persistence belong to the 
 
 Use local state only for renderer-owned presentation and lifecycle needs. Do not introduce required screen Binding Models, routers, coordinators, repositories, or an application environment. Keep semantic actions explicit through the established host callbacks.
 
-Avoid making unrelated render-setting changes reset surviving tasks, custom content, or image requests. Respect the documented distinction between surviving identity and state inside views removed by a policy change.
+Avoid making unrelated render-setting changes reset surviving tasks or image requests. Respect the documented distinction between surviving identity and state inside views removed by a policy change.
 
 ## Task markers
 
@@ -28,11 +28,9 @@ Custom marker drawings are passive. Do not add a button, toggle, gesture, or sep
 
 Keep drawing and editing independent: custom markers also apply to read-only and nested tasks. Tasks without an editing address remain static. Verify that one activation affects only its selected source marker and that inherited disabling prevents edits.
 
-## Links and custom content
+## Links
 
-Keep Markdown-link activation, task activation, and host replacement controls independently actionable. Do not add enclosing actions or accessibility proxies that swallow or duplicate a host control's behavior.
-
-Custom unsupported content retains its structural position and ambient environment. Inline attributed output composes with supported text; arbitrary views are block-only overrides. Do not synthesize spaces, fallback wording, minimum-size boxes, or copied inline text styling that the public contract does not promise. Empty custom output is not the same as recursive omission.
+Keep Markdown-link activation and task activation independently actionable. Do not add enclosing actions or accessibility proxies that swallow or duplicate an existing control's behavior.
 
 Application routing remains host-owned. Do not add navigation containers, choose presentation styles, or turn fragment links into internal document scrolling without an agreed public change.
 

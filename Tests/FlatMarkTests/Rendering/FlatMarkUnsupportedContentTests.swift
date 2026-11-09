@@ -98,8 +98,8 @@ struct FlatMarkUnsupportedContentTests {
         #expect(Set(runs(in: linked).compactMap(\.link)) == [destination])
     }
 
-    /// A whole HTML block is one node for every policy: inert exact text, no layout slot left behind
-    /// by omission, and exactly one host position where the block itself sat.
+    /// A whole HTML block is one node for every policy: inert exact text, and no layout slot left
+    /// behind by omission.
     @Test(arguments: [
         ("<script>go()</script>", "<script>go()</script>\n"),
         ("<iframe src=\"https://evil.example/e\"></iframe>", "<iframe src=\"https://evil.example/e\"></iframe>\n"),
@@ -113,7 +113,6 @@ struct FlatMarkUnsupportedContentTests {
 
         #expect(block.kind == .unsupported(literal(rawHTML)))
         #expect(!FlatMarkUnsupportedContentPolicy.omit.presents(block))
-        #expect(customHosts(in: document) == [host(rawHTML, path: [0])])
     }
 
     @Test
@@ -265,20 +264,6 @@ struct FlatMarkUnsupportedContentTests {
         )
 
         #expect(document.blocks.first?.kind == .unsupported(literal("café 你好\n<u>🧪</u>\ntail")))
-    }
-
-    @Test
-    func `hands a custom host the same corrected block extraction as the literal policy`() {
-        let code = "café 🧪\n你好\n"
-        let document = FlatMarkRenderProjector.project(
-            Document(CustomBlock([CodeBlock(language: "swift", code)])),
-            source: ""
-        )
-
-        // One extraction serves every policy: what a host view is handed is the text the literal
-        // policy prints, which is the literal text this projection already carries.
-        #expect(document.blocks.map(\.kind) == [.unsupported(literal(code))])
-        #expect(customHosts(in: document) == [host(code, path: [0])])
     }
 
     @Test(arguments: [

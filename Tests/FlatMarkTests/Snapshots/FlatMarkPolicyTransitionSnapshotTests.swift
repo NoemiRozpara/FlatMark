@@ -46,12 +46,6 @@ struct FlatMarkPolicyTransitionSnapshotTests {
         model.delivery.release()
         let initial = try await capture(host, delivery: model.delivery)
         snapshot(initial, "literal", testName: #function)
-        model.policyKind = .custom
-        snapshot(try await capture(host, delivery: model.delivery),
-                 "custom", testName: #function)
-        model.replacementLabel = "Changed replacement"
-        snapshot(try await capture(host, delivery: model.delivery),
-                 "changedCustom", testName: #function)
         model.policyKind = .omit
         snapshot(try await capture(host, delivery: model.delivery),
                  "omit", testName: #function)
@@ -201,7 +195,6 @@ private final class ControlledModel {
     let delivery = ControlledDelivery()
     let loader: FlatMarkImageLoader?
     var policyKind = FlatMarkCustomPolicyKind.literal
-    var replacementLabel = "Replacement"
 
     init(markdown: String, loadsImages: Bool = true) {
         self.markdown = markdown
@@ -221,12 +214,6 @@ private final class ControlledModel {
         switch policyKind {
         case .literal: .literal
         case .omit: .omit
-        case .custom:
-            .custom { [replacementLabel] _ in
-                var replacement = AttributedString(replacementLabel)
-                replacement.foregroundColor = .indigo
-                return replacement
-            }
         }
     }
 

@@ -5,21 +5,6 @@ import Testing
 
 @MainActor
 struct FlatMarkInlineViewTests {
-    @Test func customTextKeepsBreaksLinksAndImagePositions() throws {
-        let document = FlatMarkRenderProjector.project(
-            markdown: "**before <u>x</u>**\n[linked <u>y</u>](https://example.com/md) ![alt](https://example.com/image.png)"
-        )
-        guard case let .paragraph(content) = try #require(document.blocks.first).kind else {
-            Issue.record("Expected a paragraph")
-            return
-        }
-        let native = flatMarkNativeInlineText(content, policy: .custom { AttributedString("custom(\($0))") })
-        #expect(native.string == "before custom(<u>)xcustom(</u>)\nlinked custom(<u>)ycustom(</u>) \u{FFFC} alt")
-        let linked = (native.string as NSString).range(of: "linked ")
-        #expect(native.attribute(.link, at: linked.location, effectiveRange: nil) as? URL
-            == URL(string: "https://example.com/md"))
-    }
-
     @Test func emptyHTMLPairComposesWithoutAddedSpaces() throws {
         let document = FlatMarkRenderProjector.project(markdown: "a<u></u>b")
         guard case let .paragraph(content) = try #require(document.blocks.first).kind else {
@@ -28,8 +13,6 @@ struct FlatMarkInlineViewTests {
         }
         let policies: [(FlatMarkUnsupportedContentPolicy, String)] = [
             (.literal, "a<u></u>b"), (.omit, "ab"),
-            (.custom { AttributedString("custom(\($0))") }, "acustom(<u>)custom(</u>)b"),
-            (.custom { _ in AttributedString() }, "ab"),
         ]
         for (policy, expected) in policies {
             #expect(flatMarkNativeInlineText(content, policy: policy).string == expected)
