@@ -46,7 +46,7 @@ font-override, and selection contract.
 | Backslash escapes | Fully rendered | Resolved by the parser before projection. |
 | Character references | Fully rendered | Resolved by the parser before projection. |
 | Soft line breaks | Fully rendered | Newline in native text. |
-| Hard line breaks (two spaces or backslash) | Rendered with documented policy | Newline in native text; consecutive-break snapshots record current output, not qualified break semantics. See [coverage](Tests/README.md#coverage). |
+| Hard line breaks (two spaces or backslash) | Fully rendered | Newline in native text; two consecutive hard breaks keep one blank row. See [coverage](Tests/README.md#coverage). |
 | Emphasis | Fully rendered | Native emphasized run. |
 | Strong emphasis | Fully rendered | Native strongly emphasized run. |
 | Nested emphasis and strong emphasis | Fully rendered | Both intents retained on the same run. |
