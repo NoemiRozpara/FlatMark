@@ -43,16 +43,10 @@ struct FlatMarkParagraphText: UIViewRepresentable {
 
     func updateUIView(_ view: UITextView, context: Context) {
         context.coordinator.openURL = openURL
-        let policyKey: Int? = switch self.context.unsupportedContentPolicy {
-        case .literal: 0
-        case .omit: 1
-        case .custom: nil
-        }
-        let inputs = CompositionInputs(content: content, role: role, policyKey: policyKey,
+        let inputs = CompositionInputs(content: content, role: role, policy: self.context.unsupportedContentPolicy,
                                        dynamicTypeSize: dynamicTypeSize, layoutDirection: layoutDirection,
                                        alignment: alignment, imagePhases: imagePhases)
-        // Custom closures have no comparable identity and may capture changed host state.
-        if policyKey == nil || context.coordinator.compositionInputs != inputs {
+        if context.coordinator.compositionInputs != inputs {
             context.coordinator.compositionInputs = inputs
             context.coordinator.composedWidth = nil
             context.coordinator.compose = { width in Self.attributedText(
@@ -109,7 +103,7 @@ struct FlatMarkParagraphText: UIViewRepresentable {
             switch component {
             case let .text(value): text = value
             case let .unsupported(value):
-                text = FlatMarkInlineView.replacementText(for: value, policy: policy)
+                text = policy.literalText(for: value)
             case let .image(image):
                 let native = NSMutableAttributedString(attributedString:
                     FlatMarkImagePresentation(image: image, phase: imagePhases[index] ?? .placeholder, policy: policy)
@@ -211,7 +205,7 @@ struct FlatMarkParagraphText: UIViewRepresentable {
     struct CompositionInputs: Equatable {
         let content: FlatMarkRenderInlineContent
         let role: FlatMarkTextRole
-        let policyKey: Int?
+        let policy: FlatMarkUnsupportedContentPolicy
         let dynamicTypeSize: DynamicTypeSize
         let layoutDirection: LayoutDirection
         let alignment: TextAlignment

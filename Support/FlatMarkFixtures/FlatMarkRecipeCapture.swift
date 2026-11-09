@@ -11,9 +11,6 @@ public enum FlatMarkRecipeCapture: String, CaseIterable, Identifiable {
     public func apply(to model: FlatMarkCustomFixtureModel) {
         model.markdown = FlatMarkCustomFixtureModel.markdown
         model.policyKind = self == .omission ? .omit : .literal
-        model.replacementLabel = "Baker’s tip"
-        model.showsButtons = true
-        model.showsEmpty = false
         model.loadsImages = true
         model.usesRetainedDocument = false
         model.refreshRequests = 0
@@ -23,7 +20,6 @@ public enum FlatMarkRecipeCapture: String, CaseIterable, Identifiable {
         model.allowsTaskEditing = self != .readOnly
         model.darkAppearance = self == .midnight
         model.lastActivity = "Your recipe notes and task confirmations appear here."
-        model.customActivations = 0
         model.linkActivations = 0
         model.taskUpdates = 0
     }

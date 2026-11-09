@@ -1,3 +1,4 @@
+import FlatMark
 import SwiftUI
 
 /// Exploration controls shown before the shared recipe.
@@ -21,7 +22,7 @@ struct FlatMarkRecipeSettings: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Toggle("Use custom checkmarks", isOn: $model.usesHostTaskMarker)
                     Toggle("Allow ticking tasks", isOn: $model.allowsTaskEditing)
-                    Text("Turn off task editing for a read-only checklist. Recipe links and tip buttons stay active.")
+                    Text("Turn off task editing for a read-only checklist. Recipe links stay active.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -32,21 +33,12 @@ struct FlatMarkRecipeSettings: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     Picker("HTML handling", selection: $model.policyKind) {
-                        Text("Show HTML (default)").tag(FlatMarkCustomPolicyKind.literal)
-                        Text("Replace tags").tag(FlatMarkCustomPolicyKind.custom)
-                        Text("Hide HTML").tag(FlatMarkCustomPolicyKind.omit)
+                        Text("Show HTML (default)").tag(FlatMarkUnsupportedContentPolicy.literal)
+                        Text("Hide HTML").tag(FlatMarkUnsupportedContentPolicy.omit)
                     }
-                    Text("Show HTML keeps the source visible. Replace tags inserts a tip for each HTML tag. Hide HTML removes unsupported markup, keeping supported recipe text.")
+                    Text("Show HTML keeps the source visible. Hide HTML removes unsupported markup, keeping supported recipe text.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 12) {
-                        Toggle("Make replacements tappable", isOn: $model.showsButtons)
-                        Toggle("Replace with nothing", isOn: $model.showsEmpty)
-                        TextField("Tag replacement text", text: $model.replacementLabel)
-                            .textFieldStyle(.roundedBorder)
-                            .disabled(model.showsEmpty)
-                    }
-                    .disabled(model.policyKind != .custom)
                 }
             }
             GroupBox("Notebook rendering") {
@@ -72,7 +64,7 @@ struct FlatMarkRecipeSettings: View {
                             Button(capture.rawValue) { capture.apply(to: model) }
                         }
                     }
-                    Text("Task updates: \(model.taskUpdates) · Tip activations: \(model.customActivations) · Link activations: \(model.linkActivations)")
+                    Text("Task updates: \(model.taskUpdates) · Link activations: \(model.linkActivations)")
                     Text("Local image loads this session: \(model.imageCalls.urls.count)")
                 }
                 .padding(.top)

@@ -63,21 +63,6 @@
             #expect(report["opened"] == (suppressesOpening ? [] : [(decision == "retainedOpener" ? "new:" : "") + destination]))
         }
 
-        @Test(arguments: ["custom", "customLink"],
-              ["retainedCallback", "retainedCallbackHandled", "retainedCallbackRejected", "retainedOpener"])
-        func `retained replacement links use current host navigation handlers`(policy: String, decision: String) async throws {
-            let report = try await navigationReport(
-                markdown: "[<tag>](details)", decision: decision, unsupportedPolicy: policy
-            )
-            let destination = policy == "customLink"
-                ? "https://host.example/explicit" : "https://example.com/docs/details"
-            #expect(report["beforeActivation"] == [])
-            #expect(report["beforeOpening"] == [])
-            #expect(report["activated"] == [(decision.hasPrefix("retainedCallback") ? "new:" : "") + destination])
-            let suppressesOpening = decision == "retainedCallbackHandled" || decision == "retainedCallbackRejected"
-            #expect(report["opened"] == (suppressesOpening ? [] : [(decision == "retainedOpener" ? "new:" : "") + destination]))
-        }
-
         @Test(arguments: ["[**Details**]()", "[**Details**](<http://[>)", "Plain neighbor [Details](details)"], ["retainedCallback", "retainedOpener"])
         func `retained inert labels ignore updated handlers`(markdown: String, decision: String) async throws {
             let report = try await navigationReport(markdown: markdown, decision: decision)
@@ -144,29 +129,6 @@
             #expect(report["loaded"] == ["https://example.com/docs/image.png"])
         }
 
-        @Test(arguments: ["handled", "rejected", "default", "omitted"], ["custom", "customLink"])
-        func `replacement links use existing host navigation routing`(decision: String, policy: String) async throws {
-            let report = try await navigationReport(
-                markdown: "[<u>after](details) [Adjacent](adjacent)",
-                decision: decision, unsupportedPolicy: policy
-            )
-            let destination = policy == "custom" ? "https://example.com/docs/details" : "https://host.example/explicit"
-            #expect(report["beforeActivation"] == [])
-            #expect(report["beforeOpening"] == [])
-            #expect(report["activated"] == (decision == "omitted" ? [] : [destination]))
-            #expect(report["opened"] == (["default", "omitted"].contains(decision) ? [destination] : []))
-        }
-
-        @Test(arguments: ["custom", "customLink"])
-        func `supported links beside replacements remain independent`(policy: String) async throws {
-            let report = try await navigationReport(
-                markdown: "[Adjacent](adjacent) [<u>after](details)",
-                decision: "default", unsupportedPolicy: policy
-            )
-            #expect(report["activated"] == ["https://example.com/docs/adjacent"])
-            #expect(report["opened"] == ["https://example.com/docs/adjacent"])
-        }
-
         @Test(arguments: [
             "[before <u>x</u> after](details)",
             "[**before <u>x</u> after**](details)",
@@ -202,9 +164,6 @@
         var expectedKeys: Set = ["beforeActivation", "beforeOpening", "activated", "opened"]
         if unsupportedPolicy != nil {
             expectedKeys.insert("loaded")
-        }
-        if unsupportedPolicy == "custom" || unsupportedPolicy == "customLink" {
-            expectedKeys.formUnion(["customPayloads", "customActivations"])
         }
         try #require(Set(report.keys) == expectedKeys)
         return report

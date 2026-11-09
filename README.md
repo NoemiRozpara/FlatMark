@@ -177,61 +177,40 @@ Raw HTML and other nodes without a native renderer follow `unsupportedContentPol
 | --- | --- |
 | `.literal` (default) | Inert source text; HTML uses parser-provided raw HTML |
 | `.omit` | Remove unsupported nodes and recursively emptied paragraphs, headings, and blockquotes |
-| `.custom` | Replace each unsupported node with attributed text, with an optional native block-view override |
 
 Omission follows parser nodes, not HTML element boundaries: `before <u>important</u> after`
 retains `important`, while a whole HTML block may disappear. Authored spaces, supported structures,
 and pre-existing empty constructs remain. Image descriptions follow the same text policy.
 Switching policies preserves surviving node IDs, task addresses, and unaffected image-loading state;
-state inside removed views is not preserved.
+state inside views that omission removes is not preserved.
 
 ```swift
 FlatMarkView(
     markdown: markdown,
-    unsupportedContentPolicy: .custom(
-        inline: { source in AttributedString(source) },
-        block: { source in AnyView(Button("Inspect") { inspect(source) }) }
-    )
+    unsupportedContentPolicy: .omit
 )
 ```
 
-The inline closure is required and returns `AttributedString`. For text-only replacements, use
-`.custom { source in AttributedString(source) }`. Inline nodes always use this closure. Block nodes
-use the optional block override when supplied; otherwise they render the inline closure's output
-as native text.
+Under `.literal` the renderer prints what the parser reported: raw HTML for an HTML node, otherwise
+the original source slice the parser addressed, readable descendants, or an empty string. Opening
+and closing tags are separate nodes, not paired elements. Known containers recurse; escaped tags,
+code, and ordinary text stay supported.
 
-Both closures receive the same extracted source as `.literal`: raw HTML, otherwise a valid original
-source slice, readable descendants, or an empty string. Empty extraction still reaches the selected
-closure. Opening and closing tags are separate nodes, not paired elements. Known containers recurse;
-escaped tags, code, and ordinary text do not invoke either closure.
+Literal runs compose with their supported neighbors in the same paragraph. They carry the enclosing
+Markdown presentation intents and links, and contribute their wording to paragraph accessibility
+text.
 
-Replacements keep their structural position and ambient environment. FlatMark adds no literal
-fallback or minimum-size box. Block controls remain independently actionable beside tasks and
-supported links. Inline replacement text uses semantic UIKit or AppKit typography for its role.
-Paragraphs, headings, list text, and table cells use that native path. They preserve explicit native font and color attributes per run. SwiftUI `Font` attributes
-use semantic native typography instead. Host-supplied fixed fonts remain host-owned.
-Each run inherits enclosing Markdown presentation intents and links when the host omits those
-attributes. An explicit host intent replaces the enclosing intent, including an empty intent set
-that suppresses inheritance. A host link overrides the enclosing destination on its run; a missing
-link inherits it. Replacement links use the same `linkActivationAction` and inherited `openURL`
-path as supported links. Inline replacements compose with
-supported neighbors as native text and contribute their wording to paragraph accessibility text.
-
-Empty attributed output and block overrides returning `AnyView(EmptyView())` do not imply recursive
-omission: parent spacing may remain. No spaces are synthesized. These are presentation closures;
-invocation counts are not lifecycle guarantees.
-
-Built-in policies never execute HTML or fetch HTML resources. **Custom output is host-owned**,
-including interpretation, sanitization, navigation, and resource access. FlatMark is not an HTML sanitizer.
+Neither policy executes HTML or fetches HTML resources. FlatMark is not an HTML sanitizer.
 
 ## Layout and selection limits
 
-Paragraphs, headings, list text, and table cells compose supported and custom text in a
-noneditable, selectable `UITextView` on iOS or `NSTextView` on macOS. Each uses system-preferred
+Paragraphs, headings, list text, and table cells compose supported text and literal unsupported text
+in a noneditable, selectable `UITextView` on iOS or `NSTextView` on macOS. Each uses system-preferred
 semantic typography for its role — body, heading level 1–3 (title/title2/title3), heading level 4–6
 (headline), or bold table header — with no fixed point size. Inline emphasis, strong text, mentions,
-and inline code derive their traits from the resolved role font. Each measures the offered width
-at each finite positive offered width without a fixed reading width. Other proposals use native
+and inline code derive their traits from the resolved role font. Explicit native font and color
+attributes are preserved per run; SwiftUI `Font` attributes use semantic native typography instead.
+Each measures finite positive width proposals without a fixed reading width. Other proposals use native
 sizing behavior. Content, typography, and direction changes refresh layout. Paragraph writing
 direction and leading/trailing alignment remain separate. iOS responds to Dynamic Type; macOS
 uses AppKit's preferred semantic fonts without iOS scaling. Ambient SwiftUI font, foreground style,

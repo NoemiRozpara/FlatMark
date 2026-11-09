@@ -26,7 +26,7 @@ Review against the [public contracts](../README.md), [support matrix](../SUPPORT
 - Equivalent behavior between source and retained-document initializers.
 - Stable surviving identity and image-loading state across render-setting changes.
 - Loader configuration identity, cancellation, and stale asynchronous results.
-- Correct separation of navigation permission, image-fetch permission, and host-owned custom behavior.
+- Correct separation of navigation permission and image-fetch permission.
 - Native control semantics, disabled behavior, independent actions, and accessibility.
 - Fixture, test-host, benchmark, and demo isolation from the consumed library product.
 

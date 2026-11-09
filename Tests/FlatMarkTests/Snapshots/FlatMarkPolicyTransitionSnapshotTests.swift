@@ -46,12 +46,6 @@ struct FlatMarkPolicyTransitionSnapshotTests {
         model.delivery.release()
         let initial = try await capture(host, delivery: model.delivery)
         snapshot(initial, "literal", testName: #function)
-        model.policyKind = .custom
-        snapshot(try await capture(host, delivery: model.delivery),
-                 "custom", testName: #function)
-        model.replacementLabel = "Changed replacement"
-        snapshot(try await capture(host, delivery: model.delivery),
-                 "changedCustom", testName: #function)
         model.policyKind = .omit
         snapshot(try await capture(host, delivery: model.delivery),
                  "omit", testName: #function)
@@ -86,7 +80,7 @@ struct FlatMarkPolicyTransitionSnapshotTests {
         defer { host.close() }
         snapshot(try await capture(host, delivery: model.delivery),
                  "loaded", testName: #function)
-        for policy in [FlatMarkCustomPolicyKind.omit, .literal] {
+        for policy in [FlatMarkUnsupportedContentPolicy.omit, .literal] {
             model.policyKind = policy
             snapshot(try await capture(host, delivery: model.delivery),
                      "loaded", mode: .verify, testName: #function)
@@ -200,8 +194,7 @@ private final class ControlledModel {
     let markdown: String
     let delivery = ControlledDelivery()
     let loader: FlatMarkImageLoader?
-    var policyKind = FlatMarkCustomPolicyKind.literal
-    var replacementLabel = "Replacement"
+    var policyKind = FlatMarkUnsupportedContentPolicy.literal
 
     init(markdown: String, loadsImages: Bool = true) {
         self.markdown = markdown
@@ -215,19 +208,6 @@ private final class ControlledModel {
             try await Task.sleep(for: .seconds(1))
             return raster
         } : nil
-    }
-
-    var policy: FlatMarkUnsupportedContentPolicy {
-        switch policyKind {
-        case .literal: .literal
-        case .omit: .omit
-        case .custom:
-            .custom { [replacementLabel] _ in
-                var replacement = AttributedString(replacementLabel)
-                replacement.foregroundColor = .indigo
-                return replacement
-            }
-        }
     }
 
     private static func raster() -> NativeImage {
@@ -258,7 +238,7 @@ private final class ControlledModel {
 private struct ControlledDocument: View {
     let model: ControlledModel
     var body: some View {
-        FlatMarkView(markdown: model.markdown, imageLoader: model.loader, unsupportedContentPolicy: model.policy)
+        FlatMarkView(markdown: model.markdown, imageLoader: model.loader, unsupportedContentPolicy: model.policyKind)
             .fixedSize(horizontal: false, vertical: true)
     }
 }

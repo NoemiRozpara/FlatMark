@@ -13,18 +13,17 @@ import Testing
     import UIKit
 #endif
 
-/// Static presentation uses the same document, marker drawings, and replacements as Recipe Lab.
-/// Controlled transitions and internal layout probes remain in their focused suites.
+/// Static presentation uses the same document as Recipe Lab. Controlled transitions and internal
+/// layout probes remain in their focused suites.
 @Suite(.serialized)
 @MainActor
 struct FlatMarkRecipeIntegrationSnapshotTests {
     enum Scenario: String, CaseIterable {
         case primary, dark, narrow, rtlNarrow, rtlWide
-        case customNarrow, customWide, customRTL, customDisabled, customReadOnly, customRetained
-        case omission, emptyReplacement, readOnly, disabled
+        case omission, readOnly, disabled
         case noLoaderNarrow, noLoaderWide
         #if os(iOS)
-        case enlarged, enlargedCustom, enlargedRTL, enlargedNoLoaderNarrow, enlargedNoLoaderWide
+        case enlarged, enlargedRTL, enlargedNoLoaderNarrow, enlargedNoLoaderWide
         #endif
 
         var source: (markdown: String, imageCount: Int) {
@@ -33,11 +32,9 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
                 return (FlatMarkRecipeSample.markdown, 3)
             case .narrow, .rtlNarrow, .rtlWide:
                 return ([FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.method].joined(separator: "\n\n"), 0)
-            case .customNarrow, .customWide, .customRTL:
-                return ([FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.bakeAlong].joined(separator: "\n\n"), 1)
-            case .customDisabled, .customReadOnly, .customRetained, .readOnly, .disabled:
+            case .readOnly, .disabled:
                 return (FlatMarkRecipeSample.bakeAlong, 0)
-            case .omission, .emptyReplacement:
+            case .omission:
                 return ([FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.notes]
                     .joined(separator: "\n\n"), 2)
             case .noLoaderNarrow, .noLoaderWide:
@@ -46,8 +43,6 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
             #if os(iOS)
             case .enlarged, .enlargedRTL:
                 return ([FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.method].joined(separator: "\n\n"), 0)
-            case .enlargedCustom:
-                return ([FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.bakeAlong].joined(separator: "\n\n"), 1)
             case .enlargedNoLoaderNarrow, .enlargedNoLoaderWide:
                 return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.notes]
                     .joined(separator: "\n\n"), 3)
@@ -56,19 +51,17 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         }
 
         var enlarged: Bool { rawValue.hasPrefix("enlarged") }
-        var custom: Bool { rawValue.hasPrefix("custom") || self == .emptyReplacement || rawValue == "enlargedCustom" }
-        var disabled: Bool { self == .disabled || self == .customDisabled }
+        var disabled: Bool { self == .disabled }
         var noLoader: Bool { rawValue.lowercased().contains("noloader") }
         var column: CGFloat {
             if noLoader { return rawValue.hasSuffix("Narrow") ? 160 : 320 }
-            if self == .narrow || self == .rtlNarrow || self == .customNarrow || self == .customRTL
-                || self == .customDisabled || self == .customReadOnly || self == .customRetained || enlarged {
+            if self == .narrow || self == .rtlNarrow || enlarged {
                 return 240
             }
             return 560
         }
         var direction: FlatMarkSnapshotEnvironment.LayoutDirection {
-            self == .rtlNarrow || self == .rtlWide || self == .customRTL || rawValue == "enlargedRTL"
+            self == .rtlNarrow || self == .rtlWide || rawValue == "enlargedRTL"
                 ? .rightToLeft : .leftToRight
         }
     }
@@ -79,13 +72,8 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         let model = FlatMarkCustomFixtureModel(markdown: source.markdown)
         let expectedLoads = scenario.noLoader ? 0 : source.imageCount
         model.loadsImages = !scenario.noLoader
-        model.policyKind = scenario.custom ? .custom : scenario == .omission ? .omit : .literal
-        model.replacementLabel = "Baker’s tip"
-        model.showsButtons = true
-        model.showsEmpty = scenario == .emptyReplacement
-        model.usesHostTaskMarker = scenario.custom
-        model.allowsTaskEditing = scenario != .readOnly && scenario != .customReadOnly
-        model.usesRetainedDocument = scenario == .customRetained
+        model.policyKind = scenario == .omission ? .omit : .literal
+        model.allowsTaskEditing = scenario != .readOnly
         let environment = FlatMarkSnapshotEnvironment(
             captureSize: CGSize(width: scenario.column + 80, height: scenario.enlarged ? 1800 : 1200),
             columnWidth: scenario.column, contentInset: 40, pixelScale: 2,

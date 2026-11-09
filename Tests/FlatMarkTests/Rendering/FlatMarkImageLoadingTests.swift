@@ -159,8 +159,6 @@ struct FlatMarkImageLoadingTests {
             markdown: "![<u></u>](image.png)"
         )))
         let erased = try #require(erasedContent.components.compactMap(renderImage).first)
-        // Custom text also contributes to image-description wording.
-        let custom = FlatMarkUnsupportedContentPolicy.custom(inline: { _ in AttributedString("Replacement") })
         let phases: [(FlatMarkInlineView.ImagePhase, String)] = [
             (.placeholder, ", not loaded"),
             (.loading, ", loading"),
@@ -174,59 +172,14 @@ struct FlatMarkImageLoadingTests {
             #expect(FlatMarkInlineView.accessibilityLabel(
                 for: image, phase: phase, policy: .literal
             ) == "before <u>x</u> after" + suffix)
+            // A description emptied by omission falls back to the generic label.
             #expect(FlatMarkInlineView.accessibilityLabel(
-                for: image, phase: phase, policy: custom
-            ) == "before ReplacementxReplacement after" + suffix)
-            // A description made entirely of custom output keeps that wording.
-            #expect(FlatMarkInlineView.accessibilityLabel(
-                for: erased, phase: phase, policy: custom
-            ) == "ReplacementReplacement" + suffix)
+                for: erased, phase: phase, policy: .omit
+            ) == "Image" + suffix)
         }
     }
 
     #if os(macOS)
-        /// Custom image-description text does not change supported image loading.
-        @Test
-        func `composes custom image description text and keeps the image loader`() async throws {
-            let loads = FlatMarkRecordedImageLoads()
-            let recorder = BlockPayloadRecorder()
-            let hosted = await mountTestView(FlatMarkView(
-                markdown: "![before <u>x</u> after](image.png)",
-                baseURL: URL(string: "https://example.com/"),
-                imageLoader: FlatMarkImageLoader(configurationID: UUID()) { url in
-                    await loads.record(url)
-                    return loadedFixtureImage()
-                },
-                unsupportedContentPolicy: .custom(inline: { payload in
-                    recorder.payloads.append(payload)
-                    return AttributedString("Replacement")
-                })
-            ))
-            defer { hosted.close() }
-            try await waitForImage(in: loads)
-
-            // The loader request confirms the supported image survives the text replacement.
-            #expect(loads.urls == [try #require(URL(string: "https://example.com/image.png"))])
-            #expect(hosted.showsContent)
-            #expect(Set(recorder.payloads) == ["<u>", "</u>"])
-
-            let control = BlockPayloadRecorder()
-            let inlineHosted = await mountTestView(FlatMarkView(
-                markdown: "before <u>x</u> after",
-                unsupportedContentPolicy: .custom(inline: { payload in
-                    control.payloads.append(payload)
-                    return AttributedString("Replacement")
-                })
-            ))
-            defer { inlineHosted.close() }
-            await settleMountedRendering()
-
-            // The same host and recorder do reach the two inline nodes a document really carries, so
-            // the empty set above is not a view that never rendered.
-            #expect(Set(control.payloads) == ["<u>", "</u>"])
-            #expect(inlineHosted.showsContent)
-        }
-
         @Test(arguments: [false, true])
         func `switching image description policy restores wording without reloading`(usesLoader: Bool) async throws {
             let spy = LoaderSpy()

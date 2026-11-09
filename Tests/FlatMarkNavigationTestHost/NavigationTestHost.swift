@@ -27,10 +27,6 @@
             } : nil
             var activated: [String] = []
             var opened: [String] = []
-            // A `.custom` host reports what it was handed and how often its own control was activated,
-            // because no call count is a lifecycle guarantee.
-            var customPayloads: [String] = []
-            var customActivations = 0
             let changesOptionalCallback = decision == "addCallback" || decision == "removeCallback"
             let updatesCallback = decision.hasPrefix("retainedCallback") || changesOptionalCallback
             let updatesOpener = decision == "retainedOpener"
@@ -51,25 +47,6 @@
             let policyArgument = recordsImages ? CommandLine.arguments[4] : "default"
             let policy: FlatMarkUnsupportedContentPolicy?
             switch policyArgument {
-            case "custom", "customLink":
-                policy = .custom(inline: { payload in
-                    customPayloads.append(payload)
-                    var text = AttributedString("Replacement")
-                    if policyArgument == "customLink" {
-                        text.link = URL(string: "https://host.example/explicit")
-                    }
-                    return text
-                }, block: { payload in
-                    customPayloads.append(payload)
-                    return AnyView(
-                        Button("Activate replacement") { customActivations += 1 }
-                            .onGeometryChange(for: CGRect.self) { proxy in
-                                proxy.frame(in: .named("navigationHost"))
-                            } action: { frame in
-                                recorder.replacementFrame = frame
-                            }
-                    )
-                })
             case "omit":
                 policy = .omit
             case "default":
@@ -95,7 +72,7 @@
                         linkActivationAction: action
                     )
                 }
-                return AnyView(view.coordinateSpace(name: "navigationHost").environment(\.openURL, OpenURLAction { url in
+                return AnyView(view.environment(\.openURL, OpenURLAction { url in
                     opened.append((updatesOpener ? (updated ? "new:" : "old:") : "") + url.absoluteString)
                     return .discarded
                 }))
@@ -137,8 +114,7 @@
                 }
                 let beforeActivation = activated
                 let beforeOpening = opened
-                let point = recorder.replacementFrame.map { NSPoint(x: $0.midX, y: $0.midY) }
-                    ?? NSPoint(x: 20, y: hosting.bounds.midY)
+                let point = NSPoint(x: 20, y: hosting.bounds.midY)
                 guard let target = hosting.hitTest(point) else { exit(3) }
                 if updatesCallback || updatesOpener {
                     // Replacing the root must update the mounted control, not mount a fresh one.
@@ -185,10 +161,6 @@
                 if recordsImages {
                     report["loaded"] = recorder.urls
                 }
-                if policyArgument == "custom" || policyArgument == "customLink" {
-                    report["customPayloads"] = customPayloads
-                    report["customActivations"] = ["\(customActivations)"]
-                }
                 guard let data = try? JSONSerialization.data(withJSONObject: report) else { exit(5) }
 
                 FileHandle.standardOutput.write(data)
@@ -206,7 +178,6 @@
     @MainActor
     private final class ImageRecorder {
         private(set) var urls: [String] = []
-        var replacementFrame: CGRect?
 
         func record(_ url: URL) {
             urls.append(url.absoluteString)
