@@ -104,11 +104,12 @@ builds from the same sections. Do not add a second Markdown sampler or a second 
 
 Focused fixtures stay where the demo cannot express the contract: held image loading, throwing
 failures, exact raster sizes, request lifecycle, policy/image transitions, table scroll offsets,
-internal empty tables, deliberately empty tasks, ordered rows, empty table cells, and the
-consecutive-hard-break regression.
+internal empty tables, deliberately empty tasks, ordered rows, empty table cells, and consecutive
+hard breaks.
 
-`consecutiveBreaksRetainCurrentRendering` records current mixed-flow output. It is not a claim that
-those break semantics are correct; a renderer fix must update those references deliberately.
+`FlatMarkInlineFlowSnapshotTests` reviews that contract: two consecutive hard breaks in mixed inline
+flow keep one blank row of body metrics, checked in the reviewed reference and in the laid-out rows
+of the mounted paragraph.
 
 ## Observation boundaries
 

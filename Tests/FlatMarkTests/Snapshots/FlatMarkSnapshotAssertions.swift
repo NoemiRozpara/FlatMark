@@ -15,6 +15,7 @@ import Testing
 /// A suite name is used by exactly one file, so recording that suite can never overwrite another
 /// suite's references.
 enum FlatMarkSnapshotSuite: String {
+    case inlineFlow = "InlineFlow"
     case omissionSpacing = "OmissionSpacing"
     case tables = "Tables"
     case imagePhases = "ImagePhases"
