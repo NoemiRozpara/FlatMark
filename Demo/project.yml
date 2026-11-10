@@ -2,7 +2,7 @@ name: FlatMarkDemo
 options:
   deploymentTarget:
     iOS: '17.0'
-    macOS: '14.0'
+    macOS: '15.0'
 packages:
   FlatMark:
     path: ..

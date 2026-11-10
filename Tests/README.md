@@ -209,7 +209,7 @@ Still open:
   has not been re-observed on a running app.
 - Reproducing the earlier macOS quote truncation and narrow-table clipping with the original failing
   content. Changing fixture wording proves nothing about a renderer fix.
-- Minimum iOS 17 / macOS 14 and Xcode 26 / Swift 6.2 execution; recorded runs used newer toolchains.
+- Minimum iOS 17 / macOS 15 and Xcode 26 / Swift 6.2 execution; recorded runs used newer toolchains.
 
 Native exports, semantic trees, and successful compilation are not substitutes for these running-app
 observations.

@@ -13,7 +13,13 @@ This document selects verification; the linked guides own commands, scenarios, a
 
 ## Toolchain
 
-FlatMark requires Xcode 26.0+ / Swift 6.2 and supports iOS 17+ / macOS 14+. `Package.swift` declares the package's tools version, Swift language mode, and platform minimums. Keep it consistent with the README.
+FlatMark requires Xcode 26.0+ / Swift 6.2 and supports iOS 17+ / macOS 15+. `Package.swift` declares the package's tools version, Swift language mode, and platform minimums. Keep it consistent with the README.
+
+The README [Requirements](../README.md#requirements) section owns why macOS 14 was dropped: Apple stopped
+patching it. Xcode 26 also requires macOS 15.6 or later, so macOS 14 cannot be built or tested with a
+supported toolchain. Do not claim macOS 14 runtime behavior from a newer-OS run. Do not raise the floor
+past macOS 15 without a new decision: macOS 15 is the newest release that still runs on every Mac Apple
+patches.
 
 Distinguish minimum requirements from the environment used for a particular run. Newer-toolchain success does not establish minimum-toolchain or minimum-OS compatibility. Record the actual environment when results depend on it, especially mounted native-content inspection and benchmarks. Do not copy a consumer application's machine-local Xcode path or toolchain pin into this repository.
 
