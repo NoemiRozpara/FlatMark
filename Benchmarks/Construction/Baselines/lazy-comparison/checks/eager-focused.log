@@ -1,0 +1,98 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 2] FlatMark-product
+[2 / 19] FlatMark
+[4 / 21] FlatMark
+[12 / 30] FlatMarkNavigationTestHost
+[24 / 43] FlatMarkNavigationTestHost-product
+[25 / 49] FlatMarkFixtures
+[28 / 49] FlatMarkFixtures
+[31 / 49] FlatMarkFixtures
+[32 / 49] FlatMarkNavigationTestHost
+[38 / 55] FlatMarkNavigationTestHost-product
+[44 / 54] FlatMarkFixtures
+[45 / 54] FlatMarkNavigationTestHost-product
+[49 / 54] FlatMarkTests-product
+[62 / 67] FlatMarkTests-product
+/Users/noemirozpara/Documents/Private/CodingProjects/FlatMark/doc-off-main/Tests/FlatMarkTests/Snapshots/FlatMarkTaskMarkerSnapshotTests.swift:17:9: [1;33mwarning: [1;39mconformance of 'NSFont' to 'Sendable' is unavailable[0;0m
+[0;36m15 |[0;0m     @Test func wrappedNativeLabelExportsFirstLineBaseline() async throws {
+[0;36m16 |[0;0m         var text = AttributedString("Wrapped native label with enough words to occupy several lines.")
+[0;36m17 |[0;0m         text.font = .systemFont(ofSize: 23)
+   [0;36m|[0;0m         `- [1;33mwarning: [1;39mconformance of 'NSFont' to 'Sendable' is unavailable[0;0m
+[0;36m18 |[0;0m         _ = try await flatMarkSnapshotImage(
+[0;36m19 |[0;0m             of: WrappedLabelBaselineProbe {
+
+/Applications/Xcode-27-RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSColor.h: 0: [0;36m75 |[0;0m 
+ [0;36m76 |[0;0m NS_SWIFT_SENDABLE
+ [0;36m77 |[0;0m @interface NSColor : NSObject <NSCopying, NSSecureCoding, NSPasteboardReading, NSPasteboardWriting>
+[0;36m    +--- [0;0m [0;36m--------------------------------------------------------------[0;0m
+[0;36m    |[0;0m[0;36m1 |[0;0m @_nonSendable(_assumed)
+[0;36m    |[0;0m  [0;36m|[0;0m `- [1;39mnote: [1;39mconformance of 'NSFont' to 'Sendable' has been explicitly marked unavailable here[0;0m
+[0;36m    +-----[0;0m[0;36m--------------------------------------------------------------[0;0m
+ [0;36m78 |[0;0m 
+ [0;36m79 |[0;0m - (instancetype)init NS_DESIGNATED_INITIALIZER;
+[64 / 67] FlatMarkTests-product
+/Users/noemirozpara/Documents/Private/CodingProjects/FlatMark/doc-off-main/Tests/FlatMarkTests/Rendering/FlatMarkImageLoadingTests.swift:196:13: [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m194 |[0;0m             let hostingView = NSHostingView(rootView: ImageLoaderTestView(content: content, model: model))
+[0;36m195 |[0;0m             hostingView.frame = CGRect(x: 0, y: 0, width: 320, height: 80)
+[0;36m196 |[0;0m             try await withTemporaryWindow(hosting: hostingView) {
+    [0;36m|[0;0m             `- [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m197 |[0;0m                 if usesLoader {
+[0;36m198 |[0;0m                     await expectImageLoad(in: spy)
+
+/Users/noemirozpara/Documents/Private/CodingProjects/FlatMark/doc-off-main/Tests/FlatMarkTests/Rendering/FlatMarkImageLoadingTests.swift:232:13: [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m230 |[0;0m             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
+[0;36m231 |[0;0m 
+[0;36m232 |[0;0m             try await withTemporaryWindow(hosting: hostingView) {
+    [0;36m|[0;0m             `- [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m233 |[0;0m                 await settleRendering()
+[0;36m234 |[0;0m 
+
+/Users/noemirozpara/Documents/Private/CodingProjects/FlatMark/doc-off-main/Tests/FlatMarkTests/Rendering/FlatMarkImageLoadingTests.swift:373:13: [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m371 |[0;0m             ))
+[0;36m372 |[0;0m             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
+[0;36m373 |[0;0m             try await withTemporaryWindow(hosting: hostingView) {
+    [0;36m|[0;0m             `- [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m374 |[0;0m                 await settleRendering()
+[0;36m375 |[0;0m                 #expect(await spy.loadedURLs.isEmpty)
+
+/Users/noemirozpara/Documents/Private/CodingProjects/FlatMark/doc-off-main/Tests/FlatMarkTests/Rendering/FlatMarkImageLoadingTests.swift:417:13: [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m415 |[0;0m             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
+[0;36m416 |[0;0m 
+[0;36m417 |[0;0m             try await withTemporaryWindow(hosting: hostingView) {
+    [0;36m|[0;0m             `- [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m418 |[0;0m                 await expectImageLoad(in: spy)
+[0;36m419 |[0;0m                 await gate.release()
+
+/Users/noemirozpara/Documents/Private/CodingProjects/FlatMark/doc-off-main/Tests/FlatMarkTests/Rendering/FlatMarkImageLoadingTests.swift:454:13: [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m452 |[0;0m             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
+[0;36m453 |[0;0m 
+[0;36m454 |[0;0m             try await withTemporaryWindow(hosting: hostingView) {
+    [0;36m|[0;0m             `- [1;33mwarning: [1;39mno calls to throwing functions occur within 'try' expression[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker\UnnecessaryEffectMarker]8;;\]
+[0;36m455 |[0;0m                 await expectImageLoad(in: spy)
+[0;36m456 |[0;0m 
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/noemirozpara/Documents/Private/CodingProjects/FlatMark/doc-off-main/Tests/FlatMarkTests/Snapshots/FlatMarkAppKitParagraphTextTests.swift:425:13: [1;33mwarning: [1;39mvariable 'host' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+[0;36m423 |[0;0m     @Test func hostFontAndColorOverrideTheRoleDefaultWhileNeighborsKeepIt() throws {
+[0;36m424 |[0;0m         let hostFont = NSFont.boldSystemFont(ofSize: 21)
+[0;36m425 |[0;0m         var host = AttributedString(NSAttributedString(string: "host", attributes: [
+    [0;36m|[0;0m             `- [1;33mwarning: [1;39mvariable 'host' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+[0;36m426 |[0;0m             .font: hostFont, .foregroundColor: NSColor.systemTeal
+[0;36m427 |[0;0m         ]))
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[66 / 67] FlatMarkTests-product
+Build complete! (7,44 sec)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite FlatMarkImageLoadingTests started.
+􀟈  Suite FlatMarkAppKitParagraphTextTests started.
+􀟈  Test reverseCompletionsStayInSourceOrderAndResizeWithoutReloading() started.
+􀟈  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() started.
+􁁛  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() passed after 0.241 seconds.
+􁁛  Suite FlatMarkAppKitParagraphTextTests passed after 0.241 seconds.
+􁁛  Test reverseCompletionsStayInSourceOrderAndResizeWithoutReloading() passed after 0.317 seconds.
+􁁛  Suite FlatMarkImageLoadingTests passed after 0.317 seconds.
+􁁛  Test run with 2 tests in 2 suites passed after 0.317 seconds.

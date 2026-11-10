@@ -86,6 +86,46 @@ All start from `https://example.com/tasks/`.
 Mentions inside link labels are excluded by library semantics. Synthetic stress cases do not represent
 a distribution of user documents.
 
+## Preview mount and visible-content checkpoint (macOS)
+
+The opt-in `--preview` mode separates background document construction from main-actor mounting.
+It leaves the library and its eager stacks unchanged. Run from a logged-in graphical session with
+screen-capture permission:
+
+```sh
+swift build --product FlatMarkConstructionBenchmark --configuration release
+FLATMARK_CAPTURE_DIR=/tmp/flatmark-render-captures \
+  .build/release/FlatMarkConstructionBenchmark --preview > /tmp/flatmark-preview.csv
+```
+
+Each fixture has one warmup and three measured samples. Each sample creates a fresh document off-main,
+then mounts a fresh `NSHostingView` containing `ScrollView { FlatMarkView(document:) }` in an existing
+390 × 844-point window, with default font and no image loader.
+
+- `background-construction`: parsing and projection inside a detached task; excludes scheduling and
+  the hop back to the main actor.
+- `main-mount-layout`: hosting-view creation, window attachment and `layoutSubtreeIfNeeded()`;
+  excludes parsing, window creation and teardown.
+- `visible-capture-upper-bound`: from the same mount start through explicit display, a 20 ms
+  run-loop suspension and completion of a Window Server PNG capture. Inspect the PNGs for document
+  content before interpreting this as an upper bound on time to first visible content.
+
+The capture checkpoint includes screenshot overhead and polling (5 ms intervals). It is **not an exact
+first-frame timestamp** or physical-display measurement. Capturing an earlier frame is not attempted.
+It includes deferred work serviced before capture, but does not measure later work or scrolling.
+Parsing is excluded from both display intervals; this is not source-to-screen latency.
+
+Do not compare this mode's three-sample construction column to the construction-only regression
+baseline as if their methods were identical. The reported p95 is the maximum of three samples, not a
+reliable tail estimate. Large eager documents can take minutes per process. Run sequentially, check
+for an existing process before restarting, and record omitted repeats. Screenshots go to `/tmp` by
+default; archive them with the results if they are needed beyond the local session.
+
+See [the rendering measurement report](render-mount-results.md) for the original eager results.
+The [eager/lazy comparison](lazy-stack-comparison.md) adds physical iPhone XR measurements and
+records why the measured lazy candidate was not retained as the production default.
+See [the device host guide](DeviceHost/README.md) to reproduce the iOS checks.
+
 ## Desktop baseline
 
 Recorded 2026-11-09 on Apple M3 Pro, arm64, 12 cores, 36 GiB RAM; macOS 27.0.1 (26A434); Xcode 27.0

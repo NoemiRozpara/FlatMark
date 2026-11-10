@@ -2,7 +2,7 @@ import FlatMark
 import Foundation
 
 // Opt-in diagnostic, not a timing assertion in the ordinary test suite.
-struct Fixture {
+struct Fixture: Sendable {
     let name: String
     let parameters: String
     let markdown: String
@@ -52,6 +52,13 @@ func report(_ fixture: String, _ scenario: String, _ samples: [Double]) {
     let p95 = sorted[Int(ceil(Double(sorted.count) * 0.95)) - 1]
     print("\(fixture),\(scenario),\(samples.count),\(String(format: "%.6f", median)),\(String(format: "%.6f", p95)),\(String(format: "%.6f", sorted[0]))")
 }
+
+#if os(macOS)
+if CommandLine.arguments.contains("--preview") {
+    await runPreviewBenchmark()
+    exit(0)
+}
+#endif
 
 let clock = ContinuousClock()
 let baseURL = URL(string: "https://example.com/tasks/")!

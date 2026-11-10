@@ -1,0 +1,61 @@
+# OS=Version 27.0.1 (Build 26A434); thermal=0
+# Release; viewport=390x844pt; 1 warmup, 3 samples; unchanged eager renderer
+# capture-checkpoint includes layout, display, 20ms run-loop yield and screencapture overhead; inspect PNGs before claiming visible content
+fixture,scenario,samples,median_ms,p95_ms,min_ms
+# ordinary iteration=0 thermal=0
+# sample ordinary 0: construction=1.497208 layout=37.308916 capture=199.787125; png=/tmp/flatmark-render-captures/ordinary-0.png
+# ordinary iteration=1 thermal=0
+# sample ordinary 1: construction=0.603666 layout=13.610833 capture=108.16775; png=/tmp/flatmark-render-captures/ordinary-1.png
+# ordinary iteration=2 thermal=0
+# sample ordinary 2: construction=0.61925 layout=14.001417 capture=108.698708; png=/tmp/flatmark-render-captures/ordinary-2.png
+# ordinary iteration=3 thermal=0
+# sample ordinary 3: construction=0.589542 layout=11.752666 capture=125.220708; png=/tmp/flatmark-render-captures/ordinary-3.png
+ordinary,background-construction,3,0.603666,0.619250,0.589542
+ordinary,main-mount-layout,3,13.610833,14.001417,11.752666
+ordinary,visible-capture-upper-bound,3,108.698708,125.220708,108.167750
+# large-100 iteration=0 thermal=0
+# sample large-100 0: construction=38.637167 layout=1270.200708 capture=1391.799583; png=/tmp/flatmark-render-captures/large-100-0.png
+# large-100 iteration=1 thermal=0
+# sample large-100 1: construction=41.703709 layout=1737.588041 capture=1857.956416; png=/tmp/flatmark-render-captures/large-100-1.png
+# large-100 iteration=2 thermal=0
+# sample large-100 2: construction=41.110125 layout=1826.393875 capture=1942.2795409999999; png=/tmp/flatmark-render-captures/large-100-2.png
+# large-100 iteration=3 thermal=0
+# sample large-100 3: construction=41.209875 layout=2002.068833 capture=2136.446625; png=/tmp/flatmark-render-captures/large-100-3.png
+large-100,background-construction,3,41.209875,41.703709,41.110125
+large-100,main-mount-layout,3,1826.393875,2002.068833,1737.588041
+large-100,visible-capture-upper-bound,3,1942.279541,2136.446625,1857.956416
+# large-1000 iteration=0 thermal=0
+# sample large-1000 0: construction=370.037583 layout=67888.877291 capture=69229.237291; png=/tmp/flatmark-render-captures/large-1000-0.png
+# large-1000 iteration=1 thermal=0
+# sample large-1000 1: construction=396.50625 layout=116808.721875 capture=124569.180125; png=/tmp/flatmark-render-captures/large-1000-1.png
+# large-1000 iteration=2 thermal=0
+# sample large-1000 2: construction=403.301917 layout=126510.795833 capture=133931.423125; png=/tmp/flatmark-render-captures/large-1000-2.png
+# large-1000 iteration=3 thermal=0
+# sample large-1000 3: construction=400.332333 layout=140345.723625 capture=150118.882958; png=/tmp/flatmark-render-captures/large-1000-3.png
+large-1000,background-construction,3,400.332333,403.301917,396.506250
+large-1000,main-mount-layout,3,126510.795833,140345.723625,116808.721875
+large-1000,visible-capture-upper-bound,3,133931.423125,150118.882958,124569.180125
+# nested iteration=0 thermal=0
+# sample nested 0: construction=2.078417 layout=1248.204708 capture=6643.503666; png=/tmp/flatmark-render-captures/nested-0.png
+# nested iteration=1 thermal=0
+# sample nested 1: construction=1.956417 layout=664.477 capture=808.334417; png=/tmp/flatmark-render-captures/nested-1.png
+# nested iteration=2 thermal=0
+# sample nested 2: construction=1.956333 layout=679.445167 capture=806.251084; png=/tmp/flatmark-render-captures/nested-2.png
+# nested iteration=3 thermal=0
+# sample nested 3: construction=1.996542 layout=664.809917 capture=796.1875; png=/tmp/flatmark-render-captures/nested-3.png
+nested,background-construction,3,1.956417,1.996542,1.956333
+nested,main-mount-layout,3,664.809917,679.445167,664.477000
+nested,visible-capture-upper-bound,3,806.251084,808.334417,796.187500
+# links-tables iteration=0 thermal=0
+# sample links-tables 0: construction=15.591375 layout=4150.7535 capture=4352.432917; png=/tmp/flatmark-render-captures/links-tables-0.png
+# links-tables iteration=1 thermal=0
+# sample links-tables 1: construction=16.167375 layout=5390.546334 capture=7926.171625; png=/tmp/flatmark-render-captures/links-tables-1.png
+# links-tables iteration=2 thermal=0
+# sample links-tables 2: construction=15.922292 layout=5398.372791 capture=7589.6735; png=/tmp/flatmark-render-captures/links-tables-2.png
+# links-tables iteration=3 thermal=0
+# sample links-tables 3: construction=15.705584 layout=5275.796833 capture=7603.972333; png=/tmp/flatmark-render-captures/links-tables-3.png
+links-tables,background-construction,3,15.922292,16.167375,15.705584
+links-tables,main-mount-layout,3,5390.546334,5398.372791,5275.796833
+links-tables,visible-capture-upper-bound,3,7603.972333,7926.171625,7589.673500
+Consumed preview checksum: 13388676
+# end=2026-11-10 10:27:39 +0000; thermal=0

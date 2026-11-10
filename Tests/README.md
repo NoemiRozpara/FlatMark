@@ -95,9 +95,10 @@ appearance, locale, direction, and text setting.
 - Capture mounts a native hosting view, yields three layout passes, then captures once. An optional
   `prepareMountedView` hook positions a horizontal viewport (table tests). Native capture failure
   throws.
-- macOS pins `NSWindow.colorSpace` to sRGB before drawing and encodes to sRGB, so captures do not
-  inherit a display profile. The macOS lane needs a 2x hosting display; changing OS, toolchain, or
-  display requires deliberate baseline review.
+- macOS pins `NSWindow.colorSpace` to sRGB before drawing and encodes to sRGB. The intermediate
+  `NSImage` flattening still uses a display-profile context; this is not an end-to-end sRGB pipeline.
+  See the [color investigation](../AI-docs/handoffs/macos-snapshot-color.md). The macOS lane needs a
+  2x hosting display; changing OS, toolchain, or display requires deliberate baseline review.
 - The exact-pixel lane is environment-sensitive. Sub-perceptual failures can report zero differing
   pixels under `magick compare -fuzz 0.5% -metric AE`. Treat those as unverified, not as
   regressions, and do not re-record to silence them.
@@ -127,6 +128,11 @@ of the mounted paragraph.
 | `LoaderSpy` | Callbacks retained until consumed by matching expectations | Missing callbacks fail expectations, not a polling bound |
 | Aspect-fit and flow-placement cases | View ink geometry, including collapse and off-column failures | Not reviewed appearance |
 | Explicit font-size overrides | Layout at changed effective text sizes for plain `Text`, and for FlatMark text on iOS | On macOS FlatMark's native text resolves AppKit role fonts and ignores the override; every enlarged baseline is iOS-only |
+
+Native descendant order is not source order in a lazy stack; retained offscreen regions can appear
+out of order or be absent. Long-document initializer parity therefore scrolls both hosts and compares
+intersecting native regions in geometric order, including title and edited-tail checks. This exports
+whole intersecting regions, not only visible glyphs, and does not establish continuous selection.
 
 A region that occupies space but exports no text fails native-content inspection. Nonzero mounted size
 alone proves neither readability nor geometry. Only linked-image flow has an automated
@@ -197,6 +203,12 @@ appearance at the recorded environments.
 Known-issue markers are not passing renderer qualifications: `LoaderSpyTests` documents its own
 dropped-expectation behavior; the iOS paragraph suite records a terminal empty line extending beyond
 the paragraph's allocated height. The latter remains a sizing qualification gap.
+
+The lazy-renderer qualification run on macOS 27.0.1 / Swift 6.4 reports 189 tests and 29 issues,
+including one known issue. The remaining 28 issues are exact snapshot failures; all emitted failure
+pairs compare with zero differing pixels at 0.5% fuzz. They remain unverified, not passing snapshots.
+The matched eager control reports the same failures. See the
+[lazy-rendering follow-up](../Benchmarks/lazy-stack-comparison.md#follow-up-native-export-order-and-navigation-click-target).
 
 Still open:
 

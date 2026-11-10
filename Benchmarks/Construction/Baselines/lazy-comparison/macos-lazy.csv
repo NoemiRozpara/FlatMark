@@ -1,0 +1,61 @@
+# OS=Version 27.0.1 (Build 26A434); thermal=0
+# Release; viewport=390x844pt; 1 warmup, 3 samples; unchanged eager renderer
+# capture-checkpoint includes layout, display, 20ms run-loop yield and screencapture overhead; inspect PNGs before claiming visible content
+fixture,scenario,samples,median_ms,p95_ms,min_ms
+# ordinary iteration=0 thermal=0
+# sample ordinary 0: construction=1.673875 layout=37.423791 capture=210.405583; png=/tmp/flatmark-lazy-mac-captures/ordinary-0.png
+# ordinary iteration=1 thermal=0
+# sample ordinary 1: construction=0.659083 layout=11.583292 capture=117.280375; png=/tmp/flatmark-lazy-mac-captures/ordinary-1.png
+# ordinary iteration=2 thermal=0
+# sample ordinary 2: construction=0.62525 layout=9.566959 capture=109.289584; png=/tmp/flatmark-lazy-mac-captures/ordinary-2.png
+# ordinary iteration=3 thermal=0
+# sample ordinary 3: construction=0.615625 layout=8.133083 capture=106.859791; png=/tmp/flatmark-lazy-mac-captures/ordinary-3.png
+ordinary,background-construction,3,0.625250,0.659083,0.615625
+ordinary,main-mount-layout,3,9.566959,11.583292,8.133083
+ordinary,visible-capture-upper-bound,3,109.289584,117.280375,106.859791
+# large-100 iteration=0 thermal=0
+# sample large-100 0: construction=40.692084 layout=29.996458 capture=138.790292; png=/tmp/flatmark-lazy-mac-captures/large-100-0.png
+# large-100 iteration=1 thermal=0
+# sample large-100 1: construction=41.346875 layout=32.390459 capture=137.386167; png=/tmp/flatmark-lazy-mac-captures/large-100-1.png
+# large-100 iteration=2 thermal=0
+# sample large-100 2: construction=41.000708 layout=30.395958 capture=125.31525; png=/tmp/flatmark-lazy-mac-captures/large-100-2.png
+# large-100 iteration=3 thermal=0
+# sample large-100 3: construction=41.517042 layout=32.509792 capture=126.187417; png=/tmp/flatmark-lazy-mac-captures/large-100-3.png
+large-100,background-construction,3,41.346875,41.517042,41.000708
+large-100,main-mount-layout,3,32.390459,32.509792,30.395958
+large-100,visible-capture-upper-bound,3,126.187417,137.386167,125.315250
+# large-1000 iteration=0 thermal=0
+# sample large-1000 0: construction=413.244583 layout=30.962791 capture=137.61225; png=/tmp/flatmark-lazy-mac-captures/large-1000-0.png
+# large-1000 iteration=1 thermal=0
+# sample large-1000 1: construction=404.941292 layout=31.516541 capture=132.450041; png=/tmp/flatmark-lazy-mac-captures/large-1000-1.png
+# large-1000 iteration=2 thermal=0
+# sample large-1000 2: construction=408.375542 layout=32.769167 capture=150.653292; png=/tmp/flatmark-lazy-mac-captures/large-1000-2.png
+# large-1000 iteration=3 thermal=0
+# sample large-1000 3: construction=410.80275 layout=35.691833 capture=140.795375; png=/tmp/flatmark-lazy-mac-captures/large-1000-3.png
+large-1000,background-construction,3,408.375542,410.802750,404.941292
+large-1000,main-mount-layout,3,32.769167,35.691833,31.516541
+large-1000,visible-capture-upper-bound,3,140.795375,150.653292,132.450041
+# nested iteration=0 thermal=0
+# sample nested 0: construction=2.032042 layout=62.21775 capture=174.232625; png=/tmp/flatmark-lazy-mac-captures/nested-0.png
+# nested iteration=1 thermal=0
+# sample nested 1: construction=3.623916 layout=67.024334 capture=1177.476792; png=/tmp/flatmark-lazy-mac-captures/nested-1.png
+# nested iteration=2 thermal=0
+# sample nested 2: construction=2.353458 layout=67.269708 capture=532.98625; png=/tmp/flatmark-lazy-mac-captures/nested-2.png
+# nested iteration=3 thermal=0
+# sample nested 3: construction=3.171083 layout=71.154667 capture=271.473208; png=/tmp/flatmark-lazy-mac-captures/nested-3.png
+nested,background-construction,3,3.171083,3.623916,2.353458
+nested,main-mount-layout,3,67.269708,71.154667,67.024334
+nested,visible-capture-upper-bound,3,532.986250,1177.476792,271.473208
+# links-tables iteration=0 thermal=0
+# sample links-tables 0: construction=16.218917 layout=2213.202625 capture=2417.948791; png=/tmp/flatmark-lazy-mac-captures/links-tables-0.png
+# links-tables iteration=1 thermal=0
+# sample links-tables 1: construction=15.836042 layout=3467.3716249999998 capture=4231.434709; png=/tmp/flatmark-lazy-mac-captures/links-tables-1.png
+# links-tables iteration=2 thermal=0
+# sample links-tables 2: construction=15.921083 layout=3535.371708 capture=4273.199666; png=/tmp/flatmark-lazy-mac-captures/links-tables-2.png
+# links-tables iteration=3 thermal=0
+# sample links-tables 3: construction=16.261375 layout=3744.185917 capture=4712.319917; png=/tmp/flatmark-lazy-mac-captures/links-tables-3.png
+links-tables,background-construction,3,15.921083,16.261375,15.836042
+links-tables,main-mount-layout,3,3535.371708,3744.185917,3467.371625
+links-tables,visible-capture-upper-bound,3,4273.199666,4712.319917,4231.434709
+Consumed preview checksum: 13388676
+# end=2026-11-10 10:49:07 +0000; thermal=0

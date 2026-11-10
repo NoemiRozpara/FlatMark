@@ -114,7 +114,7 @@
                 }
                 let beforeActivation = activated
                 let beforeOpening = opened
-                let point = NSPoint(x: 20, y: hosting.bounds.midY)
+                var point = NSPoint(x: 20, y: hosting.bounds.midY)
                 guard let target = hosting.hitTest(point) else { exit(3) }
                 if updatesCallback || updatesOpener {
                     // Replacing the root must update the mounted control, not mount a fresh one.
@@ -123,12 +123,17 @@
                 if let text = target as? NSTextView, let manager = text.layoutManager,
                    let container = text.textContainer, text.string.isEmpty == false {
                     let expectedLink = text.textStorage?.attribute(.link, at: 0, effectiveRange: nil) as? URL
-                    // Revalidate the fixed click point against glyphs, not just the view's frame.
+                    // A literal HTML block can end with an empty line. Click the first glyph,
+                    // not the view midpoint, which can fall on that line instead of the label.
                     manager.ensureLayout(for: container)
-                    let local = text.convert(point, from: hosting)
-                    let containerPoint = NSPoint(
-                        x: local.x - text.textContainerOrigin.x, y: local.y - text.textContainerOrigin.y
-                    )
+                    guard manager.numberOfGlyphs > 0 else { exit(7) }
+                    let firstGlyph = manager.boundingRect(forGlyphRange: NSRange(location: 0, length: 1), in: container)
+                    let containerPoint = NSPoint(x: firstGlyph.midX, y: firstGlyph.midY)
+                    point = hosting.convert(NSPoint(
+                        x: containerPoint.x + text.textContainerOrigin.x,
+                        y: containerPoint.y + text.textContainerOrigin.y
+                    ), from: text)
+                    guard hosting.hitTest(point) === target else { exit(7) }
                     let glyph = manager.glyphIndex(for: containerPoint, in: container)
                     guard glyph < manager.numberOfGlyphs else { exit(7) }
                     let character = manager.characterIndexForGlyph(at: glyph)

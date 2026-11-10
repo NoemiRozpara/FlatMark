@@ -1,5 +1,8 @@
 # iPhone XR baseline
 
+For current rendering measurements and the top-level lazy-stack experiment, see
+[the eager/lazy comparison](lazy-stack-comparison.md). The construction results below are historical.
+
 Three physical iPhone XR Release runs measured construction, not rendering or main-thread stalls.
 See [methodology and regression policy](README.md).
 
