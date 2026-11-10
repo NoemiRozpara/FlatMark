@@ -46,6 +46,8 @@ schemes set `FLATMARK_SNAPSHOT_RECORD=never` and the `-Record` schemes set `all`
 cd Demo && xcodegen generate
 ```
 
+The [demo guide](../Demo/README.md) notes the one regeneration artifact to revert rather than commit.
+
 Both targets compile the snapshot suites and shared fixtures. The macOS target is hostless and
 initializes AppKit itself.
 
