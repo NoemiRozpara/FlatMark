@@ -1,5 +1,10 @@
 # Reproducible construction baseline
 
+This archived record uses the previous 20-row harness. Current builds emit 15 construction rows:
+the five retained-copy diagnostics and untimed retained snapshot setup have been removed. Preserve
+these CSVs unchanged. Rebaseline the current harness before regression comparisons; its checksum and
+allocator/cache history differ. Copy rows never establish view-refresh performance or no-reparse behavior.
+
 Three sequential Release processes measured committed source
 `94b50fce4020d7a6d47b08d247473e7edbb68991` from
 https://github.com/NoemiRozpara/FlatMark. The tracked working tree was clean before the build;

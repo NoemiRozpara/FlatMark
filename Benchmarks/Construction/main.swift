@@ -69,7 +69,6 @@ print("FlatMark construction benchmark: Release required; 5 warmups; 30 samples;
 print("fixture,scenario,samples,median_ms,p95_ms,min_ms")
 for fixture in fixtures {
     print("# \(fixture.name): \(fixture.parameters); UTF8=\(fixture.markdown.utf8.count)")
-    let retained = FlatMarkDocument(markdown: fixture.markdown, baseURL: baseURL)
     // Build all changed inputs outside the timed region. No cache exists: each scenario constructs anew.
     let scenarios: [(String, String, URL)] = [
         ("initial", fixture.markdown, baseURL),
@@ -87,18 +86,5 @@ for fixture in fixtures {
         }
         report(fixture.name, name, samples)
     }
-    // Batch copying a retained value is NOT view refresh, equality comparison, or parser timing.
-    // The array is preallocated; its element lifetimes end outside the measured interval.
-    var reuseSamples: [Double] = []
-    for iteration in 0..<(sampleCount + 5) {
-        var copies: [FlatMarkDocument] = []
-        copies.reserveCapacity(1000)
-        let start = clock.now
-        for _ in 0..<1000 { copies.append(retained) }
-        let elapsed = milliseconds(start.duration(to: clock.now)) / 1000
-        checksum &+= consume(copies[iteration % copies.count])
-        if iteration >= 5 { reuseSamples.append(elapsed) }
-    }
-    report(fixture.name, "retained-copy-per-value", reuseSamples)
 }
 print("Consumed snapshot checksum: \(checksum)")

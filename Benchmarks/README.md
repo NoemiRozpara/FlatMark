@@ -50,8 +50,8 @@ Then run the executable three times sequentially, saving stdout:
 
 Do not overlap runs; keep power, thermal conditions, and background work comparable. If a launcher
 times out, check whether its process is still running before starting another. Each completed run has
-20 scenario rows plus comments, and a nonzero consumed-result checksum; checksums should agree within
-a build.
+15 scenario rows (five fixtures × three construction scenarios) plus comments, and a nonzero
+consumed-result checksum; checksums should agree within a build, not across harness revisions.
 
 ## Method
 
@@ -64,16 +64,17 @@ startup.
 | `initial` | Fresh snapshot |
 | `source-change` | Fresh snapshot after appending `\nUpdated description.\n` (22 bytes) |
 | `baseURL-change` | Fresh snapshot with `/archive/` instead of `/tasks/` as URL base |
-| `retained-copy-per-value` | Per-value cost of 1,000 copies into a preallocated array |
 
 Construction includes parsing, projection, and allocation, but excludes input generation, result
 consumption, snapshot destruction, and rendering. Changed inputs reconstruct; this is not incremental
-parsing. Retained-copy timings measure array copy/retain overhead, not view refresh or equality.
+parsing. The harness does not measure retained-copy overhead or view refresh.
 
 Outside each interval, a non-inlined consumer reflects the snapshot into the printed checksum to prevent
 optimized code from discarding projection. Reflection perturbs allocator/cache state: these are diagnostic
 timings, not memory measurements. The no-reparse contract also follows from code:
-`FlatMarkView(document:)` reads the retained projection; `FlatMarkDocument.init` constructs it.
+`FlatMarkView(document:)` stores the supplied snapshot and its body reads `document.renderDocument`;
+only `FlatMarkDocument.init` invokes the projector. Review this structural contract when changing either
+path; elapsed copy timings cannot establish no-reparse behavior.
 
 ## Fixtures
 
@@ -155,8 +156,13 @@ ordinary fixture) are obsolete; the table above is historical context only.
 Use periodic local measurement, not CI timing assertions. Rerun after parser, projector, dependency,
 or toolchain changes, or when investigating latency. Record hardware, OS, toolchain, configuration,
 revision, and fixture changes, and rebaseline separately when the environment changes.
-Use the [reproducible source and run record](Construction/Baselines/reproducible/README.md), not
-historical CSVs with incomplete source provenance. New records must identify a committed measured
+The [reproducible source and run record](Construction/Baselines/reproducible/README.md) preserves the
+previous 20-row harness, including five copy diagnostics. Those rows are not construction or refresh
+measurements. The current 15-row harness removes them and the untimed retained snapshot construction;
+its checksum and allocator/cache history differ. Establish a fresh three-process baseline before
+regression comparisons; do not directly compare incompatible harness revisions. Preserve the old
+record as source evidence, not a current timing gate. Do not use historical CSVs with incomplete source
+provenance for regression comparisons. New records must identify a committed measured
 snapshot (or archive all source changes), its dependency lockfile, harness, fixtures, and build settings.
 
 Compare the median of three process medians per scenario. Investigate an increase exceeding **both 20%

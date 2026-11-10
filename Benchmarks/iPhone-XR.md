@@ -29,7 +29,7 @@ construction p95 was 1276.757 ms. Median variation stayed below 12%, except the 
 (19.1%, 0.025 ms absolute). The large fixture slowed across processes despite nominal endpoint thermal
 readings, and endpoint readings do not establish stable clock speed. Raw output, including the
 `mentions-change` scenario that current builds no longer emit, is in
-`Construction/Baselines/iphone-xr-run{1,2,3}.csv` (25 scenario rows each; current builds emit 20).
+`Construction/Baselines/iphone-xr-run{1,2,3}.csv` (25 scenario rows each; current builds emit 15 construction rows and no copy diagnostics).
 
 These costs support retained reuse and host-owned background construction for large or changing
 sources, with stale-result handling; the snapshot API remains synchronous.
@@ -90,7 +90,8 @@ team. Pick the phone with `mobilebuildmcp device list`, then set `DEVICE_ID`, `T
      --domain-type appDataContainer --domain-identifier "$BUNDLE_ID"
    ```
 
-5. Require 20 scenario rows, the checksum, and the final environment line; an empty or partial file is
+5. Require 15 scenario rows, a nonzero checksum that agrees across runs of the same build, and the final
+   environment line; an empty or partial file is
    incomplete. Then `mobilebuildmcp device stop`, relaunch with `mobilebuildmcp device launch` and
    `--launch-args run2`, then `run3`, repeating the retrieval. The temporary app can be removed
    independently.
