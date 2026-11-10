@@ -242,6 +242,7 @@ struct FlatMarkAppKitParagraphTextTests {
             await settleMountedRendering()
             hosted.view.layoutSubtreeIfNeeded()
             hosted.view.displayIfNeeded()
+            #expect(hosted.view.bounds.size == CGSize(width: width, height: 800))
             let views = textViews(in: hosted.view)
             #expect(views.count == 2)
             let first = try #require(views.first)

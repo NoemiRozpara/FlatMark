@@ -2,11 +2,14 @@
 
 ## Decision
 
-The lazy candidate substantially reduces initial mounting of long, many-block documents. It also
-introduces reproducible macOS reflow and image-lifecycle test failures. The renderer was restored to
-its original eager implementation after measurement, then **the measured lazy candidate was reapplied
-at the user's request for a documentation commit and subsequent revert**. The working tree therefore
-contains the known-failing candidate. Do not treat it as a completed, regression-free implementation.
+The lazy candidate substantially reduces initial mounting of long, many-block documents. Initial
+checks appeared to identify macOS reflow and image-lifecycle regressions. **Follow-up debugging traced
+those two isolated failures to the test host's automatic maximum sizing**, not the renderer. See
+[the follow-up](#follow-up-test-host-sizing-and-group-experiment).
+
+The renderer was restored after measurement, then reapplied at the user's request for a documentation
+commit. The lazy candidate remains in the working tree. The full suite is still not green; do not
+treat the two repaired checks as complete lazy-rendering qualification.
 
 The measured candidate is retained as
 [`top-level-lazy.patch`](Construction/Baselines/lazy-comparison/top-level-lazy.patch). It makes only
@@ -14,8 +17,9 @@ the document's top-level block stack lazy. Block quotes keep eager stacks; list 
 rows are unchanged. It retains policy filtering and projected block IDs. There is no public API,
 parser, demo, loading-state, or dependency change.
 
-Resolve the reflow and image-lifecycle failures before enabling this candidate. Adding a public
-layout mode or weakening existing behavior requires a separate decision; neither was done here.
+Qualify the remaining snapshot, readiness and whole-document-export failures before treating the
+candidate as regression-free. Adding a public layout mode or weakening existing behavior requires a
+separate decision; neither was done here.
 
 ## Physical iPhone XR
 
@@ -76,7 +80,7 @@ stderr and nominal endpoint thermal state. Reduced initial cost is deferred work
 lower total full-document work or smooth scrolling. The small sample set does not establish a
 reliable p95 or performance threshold.
 
-## Regression checks: blockers
+## Initial regression checks
 
 Ran `swift test` with the exact original eager renderer and with the lazy candidate:
 
@@ -89,17 +93,18 @@ The eager control already fails snapshot comparisons and eight isolated HTML-nav
 in this environment. The full suite is not green for either variant. These existing failures were
 not repaired or re-recorded in this experiment.
 
-Two existing tests isolate candidate regressions without relying on the full suite:
+Two existing tests initially appeared to isolate candidate regressions without the full suite.
+The follow-up below supersedes that attribution:
 
 ```sh
 swift test --filter 'retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor|reverseCompletionsStayInSourceOrderAndResizeWithoutReloading'
 ```
 
-- **Native paragraph reflow:** after widening the host from 140 to 400 points, the lazy candidate keeps
+- **Initial native paragraph reflow observation:** after widening the host from 140 to 400 points, the lazy candidate keeps
   a paragraph at 140 points, loses the second native paragraph from the mounted export, and fails
   geometry/reflow assertions. Showing the window during a temporary diagnostic did not fix it. Adding
   a flexible-width frame to every block also did not fix it; neither probe was retained.
-- **Image lifecycle:** the lazy candidate fails the reverse-completion wording and exact two-request
+- **Initial image-lifecycle observation:** the lazy candidate fails the reverse-completion wording and exact two-request
   assertions while resizing a single paragraph. This reproduces in isolation; the precise lifecycle
   cause is not yet established.
 
@@ -108,6 +113,43 @@ show five reflow issues and two image issues. No existing test assertions or ref
 changed. Other new failures involve whole-document native exports and readiness expectations that
 assume eager realization. Those need viewport-aware investigation, not automatic dismissal or blanket
 baseline replacement.
+
+## Follow-up: test-host sizing and Group experiment
+
+After commit `cdc98c6`, tried a direct `ForEach` inside the document's `LazyVStack`, with a `Group`
+around each block, instead of the `FlatMarkBlocks` intermediary. Both focused tests still failed with
+the same seven issues. The two-paragraph resize fixture contains no quote or list stack, so nested
+`VStack`s cannot explain that reproduction. The Group variant was discarded; renderer code remains
+unchanged from that commit. Quotes still need a vertical layout inside their horizontal rule/content
+row; a `Group` alone would not provide it.
+
+A window-sizing diagnostic requested an 800-point height but observed heights around 80–144 points.
+The test helper used `NSHostingView`'s default sizing options, including `.maxSize`. Lazy content's
+estimated maximum could therefore shrink the viewport instead of retaining the requested test size.
+
+The retained fix sets:
+
+```swift
+hosting.sizingOptions = [.minSize, .intrinsicContentSize]
+```
+
+This excludes automatic maximum sizing while retaining the minimum/intrinsic sizing used by the
+helper's content checks. Disabling every sizing option also repaired the two focused tests, but made
+the existing `fittingSize`-based content check fail, so that broader variant was not retained.
+
+Added an explicit requested-viewport assertion to the existing resize test. No reflow, identity,
+image-completion or request-count assertion was removed or relaxed. With the corrected host:
+
+- Both original focused tests pass without any renderer change.
+- The two tests plus `FlatMarkMentionTests` pass three consecutive runs: ten tests in three suites
+  per run. This includes nested heading/list/table/quote coverage and the content-presence check.
+- The full package suite runs 189 tests in 27 suites and reports 38 issues, including one known issue.
+  It remains unverified overall. Failures still include HTML-navigation subprocesses, snapshot
+  comparisons, recipe readiness and recipe whole-document exports. Those were not rewritten here.
+
+This corrects the initial reflow/image regression conclusion. It does not establish that every other
+failure is a test artifact. No new iOS run, performance comparison, scrolling, selection or live
+VoiceOver check was performed in this follow-up. The earlier measurement samples remain historical.
 
 ## Evidence, limits and reproduction
 

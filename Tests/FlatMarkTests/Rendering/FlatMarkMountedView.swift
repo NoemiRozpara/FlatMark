@@ -60,6 +60,8 @@
     ) async -> MountedView<V> {
         _ = NSApplication.shared
         let hosting = NSHostingView(rootView: view)
+        // A lazy stack's estimated maximum must not shrink the requested viewport.
+        hosting.sizingOptions = [.minSize, .intrinsicContentSize]
         hosting.frame = CGRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
