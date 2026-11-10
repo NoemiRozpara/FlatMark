@@ -9,6 +9,13 @@ struct FlatMarkInlineAttributedStringProjector: MarkupVisitor {
     let baseURL: URL?
     private var excludesMentions = false
 
+    /// Callers never choose the mention flag, so declare the initializer instead of taking the
+    /// synthesized memberwise one, whose access level follows the private stored property.
+    init(source: String, baseURL: URL?) {
+        self.source = source
+        self.baseURL = baseURL
+    }
+
     mutating func project(_ markup: Markup) -> FlatMarkRenderInlineContent {
         visit(markup)
     }

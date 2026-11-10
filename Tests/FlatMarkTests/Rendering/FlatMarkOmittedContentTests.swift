@@ -231,7 +231,8 @@ struct FlatMarkOmittedContentTests {
     @Test
     func `keeps table rows, columns, and cells whose text is omitted`() throws {
         let document = FlatMarkRenderProjector.project(markdown: "| A | B |\n| --- | --- |\n| <u></u> | keep |")
-        let table = try #require(table(in: document))
+        let projectedTable = table(in: document)
+        let table = try #require(projectedTable)
         let body = try #require(table.rows.first)
 
         #expect(table.header.count == 2)
@@ -358,6 +359,10 @@ private func paragraphContent(in markdown: String) -> FlatMarkRenderInlineConten
     paragraphContent(of: FlatMarkRenderProjector.project(markdown: markdown))
 }
 
+/// The first table block in `document`, or nil.
+///
+/// Bind the result to a local before `#require`: with Swift 6.2, writing
+/// `let table = try #require(table(in: document))` re-resolves `table` to the local being declared.
 private func table(in document: FlatMarkRenderDocument) -> FlatMarkRenderTable? {
     guard case let .table(table)? = document.blocks.first?.kind else {
         return nil
