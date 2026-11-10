@@ -60,7 +60,8 @@ enum FlatMarkSnapshotMode: Equatable {
 /// and only an explicit recording run can change a baseline. Comparison demands an exact pixel match:
 /// no tolerance is applied without a reviewed reason. A failure reports the environment the capture
 /// was produced in and the paths of the actual, reference, and diff images; a missing reference also
-/// reports the full path of the reference it expected.
+/// reports the full path of the reference it expected. The failure is reported at the call site, so the
+/// test that asked for the capture is the one named.
 func assertFlatMarkSnapshot(
     _ image: FlatMarkSnapshotImage,
     suite: FlatMarkSnapshotSuite,
@@ -96,7 +97,15 @@ func assertFlatMarkSnapshot(
     )
 
     guard let failure else { return }
-    Issue.record(reference.failureComment(failure, mode: mode))
+    Issue.record(
+        reference.failureComment(failure, mode: mode),
+        sourceLocation: SourceLocation(
+            fileID: fileID.description,
+            filePath: filePath.description,
+            line: Int(line),
+            column: Int(column)
+        )
+    )
 }
 
 // MARK: - FlatMarkSnapshotReference
