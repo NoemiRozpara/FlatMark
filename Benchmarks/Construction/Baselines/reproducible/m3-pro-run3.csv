@@ -1,28 +1,23 @@
 FlatMark construction benchmark: Release required; 5 warmups; 30 samples; ms; no SwiftUI rendering
 fixture,scenario,samples,median_ms,p95_ms,min_ms
 # ordinary: 1 section; UTF8=172
-ordinary,initial,30,0.404084,0.448083,0.397583
-ordinary,source-change,30,0.444958,0.474667,0.440708
-ordinary,baseURL-change,30,0.426792,0.469375,0.411083
-ordinary,retained-copy-per-value,30,0.000016,0.000017,0.000016
+ordinary,initial,30,0.405917,0.413000,0.403292
+ordinary,source-change,30,0.449667,0.459250,0.446792
+ordinary,baseURL-change,30,0.401083,0.402875,0.399250
 # large-100: 100 sections; UTF8=17200
-large-100,initial,30,39.246917,40.189000,38.209583
-large-100,source-change,30,39.411584,40.066833,38.705083
-large-100,baseURL-change,30,39.184166,39.713000,38.194667
-large-100,retained-copy-per-value,30,0.000017,0.000021,0.000014
+large-100,initial,30,38.465917,38.756042,38.336833
+large-100,source-change,30,38.381666,38.513542,38.273583
+large-100,baseURL-change,30,38.295875,38.874791,38.065291
 # large-1000: 1000 sections; UTF8=172000
-large-1000,initial,30,392.987333,399.043625,388.414958
-large-1000,source-change,30,392.385750,398.994584,383.162459
-large-1000,baseURL-change,30,393.413792,401.427750,386.669750
-large-1000,retained-copy-per-value,30,0.000017,0.000019,0.000014
+large-1000,initial,30,377.150125,383.521917,374.928417
+large-1000,source-change,30,383.854416,390.095916,375.328292
+large-1000,baseURL-change,30,377.274166,387.210416,374.822458
 # nested: 32 quote levels + 32 list levels; UTF8=1416
-nested,initial,30,1.667708,1.728959,1.647833
-nested,source-change,30,1.704125,1.774625,1.693667
-nested,baseURL-change,30,1.658458,1.750209,1.646667
-nested,retained-copy-per-value,30,0.000014,0.000018,0.000014
+nested,initial,30,1.634208,1.645666,1.631084
+nested,source-change,30,1.678042,1.699917,1.674333
+nested,baseURL-change,30,1.633833,1.649625,1.629792
 # links-tables: 500 rows, 3 columns, 1500 relative links; UTF8=37107
-links-tables,initial,30,13.748208,14.448292,13.601541
-links-tables,source-change,30,13.722500,14.367167,13.487750
-links-tables,baseURL-change,30,13.920542,14.550250,13.612541
-links-tables,retained-copy-per-value,30,0.000017,0.000019,0.000017
-Consumed snapshot checksum: 468834905
+links-tables,initial,30,13.568208,13.640833,13.477000
+links-tables,source-change,30,13.508084,14.112625,13.453666
+links-tables,baseURL-change,30,13.455375,14.105583,13.401333
+Consumed snapshot checksum: 351684165

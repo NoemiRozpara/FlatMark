@@ -1,12 +1,7 @@
 # Reproducible construction baseline
 
-This archived record uses the previous 20-row harness. Current builds emit 15 construction rows:
-the five retained-copy diagnostics and untimed retained snapshot setup have been removed. Preserve
-these CSVs unchanged. Rebaseline the current harness before regression comparisons; its checksum and
-allocator/cache history differ. Copy rows never establish view-refresh performance or no-reparse behavior.
-
 Three sequential Release processes measured committed source
-`94b50fce4020d7a6d47b08d247473e7edbb68991` from
+`91492edb172bd68f87351df5f1365c1ca14a033b` from
 https://github.com/NoemiRozpara/FlatMark. The tracked working tree was clean before the build;
 no library, harness, fixture, manifest, or dependency-lock changes were made for these runs.
 The result files and this report were added after measurement.
@@ -18,7 +13,7 @@ In a separate checkout:
 ```sh
 git clone https://github.com/NoemiRozpara/FlatMark.git
 cd FlatMark
-git checkout --detach 94b50fce4020d7a6d47b08d247473e7edbb68991
+git checkout --detach 91492edb172bd68f87351df5f1365c1ca14a033b
 swift build --product FlatMarkConstructionBenchmark --configuration release
 for n in 1 2 3; do
   .build/release/FlatMarkConstructionBenchmark > "/tmp/flatmark-run$n.csv"
@@ -36,7 +31,7 @@ SHA-256 checks for the measured inputs:
 | --- | --- |
 | `Package.resolved` | `699e6efaf72535253913ab1db4dcf65ed513c9d7250bcd6bf17b46977ed0acbf` |
 | `Package.swift` | `446c0f47bb4faa6891a814e31b5197a3d72954e98bbc277633eb5a69844f669f` |
-| `Benchmarks/Construction/main.swift` | `548bf281cf25a40544f2fd14951c58c3055f5544d4f67906ac25b9f13ebf0c48` |
+| `Benchmarks/Construction/main.swift` | `a60c10d14d2996e7afb8072e12b440bc865983e6c6a6bc5b44b67e25bf009a29` |
 | `Benchmarks/Construction/PreviewBenchmark.swift` | `8adfcd3d7d658984a9287955efc0b211101d6054a93ba7d37cc3dce397df4323` |
 
 ## Environment and limits
@@ -48,8 +43,7 @@ SHA-256 checks for the measured inputs:
 - Three standalone processes ran sequentially after one build, without a debugger.
 - Power, thermals, and background activity were not controlled or instrumented.
 
-Each CSV contains 20 scenario rows and checksum `468834905`. Timings include the harness's disclosed
+Each CSV contains 15 construction scenario rows and checksum `351684165`. Timings include the harness's disclosed
 reflection/cache/allocator limitations; see [methodology](../../../README.md#method).
 These are construction diagnostics, not rendering or mobile responsiveness measurements.
 Use these files for future same-method, comparable-environment investigations, not CI timing gates.
-The retained-copy rows are secondary copy/retain diagnostics, not view-refresh measurements.

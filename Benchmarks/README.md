@@ -5,10 +5,8 @@ cover ordinary descriptions, large documents, nested lists and quotes, and link/
 
 ## Findings
 
-The table below contains **historical diagnostics**, not a reproducible regression baseline.
-The old source record does not establish the exact measured working tree. This provenance gap does
-not show that the measurements were fabricated or numerically wrong. Use the
-[new reproducible baseline](Construction/Baselines/reproducible/README.md) for future comparisons.
+The table below summarizes the [current reproducible baseline](Construction/Baselines/reproducible/README.md).
+That record identifies the exact committed source, dependencies, build settings, and environment.
 
 Retain a `FlatMarkDocument` while its source and projection inputs are unchanged. Reusing it avoids
 parsing and projection; constructing a new snapshot does not.
@@ -17,11 +15,11 @@ Medians across three processes on an Apple M3 Pro, in milliseconds:
 
 | Fixture | Initial | Source change | Base URL change |
 | --- | ---: | ---: | ---: |
-| Ordinary, 172 B | 0.410–0.415 | 0.449–0.457 | 0.398–0.416 |
-| Large, 17.2 KB | 38.244–41.365 | 37.390–41.064 | 38.847–40.638 |
-| Large, 172 KB | 386.811–387.431 | 387.574–390.288 | 381.154–391.887 |
-| Nested | 1.677–1.720 | 1.720–1.843 | 1.675–1.773 |
-| Links and tables | 13.713–13.752 | 13.713–13.887 | 13.508–14.325 |
+| Ordinary, 172 B | 0.403–0.419 | 0.448–0.452 | 0.399–0.404 |
+| Large, 17.2 KB | 38.421–38.942 | 38.323–39.043 | 38.223–38.906 |
+| Large, 172 KB | 377.150–388.456 | 377.377–401.251 | 377.274–386.236 |
+| Nested | 1.634–1.669 | 1.678–1.718 | 1.634–1.668 |
+| Links and tables | 13.438–13.809 | 13.477–13.579 | 13.375–13.529 |
 
 A 60 Hz frame lasts 16.7 ms, with only part of it available for construction, and the 17.2 KB and
 172 KB fixtures exceed that budget outright. This supports host-owned background construction for large
@@ -29,7 +27,8 @@ or frequently changing sources while the synchronous snapshot API stays as it is
 or optimization is included.
 
 These numbers do not establish a safe maximum source size, typing latency, or performance on other
-Apple devices. See the [iPhone XR report](iPhone-XR.md) for device execution and limits.
+Apple devices. No current device construction baseline is recorded.
+See the [device construction guide](iPhone-XR.md) to collect one.
 
 ## Run
 
@@ -132,38 +131,15 @@ The [eager/lazy comparison](lazy-stack-comparison.md) adds physical iPhone XR me
 records why the measured lazy candidate was not retained as the production default.
 See [the device host guide](DeviceHost/README.md) to reproduce the iOS checks.
 
-## Historical desktop measurements
-
-Recorded 2026-11-09 on Apple M3 Pro, arm64, 12 cores, 36 GiB RAM; macOS 27.0.1 (26A434); Xcode 27.0
-(27A266a), Apple Swift 6.4; SwiftPM Release with default optimization.
-`Construction/Baselines/revision.txt` records library base `7807227795d60e353270584575948c6549d36546`,
-which is reachable. It replaced unavailable base `3066c534c5a124095dbf6f930cb5ba5043fe1406`
-in commit `3d8dd446cefd7057710812e6e70b24aaf78fec45`, alongside new desktop CSVs.
-That replacement does not prove the complete measured working tree or its dependency resolution.
-The current `Package.resolved` is not evidence of historical dependency versions.
-
-Three sequential standalone processes produced `Construction/Baselines/m3-pro-run{1,2,3}.csv`.
-Retained-copy medians were 0.000015–0.000016 ms per value, and all three checksums agreed. Median
-spreads stayed under 10%; the largest p95 was 448.510 ms (large, base URL change). Power, thermal
-state, and background activity were not controlled or instrumented, so desktop figures are not mobile
-performance claims.
-
-Mention detection is unconditional. Earlier optional-mention `initial` figures (about 0.06 ms for the
-ordinary fixture) are obsolete; the table above is historical context only.
-
 ## Regression checks
 
 Use periodic local measurement, not CI timing assertions. Rerun after parser, projector, dependency,
 or toolchain changes, or when investigating latency. Record hardware, OS, toolchain, configuration,
 revision, and fixture changes, and rebaseline separately when the environment changes.
-The [reproducible source and run record](Construction/Baselines/reproducible/README.md) preserves the
-previous 20-row harness, including five copy diagnostics. Those rows are not construction or refresh
-measurements. The current 15-row harness removes them and the untimed retained snapshot construction;
-its checksum and allocator/cache history differ. Establish a fresh three-process baseline before
-regression comparisons; do not directly compare incompatible harness revisions. Preserve the old
-record as source evidence, not a current timing gate. Do not use historical CSVs with incomplete source
-provenance for regression comparisons. New records must identify a committed measured
-snapshot (or archive all source changes), its dependency lockfile, harness, fixtures, and build settings.
+Use the [current source and run record](Construction/Baselines/reproducible/README.md) for comparable
+construction measurements. Rebaseline after harness changes; do not directly compare incompatible
+methods. New records must identify a committed measured snapshot (or archive all source changes), its
+dependency lockfile, harness, fixtures, and build settings.
 
 Compare the median of three process medians per scenario. Investigate an increase exceeding **both 20%
 and 0.1 ms**, then confirm with another three-run set. The relative margin exceeds observed
