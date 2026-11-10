@@ -1,0 +1,174 @@
+name: CI
+
+# FlatMark requires Xcode 26.0+ / Swift 6.2 and supports iOS 17 / macOS 15 (README Requirements).
+# macos-15 is the oldest GitHub-hosted image still available and it matches the package's macOS 15
+# floor, so the macOS lane executes tests on the claimed minimum operating system.
+# Xcode 26.0.1 is the closest build GitHub ships to the declared 26.0 minimum.
+
+# Manual only for now. Add `push: { branches: [main] }` and `pull_request:` once the first
+# runs are understood and the pre-existing failures listed in AI-docs/BUILD_AND_TEST.md are triaged.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned per job; see the macOS matrix and the iOS job.
+  XCODE_PATH: /Applications/Xcode_26.0.1.app
+
+jobs:
+  macos:
+    name: macOS package tests · ${{ matrix.label }}
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest combination the README claims: macOS 15 host, Xcode 26.0.1 (Swift 6.2).
+          - label: macOS 15 / Xcode 26.0.1
+            id: macos15-xcode26.0.1
+            image: macos-15
+            xcode: /Applications/Xcode_26.0.1.app
+          # The newest Xcode GitHub ships on its current image, as a current-toolchain comparison.
+          - label: macOS 26 / Xcode 26.6
+            id: macos26-xcode26.6
+            image: macos-26
+            xcode: /Applications/Xcode_26.6.app
+    env:
+      XCODE_PATH: ${{ matrix.xcode }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+          echo "$XCODE_PATH/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin" >> "$GITHUB_PATH"
+          echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
+          xcodebuild -version
+          swift --version
+
+      # Keyed on the pinned Xcode so a toolchain bump cannot restore a stale build directory.
+      - name: Cache SwiftPM build
+        uses: actions/cache@v6
+        with:
+          path: .build
+          key: ${{ runner.os }}-${{ env.XCODE_PATH }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: ${{ runner.os }}-${{ env.XCODE_PATH }}-spm-
+
+      # Snapshot suites live in the package test target, so this one command covers projection,
+      # navigation, image loading, mounted exports, and exact-pixel snapshot verification.
+      # Never record from CI: verify mode is the only mode that cannot bless new output.
+      - name: Run package tests, snapshot suites included
+        env:
+          FLATMARK_SNAPSHOT_RECORD: never
+          TMPDIR: ${{ github.workspace }}/.ci-tmp
+        run: |
+          mkdir -p "$TMPDIR"
+          swift test 2>&1 | tee "$RUNNER_TEMP/swift-test.log"
+
+      - name: Build the macOS demo
+        run: |
+          xcodebuild build \
+            -project Demo/FlatMarkDemo.xcodeproj \
+            -scheme FlatMarkDemo-macOS \
+            -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData-macOS" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload the test log and snapshot failure images
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-artifacts-macos-${{ matrix.id }}
+          path: |
+            .ci-tmp
+            ${{ runner.temp }}/swift-test.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  ios:
+    name: iOS 17 demo build and iOS snapshots
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      XCODE_PATH: /Applications/Xcode_26.0.1.app
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+          echo "$XCODE_PATH/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin" >> "$GITHUB_PATH"
+          echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
+          xcodebuild -version
+          swift --version
+
+      # Discover the destination instead of copying a machine-local identifier.
+      - name: Create a simulator
+        id: sim
+        run: |
+          runtime=$(xcrun simctl list runtimes -j \
+            | jq -r '.runtimes[]
+              | select(.isAvailable)
+              | select(.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS"))
+              | .identifier' \
+            | sort -V | tail -1)
+          if [ -z "$runtime" ]; then
+            echo "No iOS simulator runtime is installed." >&2
+            xcrun simctl list runtimes >&2
+            exit 1
+          fi
+
+          device=""
+          for candidate in "iPhone SE (3rd generation)" "iPhone 16" "iPhone 17"; do
+            if xcrun simctl list devicetypes | sed 's/ (.*$//' | grep -qxF -- "$candidate"; then
+              device="$candidate"
+              break
+            fi
+          done
+          if [ -z "$device" ]; then
+            echo "No supported simulator device type is available." >&2
+            xcrun simctl list devicetypes >&2
+            exit 1
+          fi
+
+          udid=$(xcrun simctl create "FlatMark CI" "$device" "$runtime")
+          echo "Selected $device on $runtime"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      # The FlatMarkSnapshots-iOS scheme hosts the snapshot suites in the demo app and sets
+      # FLATMARK_SNAPSHOT_RECORD=never. Non-snapshot package tests stay in the macOS lane;
+      # running them on iOS would need a SwiftPM destination file.
+      # Captured PNGs land in the simulator's own temp directory, so this lane keeps the log and
+      # the result bundle instead.
+      - name: Build the demo and verify iOS snapshots
+        run: |
+          xcodebuild test \
+            -project Demo/FlatMarkDemo.xcodeproj \
+            -scheme FlatMarkSnapshots-iOS \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData-iOS" \
+            -resultBundlePath "$RUNNER_TEMP/ios-tests.xcresult" \
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild-ios.log"
+
+      - name: Delete the simulator
+        if: always()
+        run: xcrun simctl delete "${{ steps.sim.outputs.udid }}" || true
+
+      - name: Upload the test log and result bundle
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-artifacts-ios
+          path: |
+            ${{ runner.temp }}/xcodebuild-ios.log
+            ${{ runner.temp }}/ios-tests.xcresult
+          if-no-files-found: ignore
+          retention-days: 7

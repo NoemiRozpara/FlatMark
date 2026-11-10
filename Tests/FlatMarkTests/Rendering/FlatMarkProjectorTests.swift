@@ -236,7 +236,8 @@ struct FlatMarkRenderProjectorTests {
         | Alpha | Ready |
         | Beta | Done |
         """)
-        let table = try #require(table(in: document))
+        let projectedTable = table(in: document)
+        let table = try #require(projectedTable)
 
         #expect(table.rows.map(\.id.path) == [[0, 1, 0], [0, 1, 1]])
         #expect(table.header.map(\.id.path) == [[0, 0, 0], [0, 0, 1]])
@@ -257,7 +258,8 @@ struct FlatMarkRenderProjectorTests {
         | Name | State |
         | --- | --- |
         """)
-        let table = try #require(table(in: document))
+        let projectedTable = table(in: document)
+        let table = try #require(projectedTable)
 
         #expect(table.header.map { text(of: $0.content) } == ["Name", "State"])
         #expect(table.rows.isEmpty)
@@ -272,7 +274,8 @@ struct FlatMarkRenderProjectorTests {
         | Tall | Middle | End |
         | ^ | Next | Last |
         """)
-        let table = try #require(table(in: document))
+        let projectedTable = table(in: document)
+        let table = try #require(projectedTable)
         let wideRow = try #require(table.rows.first)
         let tallRow = try #require(table.rows.dropFirst().first)
         let continuationRow = try #require(table.rows.dropFirst(2).first)
@@ -829,6 +832,10 @@ private func unsupportedLiteral(in document: FlatMarkRenderDocument) -> [String]
     }
 }
 
+/// The first table block in `document`, or nil.
+///
+/// Bind the result to a local before `#require`: with Swift 6.2, writing
+/// `let table = try #require(table(in: document))` re-resolves `table` to the local being declared.
 private func table(in document: FlatMarkRenderDocument) -> FlatMarkRenderTable? {
     guard case let .table(table) = document.blocks.first?.kind else {
         return nil

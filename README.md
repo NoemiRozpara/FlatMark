@@ -1,6 +1,6 @@
 # FlatMark
 
-A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS 14+, with optional
+A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS 15+, with optional
 interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftlang/swift-markdown).
 
 [Markdown support](SUPPORT.md) · [Demo](Demo/README.md) · [Testing and playground](Tests/README.md) · [Benchmarks](Benchmarks/README.md)
@@ -8,8 +8,20 @@ interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftla
 ## Requirements
 
 - Xcode 26.0+ / Swift 6.2
-- iOS 17 / macOS 14
+- iOS 17 / macOS 15
 - [swift-markdown](https://github.com/swiftlang/swift-markdown) 0.8.x
+
+FlatMark previously supported macOS 14. Apple stopped patching it: the last Sonoma security release was
+14.8.9 on 2026-08-06, and Apple now ships macOS security updates only for macOS 15, 26, and 27
+([Apple security releases](https://support.apple.com/en-us/100100)). FlatMark's required toolchain
+cannot run on macOS 14 either: Xcode 26 needs macOS 15.6 or later
+([Xcode 26 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-26-release-notes)).
+FlatMark was therefore never executed on macOS 14, and no supported toolchain can test it there.
+
+The floor stops at 15 rather than rising to 26 because macOS 26 was the last release to support Intel
+Macs and macOS 27 requires Apple silicon. macOS 15 is the newest system every Mac that Apple still
+patches can run. See [AI-docs/BUILD_AND_TEST.md](AI-docs/BUILD_AND_TEST.md) for the resulting
+verification boundary.
 
 ## Demo
 

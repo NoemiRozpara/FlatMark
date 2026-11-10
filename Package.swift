@@ -6,7 +6,7 @@ let package = Package(
     name: "FlatMark",
     platforms: [
         .iOS(.v17),
-        .macOS(.v14),
+        .macOS(.v15),
     ],
     products: [
         .library(
