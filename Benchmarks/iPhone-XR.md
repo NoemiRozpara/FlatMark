@@ -8,7 +8,11 @@ See [methodology and regression policy](README.md).
 
 **Read the "Mentions enabled" column as the current analogue.** These runs predate unconditional mention
 detection, so `initial`, `source change`, and `base URL change` excluded it and understate today's cost.
-Re-measure before using this as a regression baseline.
+Re-measure before using this as a regression baseline. The exact measured source and temporary host
+were not archived together; these are historical diagnostics with incomplete provenance, not a
+reproducible baseline. This does not establish that the measurements are numerically wrong.
+See the [new desktop baseline](Construction/Baselines/reproducible/README.md) for an exact committed
+source record; it does not replace device measurement.
 
 Range of medians across three processes, in milliseconds:
 

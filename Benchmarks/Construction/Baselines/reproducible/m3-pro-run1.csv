@@ -1,0 +1,28 @@
+FlatMark construction benchmark: Release required; 5 warmups; 30 samples; ms; no SwiftUI rendering
+fixture,scenario,samples,median_ms,p95_ms,min_ms
+# ordinary: 1 section; UTF8=172
+ordinary,initial,30,0.428125,0.458958,0.420625
+ordinary,source-change,30,0.469292,0.572291,0.467334
+ordinary,baseURL-change,30,0.424334,0.485834,0.418292
+ordinary,retained-copy-per-value,30,0.000017,0.000021,0.000017
+# large-100: 100 sections; UTF8=17200
+large-100,initial,30,40.121958,40.650458,38.762083
+large-100,source-change,30,40.266250,41.238000,39.185708
+large-100,baseURL-change,30,40.012334,40.631625,39.654625
+large-100,retained-copy-per-value,30,0.000017,0.000018,0.000015
+# large-1000: 1000 sections; UTF8=172000
+large-1000,initial,30,396.911667,437.934708,388.778333
+large-1000,source-change,30,407.830542,592.354792,397.509334
+large-1000,baseURL-change,30,400.464666,424.115709,391.947959
+large-1000,retained-copy-per-value,30,0.000017,0.000022,0.000014
+# nested: 32 quote levels + 32 list levels; UTF8=1416
+nested,initial,30,1.767500,1.871125,1.741208
+nested,source-change,30,1.791458,1.885041,1.758375
+nested,baseURL-change,30,1.760042,1.812084,1.720333
+nested,retained-copy-per-value,30,0.000015,0.000016,0.000015
+# links-tables: 500 rows, 3 columns, 1500 relative links; UTF8=37107
+links-tables,initial,30,14.518166,15.144833,13.724250
+links-tables,source-change,30,14.507833,14.951917,13.991833
+links-tables,baseURL-change,30,14.326875,16.033333,13.833458
+links-tables,retained-copy-per-value,30,0.000017,0.000020,0.000016
+Consumed snapshot checksum: 468834905

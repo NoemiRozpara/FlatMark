@@ -5,6 +5,11 @@ cover ordinary descriptions, large documents, nested lists and quotes, and link/
 
 ## Findings
 
+The table below contains **historical diagnostics**, not a reproducible regression baseline.
+The old source record does not establish the exact measured working tree. This provenance gap does
+not show that the measurements were fabricated or numerically wrong. Use the
+[new reproducible baseline](Construction/Baselines/reproducible/README.md) for future comparisons.
+
 Retain a `FlatMarkDocument` while its source and projection inputs are unchanged. Reusing it avoids
 parsing and projection; constructing a new snapshot does not.
 
@@ -126,11 +131,15 @@ The [eager/lazy comparison](lazy-stack-comparison.md) adds physical iPhone XR me
 records why the measured lazy candidate was not retained as the production default.
 See [the device host guide](DeviceHost/README.md) to reproduce the iOS checks.
 
-## Desktop baseline
+## Historical desktop measurements
 
 Recorded 2026-11-09 on Apple M3 Pro, arm64, 12 cores, 36 GiB RAM; macOS 27.0.1 (26A434); Xcode 27.0
-(27A266a), Apple Swift 6.4; SwiftPM Release with default optimization. Source revision:
-`Construction/Baselines/revision.txt`. Dependency resolution is in `Package.resolved`.
+(27A266a), Apple Swift 6.4; SwiftPM Release with default optimization.
+`Construction/Baselines/revision.txt` records library base `7807227795d60e353270584575948c6549d36546`,
+which is reachable. It replaced unavailable base `3066c534c5a124095dbf6f930cb5ba5043fe1406`
+in commit `3d8dd446cefd7057710812e6e70b24aaf78fec45`, alongside new desktop CSVs.
+That replacement does not prove the complete measured working tree or its dependency resolution.
+The current `Package.resolved` is not evidence of historical dependency versions.
 
 Three sequential standalone processes produced `Construction/Baselines/m3-pro-run{1,2,3}.csv`.
 Retained-copy medians were 0.000015–0.000016 ms per value, and all three checksums agreed. Median
@@ -139,13 +148,16 @@ state, and background activity were not controlled or instrumented, so desktop f
 performance claims.
 
 Mention detection is unconditional. Earlier optional-mention `initial` figures (about 0.06 ms for the
-ordinary fixture) are obsolete; use the table above.
+ordinary fixture) are obsolete; the table above is historical context only.
 
 ## Regression checks
 
 Use periodic local measurement, not CI timing assertions. Rerun after parser, projector, dependency,
 or toolchain changes, or when investigating latency. Record hardware, OS, toolchain, configuration,
 revision, and fixture changes, and rebaseline separately when the environment changes.
+Use the [reproducible source and run record](Construction/Baselines/reproducible/README.md), not
+historical CSVs with incomplete source provenance. New records must identify a committed measured
+snapshot (or archive all source changes), its dependency lockfile, harness, fixtures, and build settings.
 
 Compare the median of three process medians per scenario. Investigate an increase exceeding **both 20%
 and 0.1 ms**, then confirm with another three-run set. The relative margin exceeds observed
