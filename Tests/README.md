@@ -74,8 +74,9 @@ Rules:
 
 - Record only an intended rendering change, review every changed image at readable scale, then run
   the normal scheme twice and confirm reference hashes are unchanged.
-- Never record to make a failure pass. A missing reference fails verify mode and is never written;
-  the failure names the case, its environment, and the full path of the reference it expected.
+- Never record to make a failure pass. A missing reference fails verify mode and is never written, and
+  a verify run also removes a reference directory it created; the failure names the case, its
+  environment, and the full path of the reference it expected.
   `FlatMarkSnapshotReferenceTests` keeps that reported path the same path SnapshotTesting reads.
 - Recording assertions are expected failures, not verification passes.
 - One recording process per namespace at a time (`@Suite(.serialized)` for mounted cases).

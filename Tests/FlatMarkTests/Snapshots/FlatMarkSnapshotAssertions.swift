@@ -57,7 +57,8 @@ enum FlatMarkSnapshotMode: Equatable {
 /// Compares one mounted capture against its reference, or writes it in explicit record mode.
 ///
 /// Verify mode asks SnapshotTesting for `.never`, so a missing reference fails instead of recording
-/// and only an explicit recording run can change a baseline. Comparison demands an exact pixel match:
+/// and only an explicit recording run can change a baseline; a verify run also removes a reference
+/// directory it created. Comparison demands an exact pixel match:
 /// no tolerance is applied without a reviewed reason. A failure reports the environment the capture
 /// was produced in and the paths of the actual, reference, and diff images; a missing reference also
 /// reports the full path of the reference it expected. The failure is reported at the call site, so the
@@ -83,18 +84,20 @@ func assertFlatMarkSnapshot(
         testFile: "\(filePath)",
         pathExtension: snapshotting.pathExtension
     )
-    let failure = verifySnapshot(
-        of: image,
-        as: snapshotting,
-        named: reference.snapshotName,
-        record: mode == .record ? .all : .never,
-        snapshotDirectory: reference.directory,
-        fileID: fileID,
-        file: filePath,
-        testName: testName,
-        line: line,
-        column: column
-    )
+    let failure = reference.verifyingWithoutLeftoverDirectories(mode: mode) {
+        verifySnapshot(
+            of: image,
+            as: snapshotting,
+            named: reference.snapshotName,
+            record: mode == .record ? .all : .never,
+            snapshotDirectory: reference.directory,
+            fileID: fileID,
+            file: filePath,
+            testName: testName,
+            line: line,
+            column: column
+        )
+    }
 
     guard let failure else { return }
     Issue.record(
@@ -110,7 +113,8 @@ func assertFlatMarkSnapshot(
 
 // MARK: - FlatMarkSnapshotReference
 
-/// One case's address in the reference tree, and the diagnostics that name it.
+/// One case's address in the reference tree: the diagnostics that name it, and the cleanup that keeps a
+/// verify run from leaving a directory behind.
 ///
 /// SnapshotTesting builds the reference path from the sanitized test name, a dot, the sanitized
 /// `named:` value, and the snapshotting's path extension (`verifySnapshot` in
@@ -133,6 +137,44 @@ struct FlatMarkSnapshotReference {
 
     /// The directory this case's references live in.
     var directory: String { referenceDirectory(suite: suite, testFile: testFile) }
+
+    /// The directories `verifySnapshot` may create for this case, deepest first.
+    ///
+    /// These are the only cleanup candidates, so a verify run never reaches outside this case's suite
+    /// namespace: `Tests/References/Snapshots` itself stays put even when a checkout lacks it.
+    var directoriesWithinNamespace: [URL] {
+        let leaf = URL(fileURLWithPath: directory, isDirectory: true)
+        return [leaf, leaf.deletingLastPathComponent()]
+    }
+
+    /// Runs one `verifySnapshot` call for this case, leaving no directory the run created.
+    ///
+    /// SnapshotTesting creates the reference directory before it checks whether a reference exists
+    /// (`verifySnapshot` in `Sources/SnapshotTesting/AssertSnapshot.swift` at the pinned 1.19.7), so a
+    /// verify run against a removed namespace would otherwise leave an empty directory beside the
+    /// reviewed baselines. Directories absent before the run are removed afterwards while they are still
+    /// empty, deepest first; anything that existed beforehand is untouched, and a removal that fails
+    /// leaves that harmless empty directory instead of failing a passing test. Record mode is left alone
+    /// because creating the namespace is what recording is for, and neither mode writes a reference it
+    /// did not record.
+    func verifyingWithoutLeftoverDirectories(
+        mode: FlatMarkSnapshotMode,
+        _ verifyRun: () -> String?
+    ) -> String? {
+        guard mode == .verify else { return verifyRun() }
+
+        let fileManager = FileManager.default
+        let absentBeforeRun = directoriesWithinNamespace.filter {
+            !fileManager.fileExists(atPath: $0.path)
+        }
+
+        let failure = verifyRun()
+
+        for directory in absentBeforeRun where isEmptyDirectory(directory) {
+            try? fileManager.removeItem(at: directory)
+        }
+        return failure
+    }
 
     /// The reference file SnapshotTesting reads for this case.
     var url: URL {
@@ -175,6 +217,15 @@ private func sanitizedPathComponent(_ string: String) -> String {
     string
         .replacingOccurrences(of: "\\W+", with: "-", options: .regularExpression)
         .replacingOccurrences(of: "^-|-$", with: "", options: .regularExpression)
+}
+
+/// Whether `url` is a directory with no entries. A path that is absent or unreadable is not empty,
+/// because only an empty directory is safe for the caller to remove.
+private func isEmptyDirectory(_ url: URL) -> Bool {
+    guard let entries = try? FileManager.default.contentsOfDirectory(atPath: url.path) else {
+        return false
+    }
+    return entries.isEmpty
 }
 
 /// Pixel equality at the environment's declared scale, with SnapshotTesting's reference, actual, and

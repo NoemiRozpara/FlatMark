@@ -45,6 +45,39 @@ struct FlatMarkSnapshotReferenceTests {
         let comment = workspace.reference.failureComment(failure, mode: .verify).rawValue
         #expect(!comment.contains("Expected reference"))
     }
+
+    /// A verify run against a namespace that was never recorded leaves no directory behind.
+    @Test func verifyModeLeavesNoReferenceDirectoryItCreated() throws {
+        let workspace = SnapshotWorkspace()
+        defer { workspace.cleanup() }
+        #expect(!workspace.namespaceExists)
+
+        let failure = try #require(workspace.verify())
+        #expect(failure.hasPrefix(FlatMarkSnapshotReference.missingReferenceFailure))
+        #expect(!workspace.namespaceExists)
+    }
+
+    /// Recording still creates the namespace and writes the reference, so the cleanup stays out of it.
+    @Test func recordModeStillCreatesTheReferenceDirectory() throws {
+        let workspace = SnapshotWorkspace()
+        defer { workspace.cleanup() }
+
+        let failure = try #require(workspace.verify(mode: .record))
+        #expect(!failure.hasPrefix(FlatMarkSnapshotReference.missingReferenceFailure))
+        #expect(workspace.namespaceExists)
+        #expect(workspace.referenceExists)
+        #expect(try String(contentsOf: workspace.reference.url, encoding: .utf8) == capturedText)
+    }
+
+    /// A recording run keeps a namespace it created even when it wrote no reference, so a recording run
+    /// that returned early does not lose the directory recording is meant to make.
+    @Test func recordModeKeepsANamespaceThatStaysEmpty() throws {
+        let workspace = SnapshotWorkspace()
+        defer { workspace.cleanup() }
+
+        #expect(workspace.recordRunThatWroteNothing() == nil)
+        #expect(workspace.namespaceExists)
+    }
 }
 
 // MARK: - SnapshotWorkspace
@@ -81,6 +114,13 @@ private struct SnapshotWorkspace {
 
     var referenceExists: Bool { FileManager.default.fileExists(atPath: reference.url.path) }
 
+    /// Whether any directory of this case's suite namespace exists.
+    var namespaceExists: Bool {
+        reference.directoriesWithinNamespace.contains {
+            FileManager.default.fileExists(atPath: $0.path)
+        }
+    }
+
     /// Writes a reference at the path the diagnostic reports, as a recording run would have.
     func placeReference(_ text: String) throws {
         try FileManager.default.createDirectory(
@@ -89,22 +129,37 @@ private struct SnapshotWorkspace {
         try text.write(to: reference.url, atomically: true, encoding: .utf8)
     }
 
-    /// Verifies the fixed capture against whatever reference is on disk, in verify mode.
-    func verify() -> String? {
-        verifySnapshot(
-            of: capturedText,
-            as: .lines,
-            named: reference.snapshotName,
-            record: .never,
-            snapshotDirectory: reference.directory,
-            fileID: #fileID,
-            file: #filePath,
-            testName: reference.testName
-        )
+    /// Verifies the fixed capture against whatever reference is on disk, through the same cleanup
+    /// `assertFlatMarkSnapshot` applies.
+    func verify(mode: FlatMarkSnapshotMode = .verify) -> String? {
+        reference.verifyingWithoutLeftoverDirectories(mode: mode) {
+            verifySnapshot(
+                of: capturedText,
+                as: .lines,
+                named: reference.snapshotName,
+                record: mode == .record ? .all : .never,
+                snapshotDirectory: reference.directory,
+                fileID: #fileID,
+                file: #filePath,
+                testName: reference.testName
+            )
+        }
     }
 
     func cleanup() {
         try? FileManager.default.removeItem(at: root)
+    }
+
+    /// Runs the cleanup as a recording run that created the namespace and then returned without writing
+    /// a reference would.
+    func recordRunThatWroteNothing() -> String? {
+        reference.verifyingWithoutLeftoverDirectories(mode: .record) {
+            try? FileManager.default.createDirectory(
+                at: URL(fileURLWithPath: reference.directory, isDirectory: true),
+                withIntermediateDirectories: true
+            )
+            return nil
+        }
     }
 }
 
