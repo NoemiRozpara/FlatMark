@@ -123,6 +123,7 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         geometry.ready = false
         var previous: [CGRect] = []
         var stable = 0
+        var previousLoads = -1
         for _ in 1 ... 100 {
             #if os(macOS)
                 root.layoutSubtreeIfNeeded()
@@ -154,7 +155,11 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
                 root.layoutIfNeeded()
             #endif
             let observed = descendants(root).map { $0.convert($0.bounds, to: nil) }
-            let requested = model.imageCalls.urls.count == expectedLoads
+            // Offscreen lazy blocks need not request images on this page. Wait for local
+            // requests and layout to settle; the completed walk checks the exact total.
+            let loads = model.imageCalls.urls.count
+            let requested = loads <= expectedLoads && loads == previousLoads
+            previousLoads = loads
             let positioned = abs(geometry.offset - target) < 1 && geometry.viewport > 0 && geometry.content > 0
             stable = requested && positioned && observed == previous ? stable + 1 : 0
             if stable >= 5 {

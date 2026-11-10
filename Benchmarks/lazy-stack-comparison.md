@@ -151,6 +151,52 @@ This corrects the initial reflow/image regression conclusion. It does not establ
 failure is a test artifact. No new iOS run, performance comparison, scrolling, selection or live
 VoiceOver check was performed in this follow-up. The earlier measurement samples remain historical.
 
+## Follow-up: matched control and viewport readiness
+
+Qualification continued on macOS 27.0.1 (26A434), Apple Swift 6.4
+(`swiftlang-6.4.0.34.1`). No reference images were recorded or changed.
+
+With the corrected mounted host, full `swift test` reproduced 189 tests in 27 suites:
+
+| Configuration | Reported issues, including one known issue |
+| --- | ---: |
+| Committed lazy renderer and original recipe readiness | 38 |
+| Temporary eager control and original recipe readiness | 37 |
+| Lazy renderer and viewport-aware recipe readiness | 40 |
+
+The eager control changed only the top-level `LazyVStack` to `VStack` during testing.
+The lazy renderer was restored after each control. Production renderer code is unchanged.
+
+The primary/dark readiness gate required all three document image requests on page 1.
+Lazy page 1 requested only two; the gate prevented scrolling to the remaining image.
+The retained test change waits for request count and native geometry to settle on each
+page. It still rejects counts above the expected total. The final exact request-count
+assertion and bottom-of-document assertion are unchanged.
+
+With this change, both primary and dark reach three pages without a readiness timeout
+or final request-count failure. Six snapshot mismatches replace four readiness issues,
+which explains the higher full-suite issue count. This is not a green suite.
+
+A focused `swift test --filter FlatMarkRecipeIntegrationSnapshotTests` ran all ten
+scenarios with the readiness change, once lazy and once eager. Both reported the same
+15 snapshot mismatches. The 15 emitted failure captures have zero differing pixels
+between eager and lazy under `magick compare -metric AE`. Compared with their references,
+all 15 have zero differing pixels at `-fuzz 0.5%`. Exact baseline comparisons still fail;
+this evidence does not authorize re-recording or establish reviewed appearance.
+Two other page filenames in the temporary output directory were not reported as failures;
+they are excluded from this comparison because they could be stale artifacts.
+
+The final lazy full suite still fails the three recipe whole-document export assertions.
+The matched eager suite passes that test. Those assertions need viewport-aware investigation;
+they were not removed or relaxed. Navigation subprocess failures and other snapshot suites
+also remain unresolved. No running-demo, XR, scrolling interaction, selection, keyboard or
+VoiceOver verification was performed in this follow-up. Automated snapshot scrolling is not
+an interactive runtime qualification.
+
+Temporary logs are `/tmp/flatmark-lazy-pickup-{suite,eager-suite,readiness-probe,eager-recipe,final-suite}.log`.
+Comparison images are under `/tmp/flatmark-lazy-pickup-images/`. These are diagnostic artifacts,
+not durable evidence; this section records their outcomes. `git diff --check` passed.
+
 ## Evidence, limits and reproduction
 
 - Raw CSVs, compact diagnostic summaries, source hashes, test logs and inspected screenshots:
