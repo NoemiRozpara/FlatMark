@@ -6,10 +6,9 @@ import Testing
 
 /// Guards the missing-reference diagnostic against the path rule SnapshotTesting keeps internal.
 ///
-/// `FlatMarkSnapshotReference.url` mirrors that rule, so these cases let `verifySnapshot` itself
-/// decide whether the path the diagnostic reports is the path it reads. A plain text snapshotter in a
-/// throwaway directory is enough: nothing is mounted or captured, and no reviewed baseline is read or
-/// written.
+/// `FlatMarkSnapshotReference.url` mirrors that rule, so these cases let `verifySnapshot` itself decide
+/// whether the path the diagnostic reports is the path it reads. Nothing is mounted or captured, and no
+/// reviewed baseline is read or written.
 struct FlatMarkSnapshotReferenceTests {
     /// The file SnapshotTesting loads is the file the diagnostic reports.
     @Test func verifySnapshotReadsFromTheReportedPath() throws {
@@ -69,8 +68,7 @@ struct FlatMarkSnapshotReferenceTests {
         #expect(try String(contentsOf: workspace.reference.url, encoding: .utf8) == capturedText)
     }
 
-    /// A recording run keeps a namespace it created even when it wrote no reference, so a recording run
-    /// that returned early does not lose the directory recording is meant to make.
+    /// A recording run keeps a namespace it created even when it wrote no reference.
     @Test func recordModeKeepsANamespaceThatStaysEmpty() throws {
         let workspace = SnapshotWorkspace()
         defer { workspace.cleanup() }
@@ -86,8 +84,8 @@ struct FlatMarkSnapshotReferenceTests {
 /// real one.
 ///
 /// `referenceDirectory` walks three levels up from the test file, so the synthetic file sits four
-/// levels below the disposable root. `verifySnapshot` takes that directory verbatim, as the assertion
-/// helper does, so its own `file:` argument plays no part in the path under test.
+/// levels below the disposable root; the path under test comes from that directory, not from
+/// `verifySnapshot`'s own `file:` argument.
 private struct SnapshotWorkspace {
     let reference: FlatMarkSnapshotReference
     private let root: URL

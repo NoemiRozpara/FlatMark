@@ -56,13 +56,11 @@ enum FlatMarkSnapshotMode: Equatable {
 
 /// Compares one mounted capture against its reference, or writes it in explicit record mode.
 ///
-/// Verify mode asks SnapshotTesting for `.never`, so a missing reference fails instead of recording
-/// and only an explicit recording run can change a baseline; a verify run also removes a reference
-/// directory it created. Comparison demands an exact pixel match:
-/// no tolerance is applied without a reviewed reason. A failure reports the environment the capture
-/// was produced in and the paths of the actual, reference, and diff images; a missing reference also
-/// reports the full path of the reference it expected. The failure is reported at the call site, so the
-/// test that asked for the capture is the one named.
+/// Only an explicit recording run can change a baseline, and comparison demands an exact pixel match:
+/// no tolerance is applied without a reviewed reason. A failure reports the environment the capture was
+/// produced in, the paths of the comparison images, and, when the reference is missing, the full path it
+/// expected. Failures are reported at the call site, so the test that asked for the capture is the one
+/// named.
 func assertFlatMarkSnapshot(
     _ image: FlatMarkSnapshotImage,
     suite: FlatMarkSnapshotSuite,
@@ -116,11 +114,10 @@ func assertFlatMarkSnapshot(
 /// One case's address in the reference tree: the diagnostics that name it, and the cleanup that keeps a
 /// verify run from leaving a directory behind.
 ///
-/// SnapshotTesting builds the reference path from the sanitized test name, a dot, the sanitized
-/// `named:` value, and the snapshotting's path extension (`verifySnapshot` in
-/// `Sources/SnapshotTesting/AssertSnapshot.swift` at the pinned 1.19.7), and keeps that rule internal.
-/// This type mirrors it so a failure can report the path SnapshotTesting really reads, rather than
-/// naming files a second way; `FlatMarkSnapshotReferenceTests` fails if the two derivations disagree.
+/// SnapshotTesting builds the reference path from the test name, the `named:` value, and the
+/// snapshotting's path extension, and keeps that rule internal. This type mirrors it so a failure can
+/// report the path SnapshotTesting really reads; `FlatMarkSnapshotReferenceTests` fails if the two
+/// derivations disagree.
 struct FlatMarkSnapshotReference {
     let suite: FlatMarkSnapshotSuite
     /// The case name the test chooses, before the environment fragment.
@@ -138,10 +135,8 @@ struct FlatMarkSnapshotReference {
     /// The directory this case's references live in.
     var directory: String { referenceDirectory(suite: suite, testFile: testFile) }
 
-    /// The directories `verifySnapshot` may create for this case, deepest first.
-    ///
-    /// These are the only cleanup candidates, so a verify run never reaches outside this case's suite
-    /// namespace: `Tests/References/Snapshots` itself stays put even when a checkout lacks it.
+    /// The directories `verifySnapshot` may create for this case, deepest first. These are the only
+    /// cleanup candidates, so a verify run never reaches outside this case's suite namespace.
     var directoriesWithinNamespace: [URL] {
         let leaf = URL(fileURLWithPath: directory, isDirectory: true)
         return [leaf, leaf.deletingLastPathComponent()]
@@ -149,14 +144,11 @@ struct FlatMarkSnapshotReference {
 
     /// Runs one `verifySnapshot` call for this case, leaving no directory the run created.
     ///
-    /// SnapshotTesting creates the reference directory before it checks whether a reference exists
-    /// (`verifySnapshot` in `Sources/SnapshotTesting/AssertSnapshot.swift` at the pinned 1.19.7), so a
+    /// SnapshotTesting creates the reference directory before it checks whether a reference exists, so a
     /// verify run against a removed namespace would otherwise leave an empty directory beside the
     /// reviewed baselines. Directories absent before the run are removed afterwards while they are still
-    /// empty, deepest first; anything that existed beforehand is untouched, and a removal that fails
-    /// leaves that harmless empty directory instead of failing a passing test. Record mode is left alone
-    /// because creating the namespace is what recording is for, and neither mode writes a reference it
-    /// did not record.
+    /// empty, deepest first; a removal that fails leaves a harmless empty directory. Record mode is left
+    /// alone because creating the namespace is what recording is for.
     func verifyingWithoutLeftoverDirectories(
         mode: FlatMarkSnapshotMode,
         _ verifyRun: () -> String?
@@ -188,11 +180,9 @@ struct FlatMarkSnapshotReference {
         return url
     }
 
-    /// The report for one `verifySnapshot` failure.
-    ///
-    /// SnapshotTesting says only that no reference was found, so verify mode adds the full path it
-    /// expected. Only SnapshotTesting's own wording may claim a reference is missing: a pixel mismatch
-    /// keeps its actual, reference, and diff paths instead of being reported as a missing file.
+    /// The report for one `verifySnapshot` failure. A pixel mismatch keeps SnapshotTesting's own
+    /// wording, with its actual, reference, and diff paths; a missing reference in verify mode adds the
+    /// full path it expected.
     func failureComment(_ failure: String, mode: FlatMarkSnapshotMode) -> Comment {
         var message = """
             Snapshot "\(name)" of \(suite.rawValue) [\(environment.diagnostic)]:
@@ -208,19 +198,20 @@ struct FlatMarkSnapshotReference {
         return Comment(rawValue: message)
     }
 
-    /// The start of SnapshotTesting 1.19.7's message when no reference exists and recording is off.
+    /// The opening of SnapshotTesting's message when no reference exists and recording is off, matched
+    /// by prefix.
     static let missingReferenceFailure = "No reference was found on disk."
 }
 
-/// SnapshotTesting's component sanitizing, mirrored because the library keeps it internal.
+/// Mirrors SnapshotTesting's internal component sanitizing.
 private func sanitizedPathComponent(_ string: String) -> String {
     string
         .replacingOccurrences(of: "\\W+", with: "-", options: .regularExpression)
         .replacingOccurrences(of: "^-|-$", with: "", options: .regularExpression)
 }
 
-/// Whether `url` is a directory with no entries. A path that is absent or unreadable is not empty,
-/// because only an empty directory is safe for the caller to remove.
+/// Whether `url` is a directory with no entries. An absent or unreadable path is not empty, so the
+/// caller only removes a directory it confirmed empty.
 private func isEmptyDirectory(_ url: URL) -> Bool {
     guard let entries = try? FileManager.default.contentsOfDirectory(atPath: url.path) else {
         return false
