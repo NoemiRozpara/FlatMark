@@ -26,6 +26,56 @@ struct FlatMarkImagePhaseSnapshotTests {
     @Test func darkPlaceholder() async throws { try await capture(phase: .placeholder, dark: true, testName: #function) }
     @Test func darkFailure() async throws { try await capture(phase: .failed, dark: true, testName: #function) }
 
+    #if os(macOS)
+        @Test func capturePreservesSRGBSourceColors() async throws {
+            let colors = [[30, 180, 120], [220, 60, 90], [40, 100, 230], [240, 190, 50]]
+            let space = try #require(CGColorSpace(name: CGColorSpace.sRGB))
+            let context = try #require(CGContext(
+                data: nil, width: 80, height: 20, bitsPerComponent: 8, bytesPerRow: 0,
+                space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            for (index, channels) in colors.enumerated() {
+                context.setFillColor(try #require(CGColor(
+                    colorSpace: space, components: channels.map { CGFloat($0) / 255 } + [1]
+                )))
+                context.fill(CGRect(x: index * 20, y: 0, width: 20, height: 20))
+            }
+            let source = NSImage(cgImage: try #require(context.makeImage()), size: CGSize(width: 80, height: 20))
+            let environment = FlatMarkSnapshotEnvironment.standard
+            var firstCapture: Data?
+            for screen in NSScreen.screens {
+                let image = try await flatMarkSnapshotImage(
+                    of: Image(nsImage: source), environment: environment,
+                    prepareMountedView: { root in
+                        root.window?.setFrameOrigin(screen.visibleFrame.origin)
+                        #expect(root.window?.screen == screen)
+                        root.layoutSubtreeIfNeeded()
+                        root.display()
+                    }
+                )
+                let bitmap = try #require(image.representations.first as? NSBitmapImageRep)
+                let png = try #require(bitmap.representation(using: .png, properties: [:]))
+                if let firstCapture {
+                    #expect(png == firstCapture, "Capture differs on \(screen.localizedName)")
+                } else {
+                    firstCapture = png
+                }
+                #expect(bitmap.pixelsWide == Int(environment.captureSize.width * environment.pixelScale))
+                #expect(bitmap.pixelsHigh == Int(environment.captureSize.height * environment.pixelScale))
+                #expect(bitmap.cgImage?.colorSpace?.name == CGColorSpace.sRGB)
+                #expect(bitmap.bitsPerSample == 16)
+                for (index, channels) in colors.enumerated() {
+                    var pixel = [Int](repeating: 0, count: bitmap.samplesPerPixel)
+                    bitmap.getPixel(&pixel, atX: (30 + index * 20) * 2, y: 60)
+                    // Exact 16-bit values catch shifts that disappear when rounded to 8-bit.
+                    #expect(Array(pixel.prefix(3)) == channels.map { $0 * 257 })
+                    #expect(pixel.last == 65535)
+                }
+            }
+            #expect(firstCapture != nil)
+        }
+    #endif
+
     private enum Phase: String { case placeholder, loading, loaded, failed }
     private enum FixtureError: Error { case failed }
     // All bookkeeping is protected by the lock. Completion runs synchronously as the loader exits.

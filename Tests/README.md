@@ -95,10 +95,12 @@ appearance, locale, direction, and text setting.
 - Capture mounts a native hosting view, yields three layout passes, then captures once. An optional
   `prepareMountedView` hook positions a horizontal viewport (table tests). Native capture failure
   throws.
-- macOS pins `NSWindow.colorSpace` to sRGB before drawing and encodes to sRGB. The intermediate
-  `NSImage` flattening still uses a display-profile context; this is not an end-to-end sRGB pipeline.
-  See the [color investigation](../AI-docs/handoffs/macos-snapshot-color.md). The macOS lane needs a
-  2x hosting display; changing OS, toolchain, or display requires deliberate baseline review.
+- macOS pins `NSWindow.colorSpace` to sRGB before drawing, then flattens the hosting bitmap over
+  the appearance background in an explicit 16-bit sRGB `CGContext`. It does not use an implicit
+  display-profile `NSImage` context. A synthetic raster test checks exact source colors and identical
+  captures on connected displays. See the [color investigation and migration](../AI-docs/handoffs/macos-snapshot-color.md).
+  The macOS lane still needs a 2x hosting display; changing OS, toolchain, or display requires
+  deliberate baseline review.
 - The exact-pixel lane is environment-sensitive. Sub-perceptual failures can report zero differing
   pixels under `magick compare -fuzz 0.5% -metric AE`. Treat those as unverified, not as
   regressions, and do not re-record to silence them.
@@ -204,11 +206,17 @@ Known-issue markers are not passing renderer qualifications: `LoaderSpyTests` do
 dropped-expectation behavior; the iOS paragraph suite records a terminal empty line extending beyond
 the paragraph's allocated height. The latter remains a sizing qualification gap.
 
-The lazy-renderer qualification run on macOS 27.0.1 / Swift 6.4 reports 189 tests and 29 issues,
-including one known issue. The remaining 28 issues are exact snapshot failures; all emitted failure
-pairs compare with zero differing pixels at 0.5% fuzz. They remain unverified, not passing snapshots.
-The matched eager control reports the same failures. See the
-[lazy-rendering follow-up](../Benchmarks/lazy-stack-comparison.md#follow-up-native-export-order-and-navigation-click-target).
+After the deliberate sRGB capture migration, `FLATMARK_SNAPSHOT_RECORD=never swift test` on
+macOS 27.0.1 / Swift 6.4 passes 197 tests with one known issue. Two fresh snapshot-only processes
+pass all 31 tests in eight suites without changing reference hashes. A temporary capture-window
+placement on the Built-in Retina Display also passes the full snapshot selection against references
+recorded on LG ULTRAFINE; both displays use 2x scale. The retained synthetic regression checks
+source colors and full PNG equality across connected displays. iOS and minimum toolchains were
+not requalified by this test-support change.
+
+The earlier [lazy-rendering comparison](../Benchmarks/lazy-stack-comparison.md#follow-up-native-export-order-and-navigation-click-target)
+reported 28 exact snapshot failures in both lazy and eager controls before this capture migration.
+That report remains historical evidence, not the current snapshot result.
 
 Still open:
 

@@ -64,8 +64,9 @@ final class FlatMarkRetainedSnapshotHost {
 func flatMakeRetainedSnapshotHost<V: View>(view: V, environment: FlatMarkSnapshotEnvironment) -> FlatMarkRetainedSnapshotHost {
     #if os(macOS)
         let (hosting, window) = mountSnapshotView(view, environment: environment)
+        let bitmapContext = FlatMarkSnapshotBitmapContext()
         return FlatMarkRetainedSnapshotHost(capture: { prepare in
-            try await captureMountedSnapshot(hosting, environment: environment, prepareMountedView: prepare)
+            try await captureMountedSnapshot(hosting, bitmapContext: bitmapContext, environment: environment, prepareMountedView: prepare)
         }, close: {
             window.orderOut(nil)
             window.contentView = nil
@@ -83,6 +84,29 @@ func flatMakeRetainedSnapshotHost<V: View>(view: V, environment: FlatMarkSnapsho
 }
 
 #if os(macOS)
+    /// Reuses the flattening buffer for captures of one mounted host.
+    @MainActor
+    private final class FlatMarkSnapshotBitmapContext {
+        private var context: CGContext?
+
+        func matching(_ bitmap: NSBitmapImageRep) throws -> CGContext {
+            if let context, context.width == bitmap.pixelsWide, context.height == bitmap.pixelsHigh {
+                return context
+            }
+            guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+                  let replacement = CGContext(
+                      data: nil, width: bitmap.pixelsWide, height: bitmap.pixelsHigh,
+                      bitsPerComponent: 16, bytesPerRow: 0, space: space,
+                      bitmapInfo: CGBitmapInfo.byteOrder16Little.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+                  )
+            else {
+                throw FlatMarkSnapshotCaptureError.unavailable
+            }
+            context = replacement
+            return replacement
+        }
+    }
+
     @MainActor
     private func mountSnapshotView<V: View>(_ view: V, environment: FlatMarkSnapshotEnvironment) -> (NSHostingView<some View>, NSWindow) {
         _ = NSApplication.shared
@@ -106,7 +130,8 @@ func flatMakeRetainedSnapshotHost<V: View>(view: V, environment: FlatMarkSnapsho
 
     @MainActor
     private func captureMountedSnapshot<V: View>(
-        _ hosting: NSHostingView<V>, environment: FlatMarkSnapshotEnvironment,
+        _ hosting: NSHostingView<V>, bitmapContext: FlatMarkSnapshotBitmapContext,
+        environment: FlatMarkSnapshotEnvironment,
         prepareMountedView: (@MainActor (FlatMarkSnapshotNativeView) async -> Void)?
     ) async throws -> FlatMarkSnapshotImage {
         for _ in 0 ..< 3 {
@@ -121,21 +146,20 @@ func flatMakeRetainedSnapshotHost<V: View>(view: V, environment: FlatMarkSnapsho
             throw FlatMarkSnapshotCaptureError.unavailable
         }
         hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
-        let captured = NSImage(size: environment.captureSize)
-        captured.addRepresentation(bitmap)
-        let flattened = NSImage(size: environment.captureSize, flipped: false) { bounds in
-            (environment.appearance == .dark ? NSColor.black : NSColor.white).setFill()
-            bounds.fill()
-            captured.draw(in: bounds)
-            return true
-        }
-        // Encode in standard sRGB, not the hosting display's hardware ICC profile.
-        guard let cgImage = flattened.cgImage(forProposedRect: nil, context: nil, hints: nil),
-              let standardBitmap = NSBitmapImageRep(cgImage: cgImage)
-                  .converting(to: .sRGB, renderingIntent: .default)
-        else {
+        // Flatten in a named color space. NSImage's implicit drawing context uses the display
+        // profile, which changes pixel values even if the result is later converted to sRGB.
+        guard let source = bitmap.cgImage else {
             throw FlatMarkSnapshotCaptureError.unavailable
         }
+        let context = try bitmapContext.matching(bitmap)
+        let bounds = CGRect(x: 0, y: 0, width: bitmap.pixelsWide, height: bitmap.pixelsHigh)
+        context.setFillColor(gray: environment.appearance == .dark ? 0 : 1, alpha: 1)
+        context.fill(bounds)
+        context.draw(source, in: bounds)
+        guard let cgImage = context.makeImage() else {
+            throw FlatMarkSnapshotCaptureError.unavailable
+        }
+        let standardBitmap = NSBitmapImageRep(cgImage: cgImage)
         let image = NSImage(size: environment.captureSize)
         standardBitmap.size = environment.captureSize
         image.addRepresentation(standardBitmap)
