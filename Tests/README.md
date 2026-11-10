@@ -62,14 +62,19 @@ sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-i
 # Record a deliberate change. These runs report assertion failures by design.
 sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS-Record --on mac \
   --only-testing FlatMarkSnapshots-macOS/<Suite>
+
+# Re-run one case, for example after restoring a reference verify mode reported missing.
+sweetpad test --project Demo/FlatMarkDemo.xcodeproj --scheme FlatMarkSnapshots-macOS --on mac \
+  --only-testing 'FlatMarkSnapshots-macOS/<Suite>/<test>()'
 ```
 
 Rules:
 
 - Record only an intended rendering change, review every changed image at readable scale, then run
   the normal scheme twice and confirm reference hashes are unchanged.
-- Never record to make a failure pass. A missing reference fails the run and is never written in
-  verify mode; the message names the case and expected filename, not the full path.
+- Never record to make a failure pass. A missing reference fails verify mode and is never written;
+  the failure names the case, its environment, and the full path of the reference it expected.
+  `FlatMarkSnapshotReferenceTests` keeps that reported path the same path SnapshotTesting reads.
 - Recording assertions are expected failures, not verification passes.
 - One recording process per namespace at a time (`@Suite(.serialized)` for mounted cases).
 - Keep fixtures synchronous. Async fixtures must resolve their own state before capture; the helper

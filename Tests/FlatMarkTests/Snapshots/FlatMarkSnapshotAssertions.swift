@@ -59,7 +59,8 @@ enum FlatMarkSnapshotMode: Equatable {
 /// Verify mode asks SnapshotTesting for `.never`, so a missing reference fails instead of recording
 /// and only an explicit recording run can change a baseline. Comparison demands an exact pixel match:
 /// no tolerance is applied without a reviewed reason. A failure reports the environment the capture
-/// was produced in and the paths of the actual, reference, and diff images.
+/// was produced in and the paths of the actual, reference, and diff images; a missing reference also
+/// reports the full path of the reference it expected.
 func assertFlatMarkSnapshot(
     _ image: FlatMarkSnapshotImage,
     suite: FlatMarkSnapshotSuite,
@@ -72,12 +73,21 @@ func assertFlatMarkSnapshot(
     line: UInt = #line,
     column: UInt = #column
 ) {
+    let snapshotting = imageSnapshotting(environment: environment)
+    let reference = FlatMarkSnapshotReference(
+        suite: suite,
+        name: name,
+        environment: environment,
+        testName: testName,
+        testFile: "\(filePath)",
+        pathExtension: snapshotting.pathExtension
+    )
     let failure = verifySnapshot(
         of: image,
-        as: imageSnapshotting(environment: environment),
-        named: "\(name)-\(environment.fileComponent)",
+        as: snapshotting,
+        named: reference.snapshotName,
         record: mode == .record ? .all : .never,
-        snapshotDirectory: referenceDirectory(suite: suite, testFile: "\(filePath)"),
+        snapshotDirectory: reference.directory,
         fileID: fileID,
         file: filePath,
         testName: testName,
@@ -86,10 +96,76 @@ func assertFlatMarkSnapshot(
     )
 
     guard let failure else { return }
-    Issue.record(Comment(rawValue: """
-        Snapshot "\(name)" of \(suite.rawValue) [\((environment.diagnostic))]:
-        \(failure)
-        """))
+    Issue.record(reference.failureComment(failure, mode: mode))
+}
+
+// MARK: - FlatMarkSnapshotReference
+
+/// One case's address in the reference tree, and the diagnostics that name it.
+///
+/// SnapshotTesting builds the reference path from the sanitized test name, a dot, the sanitized
+/// `named:` value, and the snapshotting's path extension (`verifySnapshot` in
+/// `Sources/SnapshotTesting/AssertSnapshot.swift` at the pinned 1.19.7), and keeps that rule internal.
+/// This type mirrors it so a failure can report the path SnapshotTesting really reads, rather than
+/// naming files a second way; `FlatMarkSnapshotReferenceTests` fails if the two derivations disagree.
+struct FlatMarkSnapshotReference {
+    let suite: FlatMarkSnapshotSuite
+    /// The case name the test chooses, before the environment fragment.
+    let name: String
+    let environment: FlatMarkSnapshotEnvironment
+    let testName: String
+    /// The test file the reference directory hangs off, as `#filePath` reports it.
+    let testFile: String
+    /// The extension SnapshotTesting appends, taken from the `Snapshotting` used for the comparison.
+    let pathExtension: String?
+
+    /// The value passed to `verifySnapshot` as `named:`: the case name plus the environment fragment.
+    var snapshotName: String { "\(name)-\(environment.fileComponent)" }
+
+    /// The directory this case's references live in.
+    var directory: String { referenceDirectory(suite: suite, testFile: testFile) }
+
+    /// The reference file SnapshotTesting reads for this case.
+    var url: URL {
+        var url = URL(fileURLWithPath: directory, isDirectory: true)
+            .appendingPathComponent(
+                "\(sanitizedPathComponent(testName)).\(sanitizedPathComponent(snapshotName))"
+            )
+        if let pathExtension {
+            url = url.appendingPathExtension(pathExtension)
+        }
+        return url
+    }
+
+    /// The report for one `verifySnapshot` failure.
+    ///
+    /// SnapshotTesting says only that no reference was found, so verify mode adds the full path it
+    /// expected. Only SnapshotTesting's own wording may claim a reference is missing: a pixel mismatch
+    /// keeps its actual, reference, and diff paths instead of being reported as a missing file.
+    func failureComment(_ failure: String, mode: FlatMarkSnapshotMode) -> Comment {
+        var message = """
+            Snapshot "\(name)" of \(suite.rawValue) [\(environment.diagnostic)]:
+            \(failure)
+            """
+        if mode == .verify, failure.hasPrefix(Self.missingReferenceFailure) {
+            message += """
+
+                Expected reference, absent and not written in verify mode:
+                \(url.path)
+                """
+        }
+        return Comment(rawValue: message)
+    }
+
+    /// The start of SnapshotTesting 1.19.7's message when no reference exists and recording is off.
+    static let missingReferenceFailure = "No reference was found on disk."
+}
+
+/// SnapshotTesting's component sanitizing, mirrored because the library keeps it internal.
+private func sanitizedPathComponent(_ string: String) -> String {
+    string
+        .replacingOccurrences(of: "\\W+", with: "-", options: .regularExpression)
+        .replacingOccurrences(of: "^-|-$", with: "", options: .regularExpression)
 }
 
 /// Pixel equality at the environment's declared scale, with SnapshotTesting's reference, actual, and
