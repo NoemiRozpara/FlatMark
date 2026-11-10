@@ -50,6 +50,34 @@ Inspect diagnostics and failure logs when a run fails; do not read or paste an e
 
 Do not assume session defaults, CI or formatter hooks, or coverage configuration exist.
 
+## CI
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on manual dispatch only for now; add
+push and pull-request triggers once its failures are triaged:
+
+- `macOS package tests`, twice: on `macos-15` with Xcode 26.0.1 (the oldest combination the README
+  claims), and on `macos-26` with Xcode 26.6 (current toolchain). Each runs `swift test`, which includes
+  the snapshot suites in verify mode, then a debug build of the macOS demo scheme. The `macos-15` image
+  runs macOS 15, so that lane executes on the claimed minimum operating system.
+- `iOS 17 demo build and iOS snapshots`, on `macos-15` with Xcode 26.0.1: creates one simulator from the
+  installed runtimes, then runs `xcodebuild test` on `FlatMarkSnapshots-iOS`, which builds the iOS demo
+  and verifies iOS snapshots.
+
+Read a CI result within these limits:
+
+- CI never records. `FLATMARK_SNAPSHOT_RECORD` stays `never`, so a run cannot bless new pixels.
+- The exact-pixel lane is environment-sensitive. Baselines come from a development Mac, so a runner OS or
+  Xcode change can fail snapshots without a rendering regression. Review the images; do not re-record to
+  get green. In November 2026 the same `swift test` command on one Mac reported 38 issues under load and
+  9 issues on a quiet machine, so compare a failing suite with a local rerun before believing it.
+- Rendering differs across toolchains. On one Mac, Xcode 26.0 failed 14 checks that Xcode 27 passed
+  (Recipe snapshots, mounted SwiftUI selection, omission live update). A minimum-toolchain red lane is a
+  finding about that combination, not proof the current toolchain is broken.
+- Known failures are filed, not hidden: #51 native navigation host, #52 the Xcode 26 checks, #53 iOS
+  snapshot baselines, #54 capture stability under load. The workflow is manual-only until they are triaged.
+- The iOS lane runs the snapshot suites and the demo build only. Non-snapshot package tests run on macOS.
+- No lane drives the running demo, VoiceOver, gestures, or system enlarged text. Those stay manual.
+
 ## Demo project changes
 
 `Demo/project.yml` is the source of truth for demo project configuration. Do not change configuration only in the generated Xcode project. After changing `project.yml` or adding/removing demo or shared fixture files, regenerate with `cd Demo && xcodegen generate`. Include the generated project and schemes in the change.
