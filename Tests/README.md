@@ -89,9 +89,10 @@ appearance, locale, direction, and text setting.
 - Capture mounts a native hosting view, yields three layout passes, then captures once. An optional
   `prepareMountedView` hook positions a horizontal viewport (table tests). Native capture failure
   throws.
-- macOS pins `NSWindow.colorSpace` to sRGB before drawing and encodes to sRGB, so captures do not
-  inherit a display profile. The macOS lane needs a 2x hosting display; changing OS, toolchain, or
-  display requires deliberate baseline review.
+- macOS pins `NSWindow.colorSpace` to sRGB before drawing and encodes to sRGB. The intermediate
+  `NSImage` flattening still uses a display-profile context; this is not an end-to-end sRGB pipeline.
+  See the [color investigation](../AI-docs/handoffs/macos-snapshot-color.md). The macOS lane needs a
+  2x hosting display; changing OS, toolchain, or display requires deliberate baseline review.
 - The exact-pixel lane is environment-sensitive. Sub-perceptual failures can report zero differing
   pixels under `magick compare -fuzz 0.5% -metric AE`. Treat those as unverified, not as
   regressions, and do not re-record to silence them.
