@@ -11,6 +11,10 @@ demo or shared fixture files, regenerate and commit the result:
 cd Demo && xcodegen generate
 ```
 
+XcodeGen renames the local `FlatMark` package reference after the checkout directory rather than the
+`packages:` key ([XcodeGen#1576](https://github.com/yonaskolb/XcodeGen/pull/1576)). Revert that rename
+rather than committing it; it changes no build setting.
+
 Do not make configuration changes only in the generated project.
 
 Both apps link the local `FlatMark` product, compile `Support/FlatMarkFixtures` directly, and bundle
