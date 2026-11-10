@@ -1,0 +1,16 @@
+{
+  "source": "JetsamEvent-2026-11-10-114741.ips",
+  "largestProcess": "FlatMarkRenderDevice",
+  "process": {
+    "name": "FlatMarkRenderDevice",
+    "pid": 763,
+    "reason": "per-process-limit",
+    "rpages": 118400,
+    "lifetimeMax": 118400,
+    "states": [
+      "active",
+      "frontmost"
+    ]
+  },
+  "pageSize": 16384
+}

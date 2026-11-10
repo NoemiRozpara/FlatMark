@@ -1,0 +1,54 @@
+diff --git a/Sources/FlatMark/Rendering/FlatMarkDocumentView.swift b/Sources/FlatMark/Rendering/FlatMarkDocumentView.swift
+index 2e71e09..f44bbbf 100644
+--- a/Sources/FlatMark/Rendering/FlatMarkDocumentView.swift
++++ b/Sources/FlatMark/Rendering/FlatMarkDocumentView.swift
+@@ -13,28 +13,25 @@ struct FlatMarkDocumentView: View {
+     let context: FlatMarkRenderContext
+ 
+     var body: some View {
+-        FlatMarkBlockListView(
+-            blocks: document.blocks,
+-            context: context
+-        )
++        LazyVStack(alignment: .leading, spacing: 16) {
++            FlatMarkBlocks(blocks: document.blocks, context: context)
++        }
+         .frame(maxWidth: .infinity, alignment: .leading)
+     }
+ }
+ 
+-// MARK: - FlatMarkBlockListView
++// MARK: - FlatMarkBlocks
+ 
+-private struct FlatMarkBlockListView: View {
++private struct FlatMarkBlocks: View {
+     let blocks: [FlatMarkRenderBlock]
+     let context: FlatMarkRenderContext
+ 
+     var body: some View {
+-        VStack(alignment: .leading, spacing: 16) {
+-            ForEach(visibleBlocks) { block in
+-                FlatMarkBlockView(
+-                    block: block,
+-                    context: context
+-                )
+-            }
++        ForEach(visibleBlocks) { block in
++            FlatMarkBlockView(
++                block: block,
++                context: context
++            )
+         }
+     }
+ 
+@@ -75,7 +72,9 @@ struct FlatMarkBlockView: View {
+                     .fill(.secondary)
+                     .frame(width: 2)
+ 
+-                FlatMarkBlockListView(blocks: blocks, context: context)
++                VStack(alignment: .leading, spacing: 16) {
++                    FlatMarkBlocks(blocks: blocks, context: context)
++                }
+             }
+ 
+         case let .list(entries):

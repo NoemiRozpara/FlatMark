@@ -1,0 +1,34 @@
+{
+  "source": "FlatMarkRenderDevice-2026-11-10-120255.ips",
+  "procName": "FlatMarkRenderDevice",
+  "pid": 1026,
+  "exception": {
+    "codes": "0x0000000000000000, 0x0000000000000000",
+    "rawCodes": [
+      0,
+      0
+    ],
+    "type": "EXC_CRASH",
+    "signal": "SIGKILL"
+  },
+  "termination": {
+    "code": 2343432205,
+    "flags": 6,
+    "namespace": "FRONTBOARD",
+    "reasons": [
+      "<RBSTerminateContext| domain:10 code:0x8BADF00D explanation:scene-update watchdog transgression: app<dev.flatmark.RenderBenchmark(9C9C5160-DAA9-4254-8655-39A4FAC904AA)>:1026 exhausted real (wall clock) time allowance of 10.00 seconds",
+      "ProcessVisibility: Background",
+      "ProcessState: Running",
+      "WatchdogEvent: scene-update",
+      "WatchdogVisibility: Background",
+      "WatchdogCPUStatistics: (",
+      "\"Elapsed total CPU time (seconds): 25.850 (user 25.850, system 0.000), 41% CPU\",",
+      "\"Elapsed application CPU time (seconds): 10.348, 17% CPU\"",
+      ")",
+      "ThermalInfo: (",
+      "\"Thermal Level:   4\",",
+      "\"Thermal State:   serious\"",
+      ") reportType:CrashLog maxTerminationResistance:Interactive>"
+    ]
+  }
+}

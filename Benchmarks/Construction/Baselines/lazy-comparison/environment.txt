@@ -1,0 +1,23 @@
+Tue Nov 10 10:46:58 UTC 2026
+74bda7cb839906da04752f367be24d1c4d361b44
+a4dbd4896353407209f944ca6ff43caf411bdb86e825841140af264e7b6112e2  Sources/FlatMark/Rendering/FlatMarkDocumentView.swift
+93d8ffd9ea6cc652315f07aebacc1aff05967a47426f8a78b6f61a894d084c83  Benchmarks/DeviceHost/PreviewBenchmarkApp.swift
+Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+Target: arm64-apple-macosx27.0.0
+ProductName:		macOS
+ProductVersion:		27.0.1
+BuildVersion:		26A434
+Now drawing from 'AC Power'
+ -InternalBattery-0 (id=23199843)	11%; charging; (no estimate) present: true
+
+# Measured lazy candidate
+903381271951f7f96464478956fd0d649eea0bd9d74b9d8761d0f12026f1b042  Sources/FlatMark/Rendering/FlatMarkDocumentView.swift
+93d8ffd9ea6cc652315f07aebacc1aff05967a47426f8a78b6f61a894d084c83  Benchmarks/DeviceHost/PreviewBenchmarkApp.swift
+
+# End
+Tue Nov 10 11:03:23 UTC 2026
+Now drawing from 'AC Power'
+ -InternalBattery-0 (id=23199843)	25%; charging; 2:34 remaining present: true
+
+# Final production renderer (restored eager)
+a4dbd4896353407209f944ca6ff43caf411bdb86e825841140af264e7b6112e2  Sources/FlatMark/Rendering/FlatMarkDocumentView.swift

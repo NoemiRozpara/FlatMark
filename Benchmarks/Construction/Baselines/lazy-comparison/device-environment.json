@@ -1,0 +1,13 @@
+{
+  "device": {
+    "marketingName": "iPhone XR",
+    "productType": "iPhone11,8"
+  },
+  "os": {
+    "osVersionNumber": "18.7.11",
+    "osBuildUpdate": "22H384"
+  },
+  "xcode": "27.0",
+  "buildConfiguration": "Release",
+  "debugger": false
+}
