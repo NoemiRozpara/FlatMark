@@ -121,6 +121,11 @@ those break semantics are correct; a renderer fix must update those references d
 | Aspect-fit and flow-placement cases | View ink geometry, including collapse and off-column failures | Not reviewed appearance |
 | Explicit font-size overrides | Layout at changed effective text sizes | Not system Dynamic Type on macOS |
 
+Native descendant order is not source order in a lazy stack; retained offscreen regions can appear
+out of order or be absent. Long-document initializer parity therefore scrolls both hosts and compares
+intersecting native regions in geometric order, including title and edited-tail checks. This exports
+whole intersecting regions, not only visible glyphs, and does not establish continuous selection.
+
 A region that occupies space but exports no text fails native-content inspection. Nonzero mounted size
 alone proves neither readability nor geometry. Only linked-image flow has an automated
 hosting-independent width guard; table, quote, and cell overflow remain manual checks. Hit-target size,
@@ -190,6 +195,12 @@ appearance at the recorded environments.
 Known-issue markers are not passing renderer qualifications: `LoaderSpyTests` documents its own
 dropped-expectation behavior; the iOS paragraph suite records a terminal empty line extending beyond
 the paragraph's allocated height. The latter remains a sizing qualification gap.
+
+The lazy-renderer qualification run on macOS 27.0.1 / Swift 6.4 reports 189 tests and 29 issues,
+including one known issue. The remaining 28 issues are exact snapshot failures; all emitted failure
+pairs compare with zero differing pixels at 0.5% fuzz. They remain unverified, not passing snapshots.
+The matched eager control reports the same failures. See the
+[lazy-rendering follow-up](../Benchmarks/lazy-stack-comparison.md#follow-up-native-export-order-and-navigation-click-target).
 
 Still open:
 

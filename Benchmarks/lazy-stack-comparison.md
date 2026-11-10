@@ -197,6 +197,67 @@ Temporary logs are `/tmp/flatmark-lazy-pickup-{suite,eager-suite,readiness-probe
 Comparison images are under `/tmp/flatmark-lazy-pickup-images/`. These are diagnostic artifacts,
 not durable evidence; this section records their outcomes. `git diff --check` passed.
 
+## Follow-up: native export order and navigation click target
+
+Continued on the same macOS 27.0.1 / Swift 6.4 environment. No production renderer,
+reference image, snapshot tolerance or public API changed.
+
+### HTML navigation
+
+All eight remaining HTML-navigation subprocess failures exited with status 7, before
+activation or report emission. Diagnostic geometry showed a 32-point-high native text
+view with a trailing newline. The host clicked at y=16, on the empty line rather than
+inside the first line's glyphs. Its existing glyph-containment guard correctly rejected
+that point. This was not evidence of HTML resource activation.
+
+The host now computes a click at the first glyph's center for native text targets. It
+still verifies hit-target identity, glyph containment and the expected link attribute,
+and exercises the same mouse events and callback/resource assertions. All nine navigation
+tests, including the 18 HTML-policy cases and positive image/link controls, pass.
+
+### Recipe exports
+
+The long recipe fixture was mounted without a scroll view. Lazy realization did not
+include the title or appended task in the exported native descendants. A scroll-view probe
+brought both into the native export, but exposed another observation assumption: lazy
+stacks retain offscreen native regions and can reorder their subviews. Concatenating those
+regions in descendant order produced different exports for the two initializers even
+when their viewport content agreed. The probe's failure logs showed the same text chunks
+in different positions, including offscreen title content after the lower recipe text.
+
+The retained test now mounts both initializers in real scroll views and walks the document
+from top to bottom before and after editing. It compares native region exports intersecting
+the viewport in geometric order, including wording and attributes. It checks matching scroll
+offsets, title presence at the top, appended-task presence at the bottom, reaching the bottom,
+source/snapshot pairing and retained refresh behavior. It does not sort text signatures,
+discard styling, or claim that native export establishes glyph visibility or selection gestures.
+The original short-document whole-export parity test is unchanged.
+
+### Verification and remaining failures
+
+- Full lazy suite: 189 tests in 27 suites, 29 issues including one known issue.
+- Matched temporary eager control with the same test fixes: the same totals and failing
+  snapshot cases. Lazy was restored after the control.
+- Three subsequent lazy runs of
+  `swift test --filter 'FlatMarkDocumentRenderingTests|FlatMarkNavigationTests'`:
+  11 tests in two suites pass each time.
+- All 28 snapshot failure entries (25 distinct reference/output path pairs) report zero
+  differing pixels under `magick compare -fuzz 0.5% -metric AE`. Repeated transition
+  filenames share their last emitted output, so this is not 28 independently retained captures.
+  Exact snapshot comparisons still fail. No tolerances or references were changed.
+- Visually inspected the primary page-1 lazy capture and its reference at readable scale;
+  no layout or content difference was apparent. Other snapshot pairs have metric inspection
+  only in this follow-up, not a complete visual review.
+- `git diff --check` passed.
+
+These results resolve the demonstrated navigation-target and export-observation failures,
+not complete lazy-renderer qualification. Runtime scrolling, width changes, offscreen-image
+lifecycle, task activation after scrolling, selection, keyboard, VoiceOver and XR checks
+remain outstanding. No new running-demo or physical-device check was performed.
+
+Diagnostic logs are under `/tmp/flatmark-issues-*`, `/tmp/flatmark-navigation-*` and
+`/tmp/flatmark-document-*`. They are temporary; this section records their outcomes.
+
 ## Evidence, limits and reproduction
 
 - Raw CSVs, compact diagnostic summaries, source hashes, test logs and inspected screenshots:
