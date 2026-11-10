@@ -32,8 +32,27 @@ See the [device construction guide](iPhone-XR.md) to collect one.
 
 ## Run
 
-Use a toolchain meeting the [package requirements](../README.md#requirements) and a Release build
-from the repository root:
+Use a toolchain meeting the [package requirements](../README.md#requirements). The recommended
+workflow needs Python 3 and a new output directory:
+
+```sh
+python3 Scripts/benchmark-construction.py /tmp/flatmark-construction-results
+```
+
+The script builds in Release, runs three processes sequentially, and validates 15 unique scenarios,
+30 samples per scenario, and matching nonzero checksums. It saves CSVs, build and stderr logs, source
+hashes, revision, and environment metadata. Only `summary.json` with `complete: true` marks success.
+Failed runs remain for inspection; the script never overwrites an existing destination.
+
+Commit library, harness, manifest, and lockfile changes before running. Unrelated documentation and
+script edits are allowed. Do not modify measured inputs or run other benchmarks while it runs.
+The script does not control power, thermals, or background activity; record relevant observations
+alongside the output. It does not replace the checked-in baseline or enforce timing thresholds.
+
+Contributors should compare before/after measurements on the same machine, using separate result
+directories. They need not reproduce the maintainer's hardware or update the shared baseline.
+
+For manual execution, build in Release from the repository root:
 
 ```sh
 swift build --product FlatMarkConstructionBenchmark --configuration release
