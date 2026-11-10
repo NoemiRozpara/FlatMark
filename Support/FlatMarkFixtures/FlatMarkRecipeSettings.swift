@@ -11,7 +11,9 @@ struct FlatMarkRecipeSettings: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Toggle("Load bundled images", isOn: $model.loadsImages)
                     Toggle("Dark mode", isOn: $model.darkAppearance)
+                    #if !os(macOS)
                     Toggle("Larger recipe text", isOn: $model.enlargedText)
+                    #endif
                     Toggle("Right-to-left recipe layout", isOn: $model.rightToLeft)
                     Text("iOS keeps the narrow 240-point reading column; resize the macOS window to widen it.")
                         .font(.callout)

@@ -17,15 +17,6 @@ macos	midnight	end	850x1040	850x1040	1700x2080	2	window-server	macos-midnight-85
 macos	midnight	top	1200x900	1200x900	2400x1800	2	window-server	macos-midnight-1200x900-top.png	exact
 macos	midnight	middle	1200x900	1200x900	2400x1800	2	window-server	macos-midnight-1200x900-middle.png	exact
 macos	midnight	end	1200x900	1200x900	2400x1800	2	window-server	macos-midnight-1200x900-end.png	exact
-macos	generous	top	480x900	480x900	960x1800	2	window-server	macos-generous-480x900-top.png	exact
-macos	generous	middle	480x900	480x900	960x1800	2	window-server	macos-generous-480x900-middle.png	exact
-macos	generous	end	480x900	480x900	960x1800	2	window-server	macos-generous-480x900-end.png	exact
-macos	generous	top	850x1040	850x1040	1700x2080	2	window-server	macos-generous-850x1040-top.png	exact
-macos	generous	middle	850x1040	850x1040	1700x2080	2	window-server	macos-generous-850x1040-middle.png	exact
-macos	generous	end	850x1040	850x1040	1700x2080	2	window-server	macos-generous-850x1040-end.png	exact
-macos	generous	top	1200x900	1200x900	2400x1800	2	window-server	macos-generous-1200x900-top.png	exact
-macos	generous	middle	1200x900	1200x900	2400x1800	2	window-server	macos-generous-1200x900-middle.png	exact
-macos	generous	end	1200x900	1200x900	2400x1800	2	window-server	macos-generous-1200x900-end.png	exact
 macos	rightToLeft	top	480x900	480x900	960x1800	2	window-server	macos-rightToLeft-480x900-top.png	exact
 macos	rightToLeft	middle	480x900	480x900	960x1800	2	window-server	macos-rightToLeft-480x900-middle.png	exact
 macos	rightToLeft	end	480x900	480x900	960x1800	2	window-server	macos-rightToLeft-480x900-end.png	exact

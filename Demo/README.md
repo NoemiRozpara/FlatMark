@@ -33,16 +33,18 @@ scripts/run-fixture-host.sh ios --capture generous
 scripts/run-fixture-host.sh macos --capture hostMarkers
 ```
 
-Presets: `daylight`, `midnight`, `generous`, `rightToLeft`, `hostMarkers`, `readOnly`, `omission`.
-Unknown or missing values fall back to `daylight`. The launcher builds a normal app bundle into
-`.build/demo`; the existing bundle identifiers are retained for capture tooling.
+Presets: `daylight`, `midnight`, `rightToLeft`, `hostMarkers`, `readOnly`, `omission`, and `generous`
+on iOS. Unknown or missing values fall back to `daylight`, which is also what `generous` resolves to on
+macOS. The launcher builds a normal app bundle into `.build/demo`; the existing bundle identifiers are
+retained for capture tooling.
 
-The fixture's font-size override is not a system Dynamic Type control, and it does not enlarge semantic
-native macOS text, which uses AppKit's preferred sizes. With enlarged text off, the iOS recipe inherits
-system Dynamic Type rather than pinning `.large`; the `generous` preset overrides it with
-`.accessibility2`. To qualify iOS typography updates, turn enlarged text off and change the system text
-size, including an accessibility category, while the app stays mounted. A `generous` capture or an
-environment-only test does not establish that behavior.
+**Larger recipe text** is an iOS-only control. It applies the `.accessibility2` Dynamic Type category to
+the recipe, so it is not a system Dynamic Type control. With enlarged text off, the iOS recipe inherits
+system Dynamic Type rather than pinning `.large`; to qualify iOS typography updates, turn enlarged text
+off and change the system text size, including an accessibility category, while the app stays mounted. A
+`generous` capture or an environment-only test does not establish that behavior. macOS has no equivalent
+control: `FlatMarkAppKitParagraphText` applies each role's preferred AppKit font to recipe runs, so
+neither Dynamic Type nor an ambient SwiftUI `.font` enlarges them.
 
 ## Sweeping widths
 

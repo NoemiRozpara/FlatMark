@@ -146,7 +146,7 @@ for driving sizes and scrolling.
 | --- | --- |
 | HTML | **Show HTML / Replace tags / Hide HTML** = literal / custom / omit |
 | Replacements | Edit the label; toggle **Make replacements tappable** and **Replace with nothing** |
-| Appearance | **Larger recipe text**, **Right-to-left recipe layout** |
+| Appearance | **Larger recipe text** (iOS only; AppKit ignores Dynamic Type), **Right-to-left recipe layout** |
 | Tasks | **Use custom checkmarks** and **Allow ticking tasks** independently control drawing and editing |
 | Snapshot reuse | **Use retained document**, **Re-render without editing**, **Add a tasting note** |
 
@@ -167,12 +167,12 @@ Run on both platforms; record OS, build, actions, observations, and unavailable 
 - **Independent actions:** activate a host replacement, an adjacent Markdown link, and a task
   separately; only the matching counter changes. HTML attributes must not navigate or fetch.
 - **Task markers:** compare default/custom, checked/unchecked, nested, interactive/read-only,
-  enlarged, and RTL. One activation changes only its own source marker; read-only tasks offer no
+  enlarged (iOS), and RTL. One activation changes only its own source marker; read-only tasks offer no
   toggle.
 - **Mentions:** `@ja*ne*` bolds only `@ja`; whole-token emphasis/strikethrough remains; code and link
   labels are excluded; text nodes are scanned independently.
 - **Layout:** headings, tables, nested blocks, multiline text, images, and custom views at narrow and
-  wide widths, enlarged text, and RTL; check clipping, overflow, and table-cell reachability.
+  wide widths, enlarged text (iOS), and RTL; check clipping, overflow, and table-cell reachability.
 - **Selection:** select within and across native regions; record fragmentation rather than assuming
   continuous selection.
 - **Accessibility and keyboard:** live VoiceOver for labels, checked state, nesting, focus order, and

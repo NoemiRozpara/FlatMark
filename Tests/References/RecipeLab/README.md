@@ -62,7 +62,7 @@ does not serve falls back to a `leaf.fill` SF Symbol, whose appearance depends o
 | --- | --- |
 | `daylight` | Default |
 | `midnight` | Dark appearance |
-| `generous` | iOS `accessibility2`; macOS ambient 28-point font, which does not enlarge native paragraph text |
+| `generous` | iOS only: `accessibility2` Dynamic Type; the name is unknown on macOS and falls back to `daylight` |
 | `rightToLeft` | RTL with English content |
 | `hostMarkers` | Custom task markers |
 | `readOnly` | Static tasks |
@@ -73,6 +73,9 @@ Filenames follow `ios-<preset>-<width>x<height>.png` and
 
 `readOnly` changes `allowsTaskEditing` only: it changes behavior, not pixels, so no screenshot can
 verify it. Use interaction or accessibility evidence.
+
+`generous` is iOS only, and the macOS default sweep omits it. Passing `CAPTURES="generous"` for macOS
+reports that it was skipped and captures nothing under that name.
 
 ## Verification limits
 
@@ -87,7 +90,8 @@ Keep these checks open:
 - Capture scrolled iOS content, which today never reaches `hostMarkers` or `readOnly` content.
 - Exercise settings and inline replacement buttons with real input; an automation attempt that
   reported taps without changing state proved neither.
-- Verify system-level enlarged text on macOS separately from the fixture's font-size preset.
+- Verify system-level enlarged text on macOS separately: the fixture offers no macOS font-size control,
+  because AppKit sets its own preferred font on every recipe text run.
 - Perform live VoiceOver checks on both platforms: task labels, state, nesting, focus order, toggle
   actions, read-only semantics, and independent links and replacements. Custom markers must not become
   extra focus stops.

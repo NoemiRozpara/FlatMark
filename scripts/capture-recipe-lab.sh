@@ -37,7 +37,26 @@ esac
 MACOS_WIDTHS="${MACOS_WIDTHS:-480x900 850x1040 1200x900}"
 IOS_WIDTHS="${IOS_WIDTHS:-320x700 390x844 430x932 430x1280}"
 SEED_SIZE=390x844     # geometry an iOS session starts at, used to calibrate the capture scale
-CAPTURES="${CAPTURES:-daylight midnight generous rightToLeft hostMarkers readOnly omission}"
+# `generous` enlarges recipe text through the iOS `accessibility2` Dynamic Type category. AppKit
+# chooses its own preferred fonts, so macOS has no enlarged-text preset. Drop it from an override
+# instead of recording a daylight duplicate under a name that describes nothing.
+if [ "$PLATFORM" = macos ]; then
+  selected=""
+  for capture in ${CAPTURES:-daylight midnight rightToLeft hostMarkers readOnly omission}; do
+    if [ "$capture" = generous ]; then
+      printf 'Skipping generous: macOS has no enlarged-text preset.\n' >&2
+    else
+      selected="$selected $capture"
+    fi
+  done
+  CAPTURES="${selected# }"
+else
+  CAPTURES="${CAPTURES:-daylight midnight generous rightToLeft hostMarkers readOnly omission}"
+fi
+if [ -z "$CAPTURES" ]; then
+  echo "CAPTURES selected no preset." >&2
+  exit 1
+fi
 BUNDLE=dev.flatmark.FlatMarkFixtureHost
 MANIFEST="$OUTPUT/$PLATFORM-widths.tsv"
 printf 'platform\tpreset\tscroll\trequested\tpoints\tpixels\tscale\tscaleSource\tfile\tnote\n' \

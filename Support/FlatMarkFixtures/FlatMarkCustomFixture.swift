@@ -15,7 +15,9 @@ public struct FlatMarkCustomFixture: View {
     @Bindable public var model: FlatMarkCustomFixtureModel
     @State private var settingsExpanded = false
     @State private var sourceExpanded = false
+    #if !os(macOS)
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    #endif
 
     public init(model: FlatMarkCustomFixtureModel) {
         self.model = model
@@ -81,12 +83,11 @@ public struct FlatMarkCustomFixture: View {
                 Divider()
                 FlatMarkCustomDocumentFixture(model: model)
             }
+            #if !os(macOS)
+            // AppKit selects its own preferred fonts per role, so enlarged text is an iOS-only control.
             .dynamicTypeSize(model.enlargedText ? .accessibility2 : dynamicTypeSize)
-            .environment(\.layoutDirection, model.rightToLeft ? .rightToLeft : .leftToRight)
-            #if os(macOS)
-            // macOS does not scale body text from Dynamic Type alone.
-            .font(.system(size: model.enlargedText ? 28 : 17))
             #endif
+            .environment(\.layoutDirection, model.rightToLeft ? .rightToLeft : .leftToRight)
             .frame(maxWidth: Self.columnWidth, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -183,7 +184,11 @@ public final class FlatMarkCustomFixtureModel {
     public var allowsTaskEditing = true
     public var usesHostTaskMarker = false
     public var darkAppearance = false
+    #if !os(macOS)
+    /// Enlarges the recipe through the `accessibility2` Dynamic Type category. AppKit ignores
+    /// Dynamic Type, so macOS exposes no such control.
     public var enlargedText = false
+    #endif
     public var rightToLeft = false
     public var lastActivity = "Your recipe notes and task confirmations appear here."
     public var linkActivations = 0
