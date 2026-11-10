@@ -84,11 +84,15 @@ struct FlatMarkSnapshotEnvironment: Equatable, Sendable {
 
     /// Pins the environment's effective text size without pinning it where that would hide Dynamic Type.
     ///
-    /// macOS body text does not scale from `dynamicTypeSize` alone, so macOS always pins `fontSize`
-    /// absolutely and that size is only an effective text size, not system Dynamic Type. On iOS a case
-    /// that sets `usesDynamicTypeOniOS` keeps the inherited semantic font and lets `dynamicTypeSize`
-    /// drive the glyphs, so iOS enlarged text runs the real Dynamic Type path; a case that keeps the
-    /// absolute size (the body control) reproduces the platform body rendering it was recorded against.
+    /// On iOS a case that sets `usesDynamicTypeOniOS` keeps the inherited semantic font and lets
+    /// `dynamicTypeSize` drive the glyphs, so iOS enlarged text runs the real Dynamic Type path; a case
+    /// that keeps the absolute size (the body control) reproduces the platform body rendering it was
+    /// recorded against.
+    ///
+    /// The override is ambient. On macOS FlatMark's paragraph, heading, literal, and code-block text
+    /// resolve AppKit role fonts and ignore it, which the enlarged linked-flow check in
+    /// `FlatMarkImageLoadingTests` asserts; only content FlatMark draws with plain SwiftUI `Text`, such
+    /// as list markers, follows it. Every enlarged scenario is therefore recorded on iOS only.
     @ViewBuilder
     private func applyEffectiveTextSize<V: View>(_ view: V) -> some View {
         #if os(macOS)
@@ -135,10 +139,10 @@ extension FlatMarkSnapshotEnvironment {
 extension FlatMarkSnapshotEnvironment {
     /// An effective mounted text size.
     ///
-    /// macOS body text does not scale from `dynamicTypeSize` alone, so the font-size override is what
-    /// changes the glyphs there; on iOS `dynamicTypeSize` is the real Dynamic Type path. Neither is
-    /// system Dynamic Type, VoiceOver, or readability verification, and a suite that records enlarged
-    /// text still has to show the override changed the rendering.
+    /// On iOS `dynamicTypeSize` is the real Dynamic Type path. On macOS the font-size override does not
+    /// reach FlatMark's native text, whose roles resolve AppKit fonts, so enlarged cases run on iOS
+    /// only. Neither path is system Dynamic Type, VoiceOver, or readability verification, and a suite
+    /// that records enlarged text still has to show the rendering changed.
     struct TextSize: Equatable, Sendable {
         let name: String
         let dynamicTypeSize: DynamicTypeSize
@@ -147,15 +151,16 @@ extension FlatMarkSnapshotEnvironment {
         ///
         /// When true the capture keeps the inherited semantic font, so the case exercises the real
         /// Dynamic Type path on iOS. When false iOS pins `fontSize` absolutely, which reproduces the
-        /// platform body rendering a reference was recorded against. macOS ignores this and always
-        /// pins `fontSize`, because body text there does not scale from `dynamicTypeSize`.
+        /// platform body rendering a reference was recorded against. macOS ignores this: its FlatMark
+        /// text resolves AppKit role fonts, so enlarged cases are recorded on iOS only.
         let usesDynamicTypeOniOS: Bool
 
         /// How the effective size is actually produced, worded so a failure never calls a macOS
         /// absolute override a Dynamic Type result.
         var effectiveSizeDescription: String {
             #if os(macOS)
-                "\(Int(fontSize))pt font override, dynamic type \(dynamicTypeSize)"
+                "\(Int(fontSize))pt ambient override, dynamic type \(dynamicTypeSize): "
+                    + "AppKit role fonts size FlatMark text"
             #else
                 if usesDynamicTypeOniOS {
                     "real Dynamic Type \(dynamicTypeSize)"

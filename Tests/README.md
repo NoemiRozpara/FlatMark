@@ -120,7 +120,7 @@ of the mounted paragraph.
 | Isolated AppKit event-loop hosts | Local link/task activation with a controlled opener | No browser, global input, or Accessibility permission; iOS delegate calls are not gestures |
 | `LoaderSpy` | Callbacks retained until consumed by matching expectations | Missing callbacks fail expectations, not a polling bound |
 | Aspect-fit and flow-placement cases | View ink geometry, including collapse and off-column failures | Not reviewed appearance |
-| Explicit font-size overrides | Layout at changed effective text sizes | Not system Dynamic Type on macOS |
+| Explicit font-size overrides | Layout at changed effective text sizes for plain `Text`, and for FlatMark text on iOS | On macOS FlatMark's native text resolves AppKit role fonts and ignores the override; every enlarged baseline is iOS-only |
 
 A region that occupies space but exports no text fails native-content inspection. Nonzero mounted size
 alone proves neither readability nor geometry. Only linked-image flow has an automated

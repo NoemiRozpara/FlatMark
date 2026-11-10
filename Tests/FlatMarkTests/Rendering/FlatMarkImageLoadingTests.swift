@@ -236,8 +236,8 @@ struct FlatMarkImageLoadingTests {
             }
         }
 
-        /// Proves the font override used by enlarged-text cases changes the effective size.
-        /// macOS body text does not scale from `dynamicTypeSize` alone. This control does not
+        /// Proves the font override used by enlarged-text cases changes plain SwiftUI `Text`. FlatMark's
+        /// own text ignores it on macOS, which the linked-flow check below asserts. This control does not
         /// verify system Dynamic Type or VoiceOver.
         @Test
         func `font size override changes the effective size of mounted text`() {
@@ -642,9 +642,10 @@ private actor SuspensionGate {
 
     // MARK: - MountedTextSize
 
-    /// Effective text size driven by a font override, not system Dynamic Type.
-    /// macOS body text does not scale from `dynamicTypeSize` alone. The environment value matches
-    /// Recipe Lab; these checks do not verify system Dynamic Type or VoiceOver.
+    /// A font override applied to the mounted view, not system Dynamic Type. It changes plain SwiftUI
+    /// `Text`; FlatMark's own text resolves AppKit role fonts on macOS, which the enlarged linked-flow
+    /// check asserts. The environment value matches Recipe Lab; these checks do not verify system
+    /// Dynamic Type or VoiceOver.
     private struct MountedTextSize {
         let name: String
         let dynamicTypeSize: DynamicTypeSize
