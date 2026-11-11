@@ -13,13 +13,13 @@ import Testing
     import UIKit
 #endif
 
-/// Static presentation uses the same document as Recipe Lab. Controlled transitions and internal
-/// layout probes remain in their focused suites.
+/// Static presentation uses Recipe Lab fragments plus a focused Arabic/Latin RTL sample.
+/// Controlled transitions and internal layout probes remain in their focused suites.
 @Suite(.serialized)
 @MainActor
 struct FlatMarkRecipeIntegrationSnapshotTests {
     enum Scenario: String, CaseIterable {
-        case primary, dark, narrow, rtlNarrow, rtlWide
+        case primary, dark, narrow, rtlNarrow, rtlWide, arabicRTL
         case omission, readOnly, disabled
         case noLoaderNarrow, noLoaderWide
         #if os(iOS)
@@ -33,6 +33,21 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
                 return (FlatMarkRecipeSample.markdown, 3)
             case .narrow, .rtlNarrow, .rtlWide:
                 return ([FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.method].joined(separator: "\n\n"), 0)
+            case .arabicRTL:
+                return ("""
+                ## خبز إكليل الجبل
+
+                سخّن الفرن إلى 220 درجة، ثم اقرأ [Recipe notes](https://example.com/notes) قبل الخطوة 2.
+
+                - [ ] جهّز العجين واتركه يرتاح لمدة 30 دقيقة.
+                  - [x] أضف 20 ml من زيت الزيتون.
+                  - [ ] راجع [Timing guide](https://example.com/timing) قبل الخَبز.
+                - [x] جهّز الصينية رقم 3.
+
+                ![ورقة إكليل الجبل](leaf.png)
+
+                قدّم الخبز مع الزيت والملح.
+                """, 1)
             case .readOnly, .disabled:
                 return (FlatMarkRecipeSample.taskRows, 0)
             case .omission:
@@ -60,20 +75,20 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
 
         var enlarged: Bool { rawValue.hasPrefix("enlarged") }
         var captureHeight: CGFloat {
-            if self == .readOnly || self == .disabled { return 450 }
+            if self == .readOnly || self == .disabled || self == .arabicRTL { return 450 }
             return enlarged ? 1800 : 1200
         }
         var disabled: Bool { self == .disabled }
         var noLoader: Bool { rawValue.lowercased().contains("noloader") }
         var column: CGFloat {
             if noLoader { return rawValue.hasSuffix("Narrow") ? 160 : 320 }
-            if self == .narrow || self == .rtlNarrow || enlarged {
+            if self == .narrow || self == .rtlNarrow || self == .arabicRTL || enlarged {
                 return 240
             }
             return 560
         }
         var direction: FlatMarkSnapshotEnvironment.LayoutDirection {
-            self == .rtlNarrow || self == .rtlWide || rawValue == "enlargedRTL"
+            self == .rtlNarrow || self == .rtlWide || self == .arabicRTL || rawValue == "enlargedRTL"
                 ? .rightToLeft : .leftToRight
         }
     }
@@ -89,7 +104,8 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         let environment = FlatMarkSnapshotEnvironment(
             captureSize: CGSize(width: scenario.column + 80, height: scenario.captureHeight),
             columnWidth: scenario.column, contentInset: 40, pixelScale: 2,
-            appearance: scenario == .dark ? .dark : .light, localeIdentifier: "en_US",
+            appearance: scenario == .dark ? .dark : .light,
+            localeIdentifier: scenario == .arabicRTL ? "ar" : "en_US",
             layoutDirection: scenario.direction, textSize: scenario.enlarged ? .enlarged : .body
         )
         let geometry = Geometry()
