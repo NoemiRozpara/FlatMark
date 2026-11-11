@@ -29,13 +29,14 @@ measured size, so a clamped request cannot be read as a width that was tested. T
 
 - iOS drives geometry with `devicectl` resizable app sessions and captures the `Resizable` display;
   Device Hub does not need to be running. The script does not scroll iOS, so iOS captures are initial
-  viewports. [Device Hub scrolling](../../../AI-docs/DEVICE_HUB.md#scroll-an-ios-app-in-device-hub)
+  viewports. [Device Hub scrolling](../../../AI-docs/DEVICE_HUB.md#capture-sweeps-and-scrolling)
   covers that gap.
 - macOS also scrolls with Home, Page Down, and End, reaching `top`, `middle`, and `end`. Width is
   applied through System Events; the window is moved to a fixed origin first, and the applied size is
   read back from the window server. Desktop capture needs Screen Recording and System Events access.
-- If macOS widths ever snap to a huge value, start with the `sizeThatFits` note in the
-  [Device Hub guide](../../../AI-docs/DEVICE_HUB.md), not the harness.
+- If requested and measured widths differ, check the manifest and the
+  [resize and capture troubleshooting](../../../AI-docs/DEVICE_HUB.md#resize-and-capture).
+  Do not treat a clamped or rejected width as verified.
 
 Presets and widths are overridable per run:
 

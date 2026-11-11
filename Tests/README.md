@@ -101,7 +101,8 @@ appearance, locale, direction, and text setting.
 - macOS pins `NSWindow.colorSpace` to sRGB before drawing, then flattens the hosting bitmap over
   the appearance background in an explicit 16-bit sRGB `CGContext`. It does not use an implicit
   display-profile `NSImage` context. A synthetic raster test checks exact source colors and identical
-  captures on connected displays. See the [color investigation and migration](../AI-docs/handoffs/macos-snapshot-color.md).
+  captures on connected displays. This explicit color space keeps the capture independent of the
+  display profile; it does not remove OS or toolchain differences.
   The macOS lane still needs a 2x hosting display; changing OS, toolchain, or display requires
   deliberate baseline review.
 - The exact-pixel lane is environment-sensitive. Sub-perceptual failures can report zero differing

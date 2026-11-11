@@ -61,4 +61,4 @@ The script resizes the running app and records actual geometry in `<platform>-wi
 reach a requested width exits nonzero. iOS uses `devicectl` resizable sessions and captures only initial
 viewports. macOS uses System Events and captures `top`, `middle`, and `end` scroll positions. See
 [Recipe Lab captures](../Tests/References/RecipeLab/README.md) for overrides, permissions, and limits,
-and [Device Hub scrolling](../AI-docs/DEVICE_HUB.md#scroll-an-ios-app-in-device-hub) for lower iOS content.
+and [Device Hub scrolling](../AI-docs/DEVICE_HUB.md#capture-sweeps-and-scrolling) for lower iOS content.
