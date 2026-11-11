@@ -115,42 +115,37 @@ struct FlatMarkImageLoadingTests {
     }
 
     @Test
-    func `describes each image loading phase to assistive technology`() {
-        let image = FlatMarkRenderImage(url: nil, altText: "Diagram")
-        let imageWithoutAltText = FlatMarkRenderImage(url: nil, altText: "")
-
-        #expect(FlatMarkInlineView.accessibilityLabel(
-            for: image,
-            phase: .placeholder
-        ) == "Diagram, not loaded")
-        #expect(FlatMarkInlineView.accessibilityLabel(
-            for: image,
-            phase: .loading
-        ) == "Diagram, loading")
-        #expect(FlatMarkInlineView.accessibilityLabel(
-            for: image,
-            phase: .loaded(loadedFixtureImage())
-        ) == "Diagram")
-        #expect(FlatMarkInlineView.accessibilityLabel(
-            for: image,
-            phase: .failed
-        ) == "Diagram, failed to load")
-        #expect(FlatMarkInlineView.accessibilityLabel(
-            for: imageWithoutAltText,
-            phase: .loading
-        ) == "Image, loading")
-        #expect(FlatMarkInlineView.accessibilityLabel(
-            for: imageWithoutAltText,
-            phase: .loaded(loadedFixtureImage())
-        ) == "Image")
-        #expect(FlatMarkInlineView.accessibilityLabel(
-            for: imageWithoutAltText,
-            phase: .failed
-        ) == "Image, failed to load")
+    func `image presentation exports phase wording and link metadata`() throws {
+        let link = try #require(URL(string: "https://example.com/details"))
+        let phases: [(FlatMarkInlineView.ImagePhase, String, Bool)] = [
+            (.placeholder, ", not loaded", false),
+            (.loading, ", loading", false),
+            (.loaded(loadedFixtureImage()), "", true),
+            (.failed, ", failed to load", false),
+        ]
+        for (phase, suffix, isLoaded) in phases {
+            for altText in ["Diagram", ""] {
+                for destination in [nil, link] {
+                    let image = FlatMarkRenderImage(url: nil, altText: altText, link: destination)
+                    let output = FlatMarkImagePresentation(image: image, phase: phase, policy: .literal)
+                        .attributedText(width: 240, font: .systemFont(ofSize: 14))
+                    let label = altText.isEmpty ? "Image" : "Diagram"
+                    #expect(output.string == (isLoaded ? "\u{FFFC}" : "\u{FFFC} " + label))
+                    #expect(output.attribute(.link, at: 0, effectiveRange: nil) as? URL == destination)
+                    #if os(macOS)
+                    let metadata = try #require(output.attribute(.flatMarkImage, at: 0, effectiveRange: nil)
+                        as? FlatMarkImageAccessibility)
+                    #expect(metadata.label == label + suffix)
+                    #expect(metadata.linkLabel == destination.map { $0.absoluteString + suffix })
+                    #expect(metadata.url == destination)
+                    #endif
+                }
+            }
+        }
     }
 
     @Test
-    func `image description accessibility follows policy in every loading phase`() throws {
+    func `image presentation wording follows policy in every loading phase`() throws {
         let content = try #require(paragraphContent(in: FlatMarkRenderProjector.project(
             markdown: "![before <u>x</u> after](image.png)"
         )))
@@ -166,16 +161,23 @@ struct FlatMarkImageLoadingTests {
             (.failed, ", failed to load"),
         ]
         for (phase, suffix) in phases {
-            #expect(FlatMarkInlineView.accessibilityLabel(
-                for: image, phase: phase, policy: .omit
-            ) == "before x after" + suffix)
-            #expect(FlatMarkInlineView.accessibilityLabel(
-                for: image, phase: phase, policy: .literal
-            ) == "before <u>x</u> after" + suffix)
-            // A description emptied by omission falls back to the generic label.
-            #expect(FlatMarkInlineView.accessibilityLabel(
-                for: erased, phase: phase, policy: .omit
-            ) == "Image" + suffix)
+            let cases: [(FlatMarkRenderImage, FlatMarkUnsupportedContentPolicy, String)] = [
+                (image, .omit, "before x after"),
+                (image, .literal, "before <u>x</u> after"),
+                (erased, .omit, "Image"),
+            ]
+            for (image, policy, label) in cases {
+                let output = FlatMarkImagePresentation(image: image, phase: phase, policy: policy)
+                    .attributedText(width: 240, font: .systemFont(ofSize: 14))
+                #expect(output.string == (suffix.isEmpty ? "\u{FFFC}" : "\u{FFFC} " + label))
+                #if os(macOS)
+                let metadata = try #require(output.attribute(.flatMarkImage, at: 0, effectiveRange: nil)
+                    as? FlatMarkImageAccessibility)
+                #expect(metadata.label == label + suffix)
+                #expect(metadata.linkLabel == nil)
+                #expect(metadata.url == nil)
+                #endif
+            }
         }
     }
 

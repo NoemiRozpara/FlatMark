@@ -246,15 +246,6 @@ struct FlatMarkInlineView: View {
         )
     }
 
-    static func accessibilityLabel(
-        for image: FlatMarkRenderImage,
-        phase: ImagePhase,
-        policy: FlatMarkUnsupportedContentPolicy = .literal
-    ) -> String {
-        let label = policy.imageLabel(for: image)
-        return label + phase.accessibilitySuffix
-    }
-
     @MainActor
     private func loadImages() async {
         guard !imageRequests.isEmpty else { return }
