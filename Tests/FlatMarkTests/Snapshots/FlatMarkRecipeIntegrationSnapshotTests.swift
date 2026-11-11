@@ -34,13 +34,13 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
             case .narrow, .rtlNarrow, .rtlWide:
                 return ([FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.method].joined(separator: "\n\n"), 0)
             case .readOnly, .disabled:
-                return (FlatMarkRecipeSample.bakeAlong, 0)
+                return (FlatMarkRecipeSample.taskRows, 0)
             case .omission:
                 return ([FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.notes]
                     .joined(separator: "\n\n"), 2)
             case .noLoaderNarrow, .noLoaderWide:
-                return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.notes]
-                    .joined(separator: "\n\n"), 3)
+                return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.mixedInlineImage,
+                         FlatMarkRecipeSample.hardBreakImage].joined(separator: "\n\n"), 3)
             #if os(iOS)
             case .enlarged, .enlargedRTL:
                 return ([FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.method].joined(separator: "\n\n"), 0)
@@ -52,13 +52,17 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
                 return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.mixedInlineImage,
                          FlatMarkRecipeSample.hardBreakImage].joined(separator: "\n\n"), 3)
             case .enlargedNoLoaderNarrow, .enlargedNoLoaderWide:
-                return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.notes]
-                    .joined(separator: "\n\n"), 3)
+                return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.mixedInlineImage,
+                         FlatMarkRecipeSample.hardBreakImage].joined(separator: "\n\n"), 3)
             #endif
             }
         }
 
         var enlarged: Bool { rawValue.hasPrefix("enlarged") }
+        var captureHeight: CGFloat {
+            if self == .readOnly || self == .disabled { return 450 }
+            return enlarged ? 1800 : 1200
+        }
         var disabled: Bool { self == .disabled }
         var noLoader: Bool { rawValue.lowercased().contains("noloader") }
         var column: CGFloat {
@@ -83,7 +87,7 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         model.policyKind = scenario == .omission ? .omit : .literal
         model.allowsTaskEditing = scenario != .readOnly
         let environment = FlatMarkSnapshotEnvironment(
-            captureSize: CGSize(width: scenario.column + 80, height: scenario.enlarged ? 1800 : 1200),
+            captureSize: CGSize(width: scenario.column + 80, height: scenario.captureHeight),
             columnWidth: scenario.column, contentInset: 40, pixelScale: 2,
             appearance: scenario == .dark ? .dark : .light, localeIdentifier: "en_US",
             layoutDirection: scenario.direction, textSize: scenario.enlarged ? .enlarged : .body

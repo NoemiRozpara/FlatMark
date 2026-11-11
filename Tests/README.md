@@ -114,6 +114,9 @@ Static presentation snapshots use the shared recipe in
 `Support/FlatMarkFixtures/FlatMarkRecipeSample.swift`, the same document the demo renders. Recipe Lab
 builds from the same sections. The Recipe suite also compares custom task markers in interactive,
 disabled, and read-only states using the shared task fragment, including nested and wrapped labels.
+Default-marker disabled/read-only cases use only that fragment. No-loader cases compose standalone,
+mixed-inline, and hard-break image fragments at narrow and wide widths, including iOS `.accessibility5`.
+Full-recipe light/dark cases still traverse to the actual content bottom.
 Focused iOS cases cover all six heading levels and loaded standalone, mixed-inline, and hard-break
 image flow at `.accessibility5`. The enlarged long-table case captures overlapping top and bottom
 viewports and checks final-row reachability. Do not add a second Markdown sampler or a second fixture
