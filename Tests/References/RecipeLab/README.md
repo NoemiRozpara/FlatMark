@@ -2,9 +2,11 @@
 
 See the [test guide](../../README.md#recipe-lab) for Recipe Lab setup and its manual checklist.
 
-Committed captures are review artifacts, not automated pixel baselines. They predate the current
-recipe and have not been visually reviewed. Regenerate and review before relying on them. Current
-automated references live in `../Snapshots/Recipe/`.
+Stale manual captures and their environment/geometry manifests have been removed. This directory
+retains capture instructions, not current running-app verification evidence. Generate and visually
+review fresh captures for a specific check before relying on them. Manual captures are review
+artifacts, not automated pixel baselines. Current automated references live in
+[`../Snapshots/Recipe/`](../Snapshots/Recipe/).
 
 ## Capture
 
