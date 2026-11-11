@@ -7,9 +7,10 @@ checks appeared to identify macOS reflow and image-lifecycle regressions. **Foll
 those two isolated failures to the test host's automatic maximum sizing**, not the renderer. See
 [the follow-up](#follow-up-test-host-sizing-and-group-experiment).
 
-The renderer was restored after measurement, then reapplied at the user's request for a documentation
-commit. The lazy candidate remains in the working tree. The full suite is still not green; do not
-treat the two repaired checks as complete lazy-rendering qualification.
+The candidate was committed in `cdc98c6` and retained by `d0c46c0` (`Use LazyVStack for rendering
+(#50)`). See the [benchmark guide](README.md#preview-mount-and-visible-content-checkpoint-macos)
+for the current implementation. The qualification runs below did not produce a green full suite;
+do not treat the two repaired checks as complete lazy-rendering qualification.
 
 The measured candidate is retained as
 [`top-level-lazy.patch`](Construction/Baselines/lazy-comparison/top-level-lazy.patch). It makes only
@@ -20,6 +21,23 @@ parser, demo, loading-state, or dependency change.
 Qualify the remaining snapshot, readiness and whole-document-export failures before treating the
 candidate as regression-free. Adding a public layout mode or weakening existing behavior requires a
 separate decision; neither was done here.
+
+## Measured source provenance
+
+- Base revision for both measured variants: `74bda7cb839906da04752f367be24d1c4d361b44`.
+- Eager renderer SHA-256: `a4dbd4896353407209f944ca6ff43caf411bdb86e825841140af264e7b6112e2`.
+- Candidate: base renderer plus the archived
+  [`top-level-lazy.patch`](Construction/Baselines/lazy-comparison/top-level-lazy.patch).
+  Its SHA-256 is `903381271951f7f96464478956fd0d649eea0bd9d74b9d8761d0f12026f1b042`,
+  matching the renderer committed in `cdc98c6`.
+- The [comparison environment record](Construction/Baselines/lazy-comparison/environment.txt)
+  records renderer and device-host hashes. The device host is archived in `cdc98c6`.
+- The macOS eager control uses the [preceding run's host provenance](render-mount-results.md#method-and-environment),
+  including its unarchived measured dispatch patch. The preview implementation is archived in
+  `cdc98c6`; do not treat that commit as an exact snapshot of every measured harness input.
+
+Environment, results and limits for each platform follow. These measurements are historical controls,
+not a new baseline for later renderer revisions.
 
 ## Physical iPhone XR
 
@@ -266,9 +284,11 @@ Diagnostic logs are under `/tmp/flatmark-issues-*`, `/tmp/flatmark-navigation-*`
   [DeviceHost/README.md](DeviceHost/README.md).
 - Desktop command and metric definitions:
   [benchmark guide](README.md#preview-mount-and-visible-content-checkpoint-macos).
-- To reproduce the candidate, inspect and apply `top-level-lazy.patch`, then rebuild each target.
-  `git apply --check` succeeds against the restored production source. The final local desktop
-  benchmark executable was rebuilt against the restored eager renderer.
+- To reconstruct the measured renderer variants, use base revision
+  `74bda7cb839906da04752f367be24d1c4d361b44` for the eager control and apply
+  `top-level-lazy.patch` there for the candidate, then rebuild each target with the recorded host.
+  The patch is historical; do not apply it to the current renderer. Host provenance and the
+  measured dispatch limitation are recorded [above](#measured-source-provenance).
 
 Visually inspected the first measured capture for each completed iOS fixture/variant and each macOS
 lazy fixture. They show expected content. Only those representative captures are retained in the

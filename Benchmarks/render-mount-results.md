@@ -2,12 +2,17 @@
 
 ## Outcome
 
-Reran the five stashed preview fixtures against the unchanged eager renderer. Large documents still
-have substantial main-thread mount/layout cost after background construction finishes. A subsequent
+The five preview fixtures measured the eager renderer at revision
+`74bda7cb839906da04752f367be24d1c4d361b44`, with the benchmark-host changes identified below.
+These historical controls show substantial main-thread mount/layout cost for large documents after
+background construction finishes. A subsequent
 Window Server capture confirms visible document content, but gives only an upper bound on time to
 first visible content, not an exact first-frame timestamp.
 
-No library, demo, fixture-host, or API changes were made. The stash remains unapplied.
+The measured renderer and dependencies match that revision. See the
+[eager/lazy comparison](lazy-stack-comparison.md) for the later candidate and adoption decision;
+the [benchmark guide](README.md#preview-mount-and-visible-content-checkpoint-macos) describes the
+current renderer.
 
 ## Results
 
@@ -29,13 +34,16 @@ The process completed all 15 summary rows, with checksum `13388676` and empty st
 preconditions checked background construction and main-thread mounting. Thermal state was nominal
 at the recorded checkpoints. Only one process was run; further repeat processes were omitted because
 this run took about nine minutes. These results do not establish a performance regression relative
-to the stash or a reliable p95.
+to another revision or a reliable p95.
 
 ## Method and environment
 
 - Apple M3 Pro MacBook Pro, 12 cores, 36 GB RAM; macOS 27.0.1 (26A434); Apple Swift 6.4.
 - SwiftPM Release build, no debugger; source `74bda7cb839906da04752f367be24d1c4d361b44` plus the
-  benchmark changes in this working tree. Dependencies and renderer are unchanged.
+  preview benchmark host archived in `cdc98c6`. Its `PreviewBenchmark.swift` hash matches the
+  measured source; its `main.swift` contains the post-measurement dispatch simplification described
+  below. The exact measured dispatch patch was not archived; the environment record retains its
+  hash and diff size. Dependencies and renderer match the measured base revision.
 - Battery power at the environment checkpoint. Background activity and power were not controlled.
 - Existing 390 × 844-point content window; vertical scroll view; default font; dark appearance;
   2× capture scale; no image loader. Window creation is outside the intervals.
@@ -62,9 +70,10 @@ layout. It confirms that content exists by that checkpoint; it does not locate t
 or measure physical screen presentation. For the small fixture, capture overhead dominates. Both
 mount and capture intervals exclude parsing, so neither is end-to-end source-to-screen latency.
 
-This establishes an eager-layout baseline for a later lazy-stack comparison. It does not demonstrate
-that `LazyVStack` fixes the cost. The table is one top-level block, so top-level laziness alone need
+This establishes a historical eager-layout control for the
+[later lazy-stack comparison](lazy-stack-comparison.md). This run alone does not demonstrate that
+`LazyVStack` fixes the cost. The table is one top-level block, so top-level laziness alone need
 not reduce its row-layout work. Scrolling, frame pacing, interaction responsiveness, image-loading
 lifecycle, selection, and accessibility were not exercised.
 
-No iOS measurements were run. iPhone XR verification remains pending device availability.
+This run measured macOS only. The later comparison records physical iPhone XR measurements.

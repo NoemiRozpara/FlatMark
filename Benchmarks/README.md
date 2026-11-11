@@ -124,8 +124,9 @@ a distribution of user documents.
 ## Preview mount and visible-content checkpoint (macOS)
 
 The opt-in `--preview` mode separates background document construction from main-actor mounting.
-It leaves the library and its eager stacks unchanged. Run from a logged-in graphical session with
-screen-capture permission:
+It measures the renderer in the checked-out revision without changing its layout. Production uses a
+top-level `LazyVStack`; block quotes, list entries and table rows remain eager. Run from a logged-in
+graphical session with screen-capture permission:
 
 ```sh
 swift build --product FlatMarkConstructionBenchmark --configuration release
@@ -156,9 +157,10 @@ reliable tail estimate. Large eager documents can take minutes per process. Run 
 for an existing process before restarting, and record omitted repeats. Screenshots go to `/tmp` by
 default; archive them with the results if they are needed beyond the local session.
 
-See [the rendering measurement report](render-mount-results.md) for the original eager results.
-The [eager/lazy comparison](lazy-stack-comparison.md) adds physical iPhone XR measurements and
-records why the measured lazy candidate was not retained as the production default. For future
+See [the rendering measurement report](render-mount-results.md) for the historical eager control
+at revision `74bda7cb839906da04752f367be24d1c4d361b44`, with the recorded benchmark-host changes.
+The [eager/lazy comparison](lazy-stack-comparison.md) records the candidate patch, physical iPhone XR
+measurements, adoption decision and qualification limits. For future
 measurements, record only the power source and relevant thermal observations. Capture scripts must
 not collect battery details, simulator UUIDs, or unrelated runtime inventory.
 See [the device host guide](DeviceHost/README.md) to reproduce the iOS checks.
