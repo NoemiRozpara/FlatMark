@@ -168,6 +168,13 @@ struct FlatMarkTableSnapshotTests {
         try await capture(FlatMarkView(markdown: """
         | Header name | Header state |
         | --- | --- |
+
+        Before the table.
+
+        | Visible table |
+        | --- |
+
+        After the table.
         """), column: 360, testName: #function)
     }
 
@@ -176,17 +183,6 @@ struct FlatMarkTableSnapshotTests {
         var blocks = FlatMarkRenderProjector.project(markdown: "Before the table.\n\nAfter the table.").blocks
         blocks.insert(.init(id: .init(path: [99]), kind: .table(.init(header: [], rows: []))), at: 1)
         try await capture(FlatMarkDocumentView(document: .init(blocks: blocks), context: .readOnly), column: 360, testName: #function)
-    }
-
-    @Test func visiblePublicTableBetweenNeighbors() async throws {
-        try await capture(FlatMarkView(markdown: """
-        Before the table.
-
-        | Visible table |
-        | --- |
-
-        After the table.
-        """), column: 360, testName: #function)
     }
 
     private func capture<V: View>(

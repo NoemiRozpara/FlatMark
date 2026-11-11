@@ -119,8 +119,9 @@ mixed-inline, and hard-break image fragments at narrow and wide widths, includin
 Full-recipe light/dark cases still traverse to the actual content bottom.
 Focused iOS cases cover all six heading levels and loaded standalone, mixed-inline, and hard-break
 image flow at `.accessibility5`. The enlarged long-table case captures overlapping top and bottom
-viewports and checks final-row reachability. Do not add a second Markdown sampler or a second fixture
-system.
+viewports and checks final-row reachability. Header-only tables share one capture per platform: a
+two-column table at the document start and a one-column table between paragraphs. The internal empty
+table keeps separate coverage. Do not add a second Markdown sampler or a second fixture system.
 
 Focused fixtures stay where the demo cannot express the contract: held image loading, throwing
 failures, exact raster sizes, request lifecycle, policy/image transitions, table scroll offsets,
