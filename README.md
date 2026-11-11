@@ -104,3 +104,9 @@ issue expansion, server-side transformations, and other GitHub-specific post-pro
 
 Open [Demo/FlatMarkDemo.xcodeproj](Demo/FlatMarkDemo.xcodeproj), select **FlatMarkDemo-iOS** or
 **FlatMarkDemo-macOS**, and Run. See [demo setup](Demo/README.md) for signing and capture presets.
+
+## License
+
+FlatMark's source code and documentation are available under the [MIT License](LICENSE).
+The bundled fixture images have separate terms; see [asset notices](Support/FlatMarkFixtures/ASSETS.md)
+for photo attribution and Apple's SF Symbols restrictions.
