@@ -36,13 +36,24 @@ Use a toolchain meeting the [package requirements](../README.md#requirements). T
 workflow needs Python 3 and a new output directory:
 
 ```sh
-python3 Scripts/benchmark-construction.py /tmp/flatmark-construction-results
+python3 scripts/benchmark-construction.py /tmp/flatmark-construction-results
 ```
 
 The script builds in Release, runs three processes sequentially, and validates 15 unique scenarios,
 30 samples per scenario, and matching nonzero checksums. It saves CSVs, build and stderr logs, source
 hashes, revision, and environment metadata. Only `summary.json` with `complete: true` marks success.
 Failed runs remain for inspection; the script never overwrites an existing destination.
+
+Records leave the script sanitized: `build.log`, the per-run stderr logs and `environment.json` lose
+terminal escape codes, developer-home paths, and machine-local Xcode paths, and keep failure messages,
+counts and timings. CSVs stay verbatim. [scripts/log_sanitizer.py](../scripts/log_sanitizer.py) holds
+those rules and also filters the recipe-lab environment record. The recipe-lab script records only
+the booted simulator's device name, not its UUID or runtime inventory. Other capture scripts must
+avoid collecting incidental machine identifiers. Pipe captured tool output through the sanitizer:
+
+```sh
+swift test --filter <names> 2>&1 | python3 scripts/log_sanitizer.py > checks/focused.log
+```
 
 Commit library, harness, manifest, and lockfile changes before running. Unrelated documentation and
 script edits are allowed. Do not modify measured inputs or run other benchmarks while it runs.
@@ -147,7 +158,9 @@ default; archive them with the results if they are needed beyond the local sessi
 
 See [the rendering measurement report](render-mount-results.md) for the original eager results.
 The [eager/lazy comparison](lazy-stack-comparison.md) adds physical iPhone XR measurements and
-records why the measured lazy candidate was not retained as the production default.
+records why the measured lazy candidate was not retained as the production default. For future
+measurements, record only the power source and relevant thermal observations. Capture scripts must
+not collect battery details, simulator UUIDs, or unrelated runtime inventory.
 See [the device host guide](DeviceHost/README.md) to reproduce the iOS checks.
 
 ## Regression checks

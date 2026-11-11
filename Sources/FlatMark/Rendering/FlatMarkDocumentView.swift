@@ -350,7 +350,7 @@ private var previewDiagramImage: NativeImage {
                 .init(
                     id: .init(path: [0, 1, 0]),
                     cells: [
-                        .init(id: .init(path: [0, 1, 0, 0]), content: "Noemi", colspan: 2),
+                        .init(id: .init(path: [0, 1, 0, 0]), content: "Alice", colspan: 2),
                         .init(
                             id: .init(path: [0, 1, 0, 2]),
                             content: "Confirm the release notes before publishing. Some very long text. Confirm the release notes before publishing. Some very long text. Confirm the release notes before publishing. Some very long text.",

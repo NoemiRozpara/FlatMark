@@ -6,20 +6,7 @@ Xcode 27.0
 Build version 27A266a
 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
 Target: arm64-apple-macosx27.0.0
-== Devices ==
--- iOS 15.5 --
--- iOS 17.5 --
--- iOS 18.0 --
--- iOS 18.5 --
--- iOS 26.4 --
--- iOS 26.5 --
--- iOS 27.0 --
--- iOS 27.0 --
--- iOS 27.0 --
--- iOS 27.0 --
--- iOS 27.0 --
--- iOS 27.0 --
-    iPhone 18 Pro (674C04A9-8792-4995-A6A9-66F80E5F96AA) (Booted) 
+Device: iPhone 18 Pro
 -- watchOS 10.2 --
 CAPTURES=daylight midnight generous rightToLeft hostMarkers readOnly omission
 MACOS_WIDTHS=480x900 850x1040 1200x900

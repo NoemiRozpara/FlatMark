@@ -36,7 +36,7 @@ to the stash or a reliable p95.
 - Apple M3 Pro MacBook Pro, 12 cores, 36 GB RAM; macOS 27.0.1 (26A434); Apple Swift 6.4.
 - SwiftPM Release build, no debugger; source `74bda7cb839906da04752f367be24d1c4d361b44` plus the
   benchmark changes in this working tree. Dependencies and renderer are unchanged.
-- Battery power, 23% at the environment checkpoint. Background activity and power were not controlled.
+- Battery power at the environment checkpoint. Background activity and power were not controlled.
 - Existing 390 × 844-point content window; vertical scroll view; default font; dark appearance;
   2× capture scale; no image loader. Window creation is outside the intervals.
 - Construction runs in `Task.detached`. Snapshot consumption occurs outside all timed intervals.

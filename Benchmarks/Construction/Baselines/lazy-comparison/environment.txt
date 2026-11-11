@@ -7,8 +7,7 @@ Target: arm64-apple-macosx27.0.0
 ProductName:		macOS
 ProductVersion:		27.0.1
 BuildVersion:		26A434
-Now drawing from 'AC Power'
- -InternalBattery-0 (id=23199843)	11%; charging; (no estimate) present: true
+Power source: AC; charging
 
 # Measured lazy candidate
 903381271951f7f96464478956fd0d649eea0bd9d74b9d8761d0f12026f1b042  Sources/FlatMark/Rendering/FlatMarkDocumentView.swift
@@ -16,8 +15,7 @@ Now drawing from 'AC Power'
 
 # End
 Tue Nov 10 11:03:23 UTC 2026
-Now drawing from 'AC Power'
- -InternalBattery-0 (id=23199843)	25%; charging; 2:34 remaining present: true
+Power source: AC; charging
 
 # Final production renderer (restored eager)
 a4dbd4896353407209f944ca6ff43caf411bdb86e825841140af264e7b6112e2  Sources/FlatMark/Rendering/FlatMarkDocumentView.swift

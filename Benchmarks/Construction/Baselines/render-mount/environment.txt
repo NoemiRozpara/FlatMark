@@ -10,8 +10,7 @@ Target: arm64-apple-macosx27.0.0
       Chip: Apple M3 Pro
       Total Number of Cores: 12 (6 Performance and 6 Efficiency)
       Memory: 36 GB
-Now drawing from 'Battery Power'
- -InternalBattery-0 (id=23199843)	23%; discharging; 1:40 remaining present: true
+Power source: battery; discharging
  Benchmarks/Construction/main.swift | 14 +++++++++++++-
  1 file changed, 13 insertions(+), 1 deletion(-)
 8adfcd3d7d658984a9287955efc0b211101d6054a93ba7d37cc3dce397df4323  Benchmarks/Construction/PreviewBenchmark.swift
@@ -19,8 +18,7 @@ e796cb6040193ffaf1f420e769a1919a4f4e5c64e1780ff4cbcc0f56cb76ce98  Benchmarks/Con
 
 # End of run
 Tue Nov 10 10:28:18 UTC 2026
-Now drawing from 'Battery Power'
- -InternalBattery-0 (id=23199843)	19%; discharging; 0:40 remaining present: true
+Power source: battery; discharging
 
 # Final source hashes (main.swift dispatch simplified after measurement; preview implementation unchanged)
 548bf281cf25a40544f2fd14951c58c3055f5544d4f67906ac25b9f13ebf0c48  Benchmarks/Construction/main.swift

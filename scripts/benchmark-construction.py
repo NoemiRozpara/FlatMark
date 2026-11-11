@@ -11,11 +11,18 @@ import platform
 import subprocess
 import sys
 
+# Keep the shared sanitizer importable when this script is loaded by path from scripts/tests.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import log_sanitizer
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INPUTS = ["Sources", "Package.swift", "Package.resolved", "Benchmarks/Construction/main.swift",
           "Benchmarks/Construction/PreviewBenchmark.swift"]
 SCENARIOS = {"initial", "source-change", "baseURL-change"}
 FIXTURES = {"ordinary", "large-100", "large-1000", "nested", "links-tables"}
+# Captured tool output that is safe to rewrite; CSVs stay verbatim because validate() reads them.
+SANITIZED_ARTIFACTS = ("*.log", "environment.json")
 
 
 def output(*command):
@@ -53,6 +60,38 @@ def validate(path):
     return checksum
 
 
+def sanitize_artifacts(destination):
+    """Rewrite captured logs and environment metadata in place, so a recorded run keeps its
+    failure messages, counts and timings without terminal bytes, home-directory paths, or
+    machine-local Xcode paths. Failed runs keep their output for inspection, sanitized the
+    same way as a successful one.
+    """
+    for pattern in SANITIZED_ARTIFACTS:
+        for path in sorted(destination.glob(pattern)):
+            text = path.read_text(errors="replace")
+            path.write_text(log_sanitizer.sanitize_log_text(text, root=ROOT))
+
+
+def run_logged(command, destination, log_path, measured_stdout=None):
+    """Run `command` from the repository root, recording tool output to `log_path` in sanitized
+    form. Pass `measured_stdout` to keep measured CSV output verbatim, because `validate()` reads
+    those bytes. A failed command still leaves a sanitized log behind: failed runs stay for
+    inspection, and a record must never hold terminal bytes or local paths.
+    """
+    log = log_path.open("w")
+    measured = measured_stdout.open("w") if measured_stdout else None
+    try:
+        if measured is None:
+            subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True)
+        else:
+            subprocess.run(command, cwd=ROOT, stdout=measured, stderr=log, check=True)
+    finally:
+        if measured is not None:
+            measured.close()
+        log.close()
+        sanitize_artifacts(destination)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("destination", type=pathlib.Path, help="new results directory (must not exist)")
@@ -85,17 +124,15 @@ def main():
         metadata["xcode"] = output("xcodebuild", "-version")
     (destination / "environment.json").write_text(json.dumps(metadata, indent=2) + "\n")
     print(f"Building Release; results: {destination}", flush=True)
-    with (destination / "build.log").open("w") as log:
-        subprocess.run(metadata["build_command"], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True)
+    run_logged(metadata["build_command"], destination, destination / "build.log")
     require_committed_inputs(revision)
     binary_directory = output("swift", "build", "--configuration", "release", "--show-bin-path")
     checksums = []
     for number in range(1, 4):
         print(f"Running process {number}/3", flush=True)
         path = destination / f"run{number}.csv"
-        with path.open("w") as stdout, (destination / f"run{number}.stderr.log").open("w") as stderr:
-            subprocess.run([str(pathlib.Path(binary_directory) / "FlatMarkConstructionBenchmark")],
-                           cwd=ROOT, stdout=stdout, stderr=stderr, check=True)
+        run_logged([str(pathlib.Path(binary_directory) / "FlatMarkConstructionBenchmark")],
+                   destination, destination / f"run{number}.stderr.log", measured_stdout=path)
         checksums.append(validate(path))
         require_committed_inputs(revision)
     if len(set(checksums)) != 1:

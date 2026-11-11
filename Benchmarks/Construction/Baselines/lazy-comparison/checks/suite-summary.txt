@@ -1,86 +1,87 @@
+# Sanitized: Swift Testing status glyphs use their plain Unicode fallbacks.
 # Original eager full suite
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<script>go()</script>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<script>go()</script>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<iframe src="https://evil.example/e"></iframe>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<iframe src="https://evil.example/e"></iframe>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<img src="https://evil.example/x.png" onclick="go()">", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<img src="https://evil.example/x.png" onclick="go()">", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<details>Visible literal</details>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<details>Visible literal</details>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test emptyTaskInteractive() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test emptyTaskReadOnly() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .narrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test smallIntrinsicRaster() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test oversizedRaster() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .rtlNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test mixedLoadedText() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .rtlWide at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .omission at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .readOnly at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test freshMountsStartNewRequests() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .disabled at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderWide at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test freshMountsStartNewRequests() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test run with 189 tests in 27 suites failed after 25.675 seconds with 37 issues (including 1 known issue).
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<script>go()</script>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<script>go()</script>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<iframe src="https://evil.example/e"></iframe>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<iframe src="https://evil.example/e"></iframe>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<img src="https://evil.example/x.png" onclick="go()">", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<img src="https://evil.example/x.png" onclick="go()">", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<details>Visible literal</details>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<details>Visible literal</details>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test emptyTaskInteractive() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test emptyTaskReadOnly() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .narrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test smallIntrinsicRaster() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test oversizedRaster() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .rtlNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test mixedLoadedText() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .rtlWide at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .omission at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .readOnly at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test freshMountsStartNewRequests() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .disabled at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderWide at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test freshMountsStartNewRequests() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test run with 189 tests in 27 suites failed after 25.675 seconds with 37 issues (including 1 known issue).
 
 # Lazy full suite
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<script>go()</script>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<script>go()</script>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<iframe src="https://evil.example/e"></iframe>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<iframe src="https://evil.example/e"></iframe>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<img src="https://evil.example/x.png" onclick="go()">", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<img src="https://evil.example/x.png" onclick="go()">", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<details>Visible literal</details>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<details>Visible literal</details>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
-􀢄  Test emptyTaskInteractive() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test emptyTaskReadOnly() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test "recipe initializers stay equivalent after edits" recorded an issue at FlatMarkDocumentTests.swift:108:17: Expectation failed: retainedText.string.contains("Sunday focaccia")
-􀢄  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:246:13: Expectation failed: views.count == 2
-􀢄  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:250:13: Expectation failed: abs(first.bounds.width - width) < 1
-􀢄  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:254:13: Expectation failed: abs(container.containerSize.width - width) < 1
-􀢄  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:259:17: Expectation failed: firstFrame.maxY <= secondFrame.minY
-􀢄  Test reverseCompletionsStayInSourceOrderAndResizeWithoutReloading() recorded an issue at FlatMarkImageLoadingTests.swift:70:9: Expectation failed: text.string == "Before \u{FFFC} ordinary \u{FFFC} after."
-􀢄  Test "recipe initializers stay equivalent after edits" recorded an issue at FlatMarkDocumentTests.swift:108:17: Expectation failed: retainedText.string.contains("Sunday focaccia")
-􀢄  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:265:9: Expectation failed: heights[0] > heights[1]
-􀢄  Test "recipe initializers stay equivalent after edits" recorded an issue at FlatMarkDocumentTests.swift:117:13: Expectation failed: try retained.visibleAttributedText.string.contains("Try olives next Sunday")
-􀢄  Test reverseCompletionsStayInSourceOrderAndResizeWithoutReloading() recorded an issue at FlatMarkImageLoadingTests.swift:83:9: Expectation failed: await spy.loadedURLs.count == 2
-􀢄  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test smallIntrinsicRaster() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test oversizedRaster() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test "public view restores omitted content without reloading its image" recorded an issue at FlatMarkOmissionLiveUpdateTests.swift:15:10: Caught error: .wordingMismatch(expected: "Before<div>hidden block</div>\n<u></u>Keep checked<u></u><u></u>Supported continuation7.<u></u>8.keepAB<u></u>keepDetailsAfter", observed: "<u></u>Keep checked<u></u><u></u>Supported continuation7.<u></u>8.keepAB<u></u>keepDetails")
-􀢄  Test mixedLoadedText() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkRecipeIntegrationSnapshotTests.swift:167:21: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkRecipeIntegrationSnapshotTests.swift:69:6: Caught error: .readiness
-􀢄  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test freshMountsStartNewRequests() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkRecipeIntegrationSnapshotTests.swift:167:21: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkRecipeIntegrationSnapshotTests.swift:69:6: Caught error: .readiness
-􀢄  Test freshMountsStartNewRequests() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .narrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .rtlNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .rtlWide at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .omission at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .readOnly at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .disabled at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderWide at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
-􀢄  Test run with 189 tests in 27 suites failed after 22.647 seconds with 46 issues (including 1 known issue).
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<script>go()</script>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<script>go()</script>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<iframe src="https://evil.example/e"></iframe>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<iframe src="https://evil.example/e"></iframe>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<img src="https://evil.example/x.png" onclick="go()">", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<img src="https://evil.example/x.png" onclick="go()">", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<details>Visible literal</details>", policy → "default" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test "mounted public view never loads or activates HTML resources" recorded an issue with 2 arguments markdown → "<details>Visible literal</details>", policy → "literal" at FlatMarkNavigationTests.swift:204:13: Expectation failed: process.terminationReason == .exit && process.terminationStatus == 0
+✘  Test emptyTaskInteractive() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test emptyTaskReadOnly() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test "recipe initializers stay equivalent after edits" recorded an issue at FlatMarkDocumentTests.swift:108:17: Expectation failed: retainedText.string.contains("Sunday focaccia")
+✘  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:246:13: Expectation failed: views.count == 2
+✘  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:250:13: Expectation failed: abs(first.bounds.width - width) < 1
+✘  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:254:13: Expectation failed: abs(container.containerSize.width - width) < 1
+✘  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:259:17: Expectation failed: firstFrame.maxY <= secondFrame.minY
+✘  Test reverseCompletionsStayInSourceOrderAndResizeWithoutReloading() recorded an issue at FlatMarkImageLoadingTests.swift:70:9: Expectation failed: text.string == "Before \u{FFFC} ordinary \u{FFFC} after."
+✘  Test "recipe initializers stay equivalent after edits" recorded an issue at FlatMarkDocumentTests.swift:108:17: Expectation failed: retainedText.string.contains("Sunday focaccia")
+✘  Test retainedParagraphReflowsNarrowWideNarrowWithoutOverlappingItsNeighbor() recorded an issue at FlatMarkAppKitParagraphTextTests.swift:265:9: Expectation failed: heights[0] > heights[1]
+✘  Test "recipe initializers stay equivalent after edits" recorded an issue at FlatMarkDocumentTests.swift:117:13: Expectation failed: try retained.visibleAttributedText.string.contains("Try olives next Sunday")
+✘  Test reverseCompletionsStayInSourceOrderAndResizeWithoutReloading() recorded an issue at FlatMarkImageLoadingTests.swift:83:9: Expectation failed: await spy.loadedURLs.count == 2
+✘  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test retainedPolicyTransitions() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test smallIntrinsicRaster() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test oversizedRaster() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test "public view restores omitted content without reloading its image" recorded an issue at FlatMarkOmissionLiveUpdateTests.swift:15:10: Caught error: .wordingMismatch(expected: "Before<div>hidden block</div>\n<u></u>Keep checked<u></u><u></u>Supported continuation7.<u></u>8.keepAB<u></u>keepDetailsAfter", observed: "<u></u>Keep checked<u></u><u></u>Supported continuation7.<u></u>8.keepAB<u></u>keepDetails")
+✘  Test mixedLoadedText() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkRecipeIntegrationSnapshotTests.swift:167:21: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .primary at FlatMarkRecipeIntegrationSnapshotTests.swift:69:6: Caught error: .readiness
+✘  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test loadedImageDescriptionDoesNotReload() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test freshMountsStartNewRequests() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkRecipeIntegrationSnapshotTests.swift:167:21: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .dark at FlatMarkRecipeIntegrationSnapshotTests.swift:69:6: Caught error: .readiness
+✘  Test freshMountsStartNewRequests() recorded an issue at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .narrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .rtlNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .rtlWide at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .omission at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .readOnly at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .disabled at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderNarrow at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test recipe(scenario:) recorded an issue with 1 argument scenario → .noLoaderWide at FlatMarkSnapshotAssertions.swift:88:17: Issue recorded
+✘  Test run with 189 tests in 27 suites failed after 22.647 seconds with 46 issues (including 1 known issue).

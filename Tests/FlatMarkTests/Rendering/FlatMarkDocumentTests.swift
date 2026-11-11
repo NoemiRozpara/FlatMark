@@ -55,14 +55,14 @@ struct FlatMarkDocumentTests {
 
         | Owner | State |
         | --- | --- |
-        | Noemi | In progress |
+        | Alice | In progress |
         """
 
         private static let baseURL = URL(string: "https://example.com/docs/readme.md")
 
         private static let plainText = "Release notesBefore bold, @jane, and linked text."
             + "Review the pull requestShip the releaseQuoted note about @jane."
-            + "OwnerStateNoemiIn progress"
+            + "OwnerStateAliceIn progress"
 
         @Test
         func `a retained document renders the same content as the same source given as a string`() async throws {

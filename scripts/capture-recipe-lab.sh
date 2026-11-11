@@ -126,10 +126,19 @@ unique_path() { # unique_path <stem> <suffix>
   sw_vers
   xcodebuild -version
   swift --version
-  if [ "$PLATFORM" = ios ]; then xcrun simctl list devices booted; fi
+  if [ "$PLATFORM" = ios ]; then
+    xcrun simctl list devices booted -j | python3 -c '
+import json, sys
+for devices in json.load(sys.stdin)["devices"].values():
+    for device in devices:
+        if device.get("state") == "Booted" and device.get("isAvailable"):
+            print("Device: " + device["name"])
+            sys.exit(0)
+sys.exit("No booted simulator.")'
+  fi
   printf 'CAPTURES=%s\nMACOS_WIDTHS=%s\nIOS_WIDTHS=%s\nSEED_SIZE=%s\n' \
     "$CAPTURES" "$MACOS_WIDTHS" "$IOS_WIDTHS" "$SEED_SIZE"
-} > "$OUTPUT/$PLATFORM-environment.txt"
+} | python3 "$ROOT/scripts/log_sanitizer.py" > "$OUTPUT/$PLATFORM-environment.txt"
 
 if [ "$PLATFORM" = ios ]; then
   UDID="$(xcrun simctl list devices booted -j | python3 -c '
