@@ -99,7 +99,7 @@ struct FlatMarkParagraphTextTests {
         window.isHidden = false
         defer { window.isHidden = true; window.rootViewController = nil }
         for (size, category) in [(DynamicTypeSize.large, UIContentSizeCategory.large),
-                                 (.accessibility3, .accessibilityExtraLarge), (.large, .large)] {
+                                 (.accessibility5, .accessibilityExtraExtraExtraLarge), (.large, .large)] {
             host.rootView = root(size)
             await settle(host.view)
             let text = try #require(textViews(in: host.view).first { $0.text == "System size probe." })
@@ -177,7 +177,7 @@ struct FlatMarkParagraphTextTests {
         var heights: [CGFloat] = []
         var sizes: [CGFloat] = []
         for (size, width) in [(DynamicTypeSize.large, CGFloat(140)), (.large, 400),
-                              (.large, 140), (.accessibility3, 140), (.large, 140)] {
+                              (.large, 140), (.accessibility5, 140), (.large, 140)] {
             host.rootView = root(size, width: width)
             await settle(host.view)
             let views = textViews(in: host.view)
@@ -187,7 +187,7 @@ struct FlatMarkParagraphTextTests {
             #expect(abs(first.bounds.width - width) < 1)
             try expectCompleteLayout(views, in: host.view)
             let font = try #require(first.attributedText.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)
-            let category: UIContentSizeCategory = size == .large ? .large : .accessibilityExtraLarge
+            let category: UIContentSizeCategory = size == .large ? .large : .accessibilityExtraExtraExtraLarge
             #expect(font.pointSize == UIFont.preferredFont(forTextStyle: .body,
                 compatibleWith: UITraitCollection(preferredContentSizeCategory: category)).pointSize)
             heights.append(first.bounds.height)
@@ -219,7 +219,7 @@ struct FlatMarkParagraphTextTests {
         let original = try #require(textViews(in: host.view).first)
         var heights: [CGFloat] = []
         for (direction, size) in [(LayoutDirection.leftToRight, DynamicTypeSize.large),
-                                  (.rightToLeft, DynamicTypeSize.accessibility3),
+                                  (.rightToLeft, DynamicTypeSize.accessibility5),
                                   (.leftToRight, .large)] {
             host.rootView = root(direction, size: size)
             await settle(host.view)
@@ -388,7 +388,7 @@ struct FlatMarkParagraphTextTests {
         let content = FlatMarkRenderInlineContent(text: text)
         let body = render(content)
         let enlarged = FlatMarkParagraphText.attributedText(
-            for: content, policy: .literal, dynamicTypeSize: .accessibility3,
+            for: content, policy: .literal, dynamicTypeSize: .accessibility5,
             layoutDirection: .rightToLeft, alignment: .trailing
         )
         let bodyFont = try #require(body.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)

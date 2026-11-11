@@ -24,6 +24,7 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         case noLoaderNarrow, noLoaderWide
         #if os(iOS)
         case enlarged, enlargedRTL, enlargedNoLoaderNarrow, enlargedNoLoaderWide
+        case enlargedHeadings, enlargedLoadedImages
         #endif
 
         var source: (markdown: String, imageCount: Int) {
@@ -43,6 +44,13 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
             #if os(iOS)
             case .enlarged, .enlargedRTL:
                 return ([FlatMarkRecipeSample.bakeAlong, FlatMarkRecipeSample.method].joined(separator: "\n\n"), 0)
+            case .enlargedHeadings:
+                return ([FlatMarkRecipeSample.title, FlatMarkRecipeSample.bakeAlongHeading,
+                         FlatMarkRecipeSample.toppings, FlatMarkRecipeSample.timingHeadings]
+                    .joined(separator: "\n\n"), 1)
+            case .enlargedLoadedImages:
+                return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.mixedInlineImage,
+                         FlatMarkRecipeSample.hardBreakImage].joined(separator: "\n\n"), 3)
             case .enlargedNoLoaderNarrow, .enlargedNoLoaderWide:
                 return ([FlatMarkRecipeSample.photo, FlatMarkRecipeSample.dimpling, FlatMarkRecipeSample.notes]
                     .joined(separator: "\n\n"), 3)

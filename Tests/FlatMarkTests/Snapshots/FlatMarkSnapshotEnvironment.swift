@@ -189,7 +189,7 @@ extension FlatMarkSnapshotEnvironment.TextSize {
     /// A deliberately large effective size for wrapping and overflow cases.
     static var enlarged: FlatMarkSnapshotEnvironment.TextSize {
         FlatMarkSnapshotEnvironment.TextSize(
-            name: "enlarged", dynamicTypeSize: .accessibility3, fontSize: 28, usesDynamicTypeOniOS: true
+            name: "accessibility5", dynamicTypeSize: .accessibility5, fontSize: 28, usesDynamicTypeOniOS: true
         )
     }
 }

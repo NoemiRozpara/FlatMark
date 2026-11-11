@@ -29,7 +29,7 @@ struct FlatMarkTaskMarkerSnapshotTests {
             of: WrappedLabelBaselineProbe {
                 Text("Wrapped native label with enough words to occupy several lines.").font(.body)
                 FlatMarkInlineView(content: "Wrapped native label with enough words to occupy several lines.", context: .readOnly)
-            }.dynamicTypeSize(.accessibility3), environment: .standard
+            }.dynamicTypeSize(.accessibility5), environment: .standard
         )
     }
     #endif

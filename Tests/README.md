@@ -93,10 +93,10 @@ appearance, locale, direction, and text setting.
 
 - `FlatMarkSnapshotEnvironment.standard`: 320×300pt capture, 240pt column, 20pt inset, 2x, light,
   `en_US`, LTR, standard Dynamic Type, 13pt macOS / 17pt iOS body, white background.
-- Enlarged: iOS uses real `.accessibility3` Dynamic Type; macOS uses a 28pt override, which is not
+- Enlarged: iOS uses real `.accessibility5` Dynamic Type; macOS uses a 28pt override, which is not
   macOS system Dynamic Type.
 - Capture mounts a native hosting view, yields three layout passes, then captures once. An optional
-  `prepareMountedView` hook positions a horizontal viewport (table tests). Native capture failure
+  `prepareMountedView` hook settles layout and positions scroll viewports. Native capture failure
   throws.
 - macOS pins `NSWindow.colorSpace` to sRGB before drawing, then flattens the hosting bitmap over
   the appearance background in an explicit 16-bit sRGB `CGContext`. It does not use an implicit
@@ -114,7 +114,10 @@ Static presentation snapshots use the shared recipe in
 `Support/FlatMarkFixtures/FlatMarkRecipeSample.swift`, the same document the demo renders. Recipe Lab
 builds from the same sections. The Recipe suite also compares custom task markers in interactive,
 disabled, and read-only states using the shared task fragment, including nested and wrapped labels.
-Do not add a second Markdown sampler or a second fixture system.
+Focused iOS cases cover all six heading levels and loaded standalone, mixed-inline, and hard-break
+image flow at `.accessibility5`. The enlarged long-table case captures overlapping top and bottom
+viewports and checks final-row reachability. Do not add a second Markdown sampler or a second fixture
+system.
 
 Focused fixtures stay where the demo cannot express the contract: held image loading, throwing
 failures, exact raster sizes, request lifecycle, policy/image transitions, table scroll offsets,

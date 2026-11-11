@@ -104,7 +104,63 @@ struct FlatMarkTableSnapshotTests {
 
     #if os(iOS)
     @Test func enlargedLongCells() async throws {
-        try await capture(FlatMarkView(markdown: Self.longTable), column: 320, textSize: .enlarged, testName: #function)
+        let environment = FlatMarkSnapshotEnvironment(
+            captureSize: CGSize(width: 520, height: 1900), columnWidth: 320,
+            contentInset: 100, pixelScale: 2, appearance: .light,
+            localeIdentifier: "en_US", layoutDirection: .leftToRight, textSize: .enlarged
+        )
+        let host = flatMakeRetainedSnapshotHost(
+            view: ScrollView(.vertical) {
+                FlatMarkView(markdown: Self.longTable)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.scrollIndicators(.hidden),
+            environment: environment
+        )
+        defer { host.close() }
+        for atBottom in [false, true] {
+            var ready = false
+            let image = try await host.capture { root in
+                var previous: [CGRect] = []
+                var stable = 0
+                for _ in 0 ..< 100 {
+                    root.layoutIfNeeded()
+                    guard let scroll = Self.descendants(root).compactMap({ $0 as? UIScrollView }).first else {
+                        Issue.record("Enlarged table vertical scroll view unavailable")
+                        return
+                    }
+                    let extent = max(0, scroll.contentSize.height - scroll.bounds.height)
+                    let target = atBottom ? extent : 0
+                    scroll.setContentOffset(CGPoint(x: 0, y: target), animated: false)
+                    root.layoutIfNeeded()
+                    let frames = Self.descendants(root).map { $0.convert($0.bounds, to: root) }
+                    let positioned = abs(scroll.contentOffset.y - target) < 1
+                    stable = positioned && frames == previous ? stable + 1 : 0
+                    if stable >= 5 {
+                        #expect(extent > 0, "The enlarged table must exercise vertical scrolling")
+                        // Top and bottom must overlap so no middle content escapes visual review.
+                        #expect(extent <= scroll.bounds.height)
+                        if atBottom {
+                            let cells = Self.descendants(root).compactMap { $0 as? UITextView }
+                            guard let last = cells.first(where: { $0.text == "Last body cell." }) else {
+                                Issue.record("Enlarged table final row unavailable")
+                                return
+                            }
+                            let frame = last.convert(last.bounds, to: scroll)
+                            #expect(frame.minY >= scroll.bounds.minY)
+                            #expect(frame.maxY <= scroll.bounds.maxY + 1)
+                        }
+                        ready = true
+                        return
+                    }
+                    previous = frames
+                    try? await Task.sleep(for: .milliseconds(20))
+                }
+                Issue.record("Enlarged table viewport did not settle")
+            }
+            try #require(ready)
+            assertFlatMarkSnapshot(image, suite: .tables, named: atBottom ? "bottom" : "top",
+                                   environment: environment, testName: #function)
+        }
     }
     #endif
 
@@ -137,13 +193,12 @@ struct FlatMarkTableSnapshotTests {
         _ view: V,
         column: CGFloat,
         trailing: Bool? = nil,
-        textSize: FlatMarkSnapshotEnvironment.TextSize = .body,
         testName: String
     ) async throws {
         let environment = FlatMarkSnapshotEnvironment(
-            captureSize: CGSize(width: column + 200, height: textSize == .enlarged ? 1900 : 750),
+            captureSize: CGSize(width: column + 200, height: 750),
             columnWidth: column, contentInset: 100, pixelScale: 2,
-            appearance: .light, localeIdentifier: "en_US", layoutDirection: .leftToRight, textSize: textSize
+            appearance: .light, localeIdentifier: "en_US", layoutDirection: .leftToRight, textSize: .body
         )
         var prepare: (@MainActor (FlatMarkSnapshotNativeView) async -> Void)?
         if let atEnd = trailing {
