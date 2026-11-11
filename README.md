@@ -3,7 +3,8 @@
 A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS 15+, with optional
 interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftlang/swift-markdown).
 
-[Usage guide](Documentation/Usage.md) · [Markdown support](SUPPORT.md) · [Demo](Demo/README.md) · [Testing](Tests/README.md) · [Benchmarks](Benchmarks/README.md)
+[Usage guide](Documentation/Usage.md) · [Markdown support](SUPPORT.md) · [Demo](Demo/README.md) · [Testing](Tests/README.md) · [Benchmarks](Benchmarks/README.md) ·
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
 ## Requirements
 
@@ -30,8 +31,11 @@ For a Swift package, add the dependency and product:
 .product(name: "FlatMark", package: "FlatMark")
 ```
 
-`0.1.0` is the existing public tag; these guides describe the current checkout, which includes
-unreleased changes. Consult the documentation at the selected tag when using a released version.
+`0.1.0` is the published tag; these guides describe `main`, which is ahead of it, so read the
+documentation at your tag when using a released version. Before 1.0, breaking changes require a minor
+release; the recommended range accepts patch releases only
+([versioning policy](VERSIONING.md#breaking-changes-before-100)). Released changes are listed in
+[CHANGELOG.md](CHANGELOG.md).
 The demo and shared fixtures are not built or embedded in the `FlatMark` package product.
 
 ## Usage
@@ -83,6 +87,8 @@ Rebuild when the source or `baseURL` changes. Construction is synchronous; retai
 construction, not layout or rendering. See [document contracts](Documentation/Usage.md#reusing-a-document).
 
 ## Essential limits
+
+Host obligations and the full link, image, and HTML threat model: [SECURITY.md](SECURITY.md).
 
 - The host owns persistence, navigation decisions, and image fetching, decoding, authentication, and
   caching. Images default to network-free alt-text placeholders.

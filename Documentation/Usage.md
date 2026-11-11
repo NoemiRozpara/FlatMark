@@ -3,7 +3,8 @@
 A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS 15+, with optional
 interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftlang/swift-markdown).
 
-[Quick start and installation](../README.md) · [Markdown support](../SUPPORT.md) · [Testing](../Tests/README.md)
+[Quick start and installation](../README.md) · [Markdown support](../SUPPORT.md) · [Testing](../Tests/README.md) ·
+[Security policy](../SECURITY.md)
 
 ## Interactive tasks
 

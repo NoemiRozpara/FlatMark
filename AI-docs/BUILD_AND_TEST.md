@@ -9,6 +9,7 @@ This document selects verification; the linked guides own commands, scenarios, a
 - [Demo/README.md](../Demo/README.md): running the host, capture presets, signing, and project generation.
 - [Benchmarks/README.md](../Benchmarks/README.md): construction measurements and regression checks.
 - [SUPPORT.md](../SUPPORT.md): supported Markdown behavior.
+- [RELEASING.md](../RELEASING.md): release verification order, gates, doc build, and tagging.
 - [DEVICE_HUB.md](DEVICE_HUB.md): device targeting, resizing, capture, and settings.
 
 ## Toolchain

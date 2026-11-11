@@ -20,6 +20,7 @@ Read only the documents relevant to the task:
 - [AI-docs/BUILD_AND_TEST.md](AI-docs/BUILD_AND_TEST.md): toolchain requirements, verification selection, demo generation, and reporting.
 - [AI-docs/CODE_REVIEW.md](AI-docs/CODE_REVIEW.md): code review and specialist selection.
 - [AI-docs/DEVICE_HUB.md](AI-docs/DEVICE_HUB.md): driving simulators and devices with `devicectl`, including resizing the running app, capture, and device settings.
+- [CONTRIBUTING.md](CONTRIBUTING.md) and [RELEASING.md](RELEASING.md): contributor expectations, changelog and versioning rules, and the gated release process.
 
 `AGENTS.md` owns repository-wide rules; `AI-docs/` owns contributor policy; task skills own procedures and on-demand examples. Link to the authoritative source rather than copying its rules. Load only relevant skill references, not entire reference folders.
 
@@ -51,7 +52,7 @@ Do not run unrelated repository-wide formatting or automatic lint fixes, or assu
 
 ## Git
 
-Unless explicitly requested, do not commit, push, merge, rebase, or create PRs. Preserve unrelated working-tree changes. Do not bypass configured hooks.
+Unless explicitly requested, do not commit, push, merge, rebase, create PRs, or create tags. Preserve unrelated working-tree changes. Do not bypass configured hooks. Tagging is a release act: follow [RELEASING.md](RELEASING.md) only when the maintainer asks for a release.
 
 ## Reports
 

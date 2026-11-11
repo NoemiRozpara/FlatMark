@@ -12,7 +12,7 @@ is not projected as that construct. **Not applicable** describes source processi
 
 Paragraphs, headings, list text, and table cells render in noneditable, selectable `UITextView`
 (iOS) or `NSTextView` (macOS), including inline image attachments and semantic system fonts. See
-[layout and selection limits](README.md#layout-and-selection-limits) for the authoritative typography,
+[layout and selection limits](Documentation/Usage.md#layout-and-selection-limits) for the authoritative typography,
 font-override, and selection contract.
 
 ### Block constructs
@@ -56,7 +56,7 @@ font-override, and selection contract.
 | Reference links (full, collapsed, shortcut) | Rendered with documented policy | Same absolute-or-`baseURL` policy as inline links. |
 | CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links with the same absolute-URL policy. |
 | GFM extended autolinks (`www.`, bare email) | Unsupported | The extension is not enabled, so these stay text. |
-| Images | Rendered with documented policy | Default is a network-free alt-text placeholder. Hosts supply an async loader returning `UIImage` or `NSImage`; relative sources use `baseURL`, and the image scheme policy applies before loading. Loaded images attach inline at intrinsic size or shrink to paragraph width; other phases show a photo, static hourglass, or warning icon with the policy-resolved label and no reserved raster space. Cancellation is not failure, and titles are omitted. macOS exports meaningful descriptions, destination-first image-link names, and phase wording; iOS attachment announcements can be generic. See [image accessibility limits](README.md#layout-and-selection-limits). |
+| Images | Rendered with documented policy | Default is a network-free alt-text placeholder. Hosts supply an async loader returning `UIImage` or `NSImage`; relative sources use `baseURL`, and the image scheme policy applies before loading. Loaded images attach inline at intrinsic size or shrink to paragraph width; other phases show a photo, static hourglass, or warning icon with the policy-resolved label and no reserved raster space. Cancellation is not failure, and titles are omitted. macOS exports meaningful descriptions, destination-first image-link names, and phase wording; iOS attachment announcements can be generic. See [image accessibility limits](Documentation/Usage.md#layout-and-selection-limits). |
 | Inline raw HTML | Rendered with documented policy | `.literal`: inert source text that keeps enclosing Markdown styling and links. `.omit`: absent, with authored spaces and surrounding structure retained. |
 
 ### Parsing and GitHub-web behaviors
