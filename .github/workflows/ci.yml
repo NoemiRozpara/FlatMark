@@ -17,10 +17,6 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # Pinned per job; see the macOS matrix and the iOS job.
-  XCODE_PATH: /Applications/Xcode_26.0.1.app
-
 jobs:
   macos:
     name: macOS package tests · ${{ matrix.label }}

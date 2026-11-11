@@ -82,6 +82,17 @@ times out, check whether its process is still running before starting another. E
 15 scenario rows (five fixtures × three construction scenarios) plus comments, and a nonzero
 consumed-result checksum; checksums should agree within a build, not across harness revisions.
 
+## Test the benchmark script
+
+Run the script's Python tests from the repository root:
+
+```sh
+python3 -m unittest discover -s scripts/tests -p 'test_benchmark_construction.py'
+```
+
+This local check tests result validation and committed-input checks without building or running the
+Swift benchmark. It is not a hosted CI step.
+
 ## Method
 
 Each scenario takes five warmups and 30 samples with `ContinuousClock`, reported in milliseconds as
