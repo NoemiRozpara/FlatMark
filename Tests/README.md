@@ -112,7 +112,9 @@ appearance, locale, direction, and text setting.
 
 Static presentation snapshots use the shared recipe in
 `Support/FlatMarkFixtures/FlatMarkRecipeSample.swift`, the same document the demo renders. Recipe Lab
-builds from the same sections. Do not add a second Markdown sampler or a second fixture system.
+builds from the same sections. The Recipe suite also compares custom task markers in interactive,
+disabled, and read-only states using the shared task fragment, including nested and wrapped labels.
+Do not add a second Markdown sampler or a second fixture system.
 
 Focused fixtures stay where the demo cannot express the contract: held image loading, throwing
 failures, exact raster sizes, request lifecycle, policy/image transitions, table scroll offsets,

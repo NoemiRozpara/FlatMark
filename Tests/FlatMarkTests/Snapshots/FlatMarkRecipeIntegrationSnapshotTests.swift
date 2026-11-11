@@ -107,6 +107,51 @@ struct FlatMarkRecipeIntegrationSnapshotTests {
         #expect(model.imageCalls.urls.count == expectedLoads, "Scrolling must not reload images")
     }
 
+    @Test func customTaskMarkerStates() async throws {
+        let titles = ["Interactive", "Disabled", "Read-only"]
+        let models = titles.map { title in
+            let model = FlatMarkCustomFixtureModel(markdown: FlatMarkRecipeSample.taskRows)
+            model.usesHostTaskMarker = true
+            model.allowsTaskEditing = title != "Read-only"
+            return model
+        }
+        let environment = FlatMarkSnapshotEnvironment(
+            captureSize: CGSize(width: 808, height: 500),
+            columnWidth: 768, contentInset: 20, pixelScale: 2,
+            appearance: .light, localeIdentifier: "en_US",
+            layoutDirection: .leftToRight, textSize: .body
+        )
+        let geometry = Geometry()
+        let host = flatMakeRetainedSnapshotHost(
+            view: ScrollView(.vertical) {
+                HStack(alignment: .top, spacing: 24) {
+                    ForEach(titles.indices, id: \.self) { index in
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text(titles[index]).font(.headline)
+                            FlatMarkCustomDocumentFixture(model: models[index])
+                                .disabled(titles[index] == "Disabled")
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(width: 240, alignment: .leading)
+                    }
+                }
+            }.scrollIndicators(.hidden),
+            environment: environment
+        )
+        defer { host.close() }
+        // Use Recipe's settled-layout gate; the initial iOS draw can omit a wrapped line.
+        let image = try await host.capture { root in
+            await Self.prepare(root, page: 0, model: models[0], expectedLoads: 0, geometry: geometry)
+        }
+        guard geometry.ready else { throw CaptureError.readiness }
+        #expect(geometry.content <= geometry.viewport + 1, "The comparison must fit in one viewport")
+        assertFlatMarkSnapshot(image, suite: .recipe, named: "comparison",
+                               environment: environment, testName: #function)
+        for model in models {
+            #expect(model.imageCalls.urls.isEmpty)
+        }
+    }
+
     private enum CaptureError: Error { case readiness }
 
     private final class Geometry {
