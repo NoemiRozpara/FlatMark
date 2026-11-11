@@ -195,7 +195,7 @@ struct FlatMarkImageLoadingTests {
             )))
             let hostingView = NSHostingView(rootView: ImageLoaderTestView(content: content, model: model))
             hostingView.frame = CGRect(x: 0, y: 0, width: 320, height: 80)
-            try await withTemporaryWindow(hosting: hostingView) {
+            await withTemporaryWindow(hosting: hostingView) {
                 if usesLoader {
                     await expectImageLoad(in: spy)
                 } else {
@@ -231,7 +231,7 @@ struct FlatMarkImageLoadingTests {
             ))
             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
 
-            try await withTemporaryWindow(hosting: hostingView) {
+            await withTemporaryWindow(hosting: hostingView) {
                 await settleRendering()
 
                 #expect(await spy.loadedURLs.isEmpty)
@@ -372,7 +372,7 @@ struct FlatMarkImageLoadingTests {
                 model: model
             ))
             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
-            try await withTemporaryWindow(hosting: hostingView) {
+            await withTemporaryWindow(hosting: hostingView) {
                 await settleRendering()
                 #expect(await spy.loadedURLs.isEmpty)
 
@@ -416,7 +416,7 @@ struct FlatMarkImageLoadingTests {
             ))
             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
 
-            try await withTemporaryWindow(hosting: hostingView) {
+            await withTemporaryWindow(hosting: hostingView) {
                 await expectImageLoad(in: spy)
                 await gate.release()
                 for _ in 0 ..< 50 {
@@ -453,7 +453,7 @@ struct FlatMarkImageLoadingTests {
             ))
             hostingView.frame = CGRect(x: 0, y: 0, width: 240, height: 80)
 
-            try await withTemporaryWindow(hosting: hostingView) {
+            await withTemporaryWindow(hosting: hostingView) {
                 await expectImageLoad(in: spy)
 
                 hostingView.rootView = FlatMarkInlineView(

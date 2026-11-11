@@ -423,7 +423,7 @@ struct FlatMarkAppKitParagraphTextTests {
 
     @Test func hostFontAndColorOverrideTheRoleDefaultWhileNeighborsKeepIt() throws {
         let hostFont = NSFont.boldSystemFont(ofSize: 21)
-        var host = AttributedString(NSAttributedString(string: "host", attributes: [
+        let host = AttributedString(NSAttributedString(string: "host", attributes: [
             .font: hostFont, .foregroundColor: NSColor.systemTeal
         ]))
         let native = render(.init(components: [.text(host), .text(AttributedString(" x"))]), role: .heading(level: 1))
