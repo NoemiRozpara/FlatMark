@@ -9,12 +9,23 @@ import AppKit
 import UIKit
 #endif
 
+/// The native font class whose metrics the baseline probe compares against.
+#if os(macOS)
+    private typealias NativeFont = NSFont
+#else
+    private typealias NativeFont = UIFont
+#endif
+
 @Suite(.serialized)
 @MainActor
 struct FlatMarkTaskMarkerSnapshotTests {
     @Test func wrappedNativeLabelExportsFirstLineBaseline() async throws {
-        var text = AttributedString("Wrapped native label with enough words to occupy several lines.")
-        text.font = .systemFont(ofSize: 23)
+        // Hosts hand FlatMark native attributed strings, so build the host font the way a host
+        // would: through `NSAttributedString` attributes, which take a native font value.
+        let text = AttributedString(NSAttributedString(
+            string: "Wrapped native label with enough words to occupy several lines.",
+            attributes: [.font: NativeFont.systemFont(ofSize: 23)]
+        ))
         _ = try await flatMarkSnapshotImage(
             of: WrappedLabelBaselineProbe {
                 Text(text)

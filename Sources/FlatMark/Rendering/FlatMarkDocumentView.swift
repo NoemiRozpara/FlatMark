@@ -117,7 +117,7 @@ struct FlatMarkTableView: View {
                 ) {
                     GridRow {
                         ForEach(table.header) { cell in
-                            adaptivelySized(inlineView(for: cell.content, role: .tableHeader))
+                            fixedWidthCell(inlineView(for: cell.content, role: .tableHeader))
                                 .accessibilityAddTraits(.isHeader)
                         }
                     }
@@ -128,7 +128,7 @@ struct FlatMarkTableView: View {
                             .background(.secondary)
                         GridRow {
                             ForEach(row.cells) { cell in
-                                adaptivelySized(inlineView(for: cell.content, role: .body))
+                                fixedWidthCell(inlineView(for: cell.content, role: .body))
                                     .gridCellColumns(cell.colspan)
                             }
                         }
@@ -139,7 +139,7 @@ struct FlatMarkTableView: View {
         }
     }
 
-    private func adaptivelySized(_ view: some View) -> some View {
+    private func fixedWidthCell(_ view: some View) -> some View {
         view
             .lineLimit(nil)
             .multilineTextAlignment(.leading)
