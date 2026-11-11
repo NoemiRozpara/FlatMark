@@ -16,6 +16,17 @@
         var foundSelection = false
 
         func collect(from view: NSView) throws {
+            // Older SwiftUI SDKs use selectable text fields instead of selection requestors.
+            // Activate their AppKit field editor before using the same native RTF export.
+            if let field = view as? NSTextField, field.isSelectable {
+                field.selectText(nil)
+                guard let editor = field.currentEditor() else {
+                    throw MountedTextObservationError.selectionUnavailable
+                }
+                defer { field.window?.makeFirstResponder(nil) }
+                try collect(from: editor)
+                return
+            }
             let select = #selector(NSText.selectAll(_:))
             let write = #selector(NSServicesMenuRequestor.writeSelection(to:types:))
             if view.responds(to: select), view.responds(to: write) {

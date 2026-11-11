@@ -152,6 +152,14 @@ out of order or be absent. Long-document initializer parity therefore scrolls bo
 intersecting native regions in geometric order, including title and edited-tail checks. This exports
 whole intersecting regions, not only visible glyphs, and does not establish continuous selection.
 
+On Xcode 26, selectable SwiftUI text uses `NSTextField` backing. The mounted reader activates
+its AppKit field editor and exports RTF from that editor. This also includes list markers in the
+wording oracle; their absence from the old reader was not evidence of missing rendered content.
+The existing mention and omission live-update wording checks passed on Xcode 26.0 / Swift 6.2 and
+Xcode 27 RC / Swift 6.4 on macOS 27.0.1 during #52 investigation. This does not qualify macOS 15.
+The nine Recipe snapshot failures remain on Xcode 26: inspected code-block crops show a vertical
+placement difference in the final code line. Baselines and exact-pixel comparison remain unchanged.
+
 A region that occupies space but exports no text fails native-content inspection. Nonzero mounted size
 alone proves neither readability nor geometry. Only linked-image flow has an automated
 hosting-independent width guard; table, quote, and cell overflow remain manual checks. Hit-target size,
