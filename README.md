@@ -173,7 +173,6 @@ Raw HTML and other nodes with no native renderer follow `unsupportedContentPolic
 | --- | --- |
 | `.literal` (default) | Inert source text; HTML uses parser-provided raw HTML |
 | `.omit` | Removes unsupported nodes, plus paragraphs, headings, and blockquotes the removal empties |
-| `.custom` | Replaces each unsupported node with attributed text, with an optional native block-view override |
 
 Omission follows parser nodes, not HTML element boundaries: `before <u>important</u> after` keeps
 `important`, while a whole HTML block can disappear. Authored spaces, supported structures, and
@@ -188,38 +187,11 @@ FlatMarkView(
 )
 ```
 
-The inline closure is required and returns `AttributedString`; for text-only replacements use
-`.custom { source in AttributedString(source) }`. Inline nodes always use it. Block nodes use the
-optional block override when supplied, and otherwise render the inline output as native text. Both
-closures receive the same extracted source as `.literal`: raw HTML, otherwise a valid original source
-slice, readable descendants, or `""`. Empty extraction still reaches the selected closure. Opening and
-closing tags are separate nodes, not paired elements. Known containers recurse; escaped tags, code, and
-ordinary text invoke neither closure.
-
-Replacements keep their structural position and ambient environment, and FlatMark adds no literal
-fallback or minimum-size box. Block controls stay independently actionable beside tasks and supported
-links. For inline replacements:
-
-- They compose with supported neighbors as native text and contribute their wording to paragraph
-  accessibility text.
-- They use semantic UIKit or AppKit typography for the role — paragraph, heading, list text, or table
-  cell — and keep explicit native font and color attributes per run. SwiftUI `Font` attributes use
-  semantic native typography instead, and host-supplied fixed fonts stay host-owned.
-- Each run inherits enclosing Markdown presentation intents and links when the host omits them. An
-  explicit host intent replaces the enclosing intent, including an empty intent set that suppresses
-  inheritance. A host link overrides the enclosing destination on its run; a missing link inherits it.
-- Replacement links use the same `linkActivationAction` and inherited `openURL` path as supported links.
-
-Empty attributed output and block overrides returning `AnyView(EmptyView())` do not imply recursive
-omission: parent spacing may remain. No spaces are synthesized. These are presentation closures;
-invocation counts are not lifecycle guarantees.
-
-Built-in policies never execute HTML or fetch HTML resources. **Custom output is host-owned**,
-including interpretation, sanitization, navigation, and resource access. FlatMark is not an HTML
-sanitizer.
+Opening and closing tags are separate nodes, not paired elements. Known containers recurse.
+Built-in policies never execute HTML or fetch HTML resources. FlatMark is not an HTML sanitizer.
 
 ## Layout and selection limits
-Paragraphs, headings, list text, and table cells compose supported and custom text in a noneditable,
+Paragraphs, headings, list text, and table cells compose supported text in a noneditable,
 selectable `UITextView` on iOS or `NSTextView` on macOS.
 
 - Each uses system-preferred semantic typography for its role — body, heading 1–3

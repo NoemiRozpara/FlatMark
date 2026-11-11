@@ -25,7 +25,7 @@ font-override, and selection contract.
 | Thematic breaks | Fully rendered | Native `Divider`. |
 | Indented code blocks | Rendered with documented policy | Monospaced native block; source indentation is not reproduced. |
 | Fenced code blocks | Rendered with documented policy | Monospaced native block; fence characters and info string are omitted. |
-| HTML blocks | Rendered with documented policy | `.literal`: inert parser raw HTML, no diagnostic label. `.omit`: removed with its layout slot. `.custom`: same raw HTML handed to a host-owned native replacement. Only built-in policies guarantee no HTML execution or fetching. |
+| HTML blocks | Rendered with documented policy | `.literal`: inert parser raw HTML, no diagnostic label. `.omit`: removed with its layout slot. Neither policy executes HTML or fetches HTML resources. |
 | Link reference definitions | Parsed but omitted | No standalone output; they supply reference destinations. |
 | Blank lines | Parsed but omitted | They delimit block structure. |
 | Block quotes | Fully rendered | Nested native block list with a leading rule. |
@@ -57,16 +57,16 @@ font-override, and selection contract.
 | CommonMark angle-bracket URI and email autolinks | Rendered with documented policy | Parsed as links with the same absolute-URL policy. |
 | GFM extended autolinks (`www.`, bare email) | Unsupported | The extension is not enabled, so these stay text. |
 | Images | Rendered with documented policy | Default is a network-free alt-text placeholder. Hosts supply an async loader returning `UIImage` or `NSImage`; relative sources use `baseURL`, and the image scheme policy applies before loading. Loaded images attach inline at intrinsic size or shrink to paragraph width; other phases show a photo, static hourglass, or warning icon with the policy-resolved label and no reserved raster space. Cancellation is not failure, and titles are omitted. macOS exports meaningful descriptions, destination-first image-link names, and phase wording; iOS attachment announcements can be generic. See [image accessibility limits](README.md#layout-and-selection-limits). |
-| Inline raw HTML | Rendered with documented policy | `.literal`: inert source text that keeps enclosing Markdown styling and links. `.omit`: absent, with authored spaces and surrounding structure retained. `.custom`: each parser node contributes host-returned attributed text beside supported neighbors, inheriting enclosing intents and links per run where the host omits them, with explicit host values (including an empty intent set) winning on its run. Replacement links use the existing host navigation path. Typography and font-attribute rules follow the [layout contract](README.md#layout-and-selection-limits). |
+| Inline raw HTML | Rendered with documented policy | `.literal`: inert source text that keeps enclosing Markdown styling and links. `.omit`: absent, with authored spaces and surrounding structure retained. |
 
 ### Parsing and GitHub-web behaviors
 
 | Item | Status | Notes |
 | --- | --- | --- |
 | LF, CRLF, and CR line endings | Not applicable | Parsing normalizes rendered breaks; the retained source and task-toggle output preserve original line endings. |
-| GFM disallowed-raw-HTML tag filtering | Not applicable | FlatMark builds no HTML DOM. Raw HTML is literal or omitted per `unsupportedContentPolicy`, and GitHub's filtering is not reproduced. Custom output is host-owned and may interpret its input. |
+| GFM disallowed-raw-HTML tag filtering | Not applicable | FlatMark builds no HTML DOM. Raw HTML is literal or omitted per `unsupportedContentPolicy`, and GitHub's filtering is not reproduced. |
 | GitHub sanitization and post-processing | Not applicable | No repository-context links, issue or reference expansion, web UI, server-side transforms, or sanitization pipeline. |
-| Parsed nodes with no native structural view | Rendered with documented policy | `.literal`: the exact source slice the parser addressed, else readable descendant text, else empty text. `.omit`: the node is removed whole, not re-presented through descendants. `.custom`: that same string, including `""`, reaches a native replacement with no literal fallback. Known containers recurse under every policy. |
+| Parsed nodes with no native structural view | Rendered with documented policy | `.literal`: the exact source slice the parser addressed, else readable descendant text, else empty text. `.omit`: the node is removed whole, not re-presented through descendants. Known containers recurse under every policy. |
 
 These statuses describe projection, not verified pixels or live accessibility; see
 [verification limits](Tests/README.md#verification-status).
