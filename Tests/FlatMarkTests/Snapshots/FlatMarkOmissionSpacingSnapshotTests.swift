@@ -79,14 +79,14 @@ struct FlatMarkOmissionSpacingSnapshotTests {
 
     #endif
 
-    // Independent references keep a change affecting both documents from passing unnoticed.
+    // Both documents check a retained golden so a shared regression cannot pass unnoticed.
     private func assertPair(
         omitted: String,
         control: String,
         environment: FlatMarkSnapshotEnvironment,
         testName: String
     ) async throws {
-        for (name, markdown) in [("omitted", omitted), ("control", control)] {
+        for markdown in [omitted, control] {
             // Measure intrinsic content, not a flexible quote rule stretched to the capture height.
             let image = try await flatMarkSnapshotImage(
                 of: FlatMarkView(markdown: markdown, unsupportedContentPolicy: .omit)
@@ -96,7 +96,7 @@ struct FlatMarkOmissionSpacingSnapshotTests {
             assertFlatMarkSnapshot(
                 image,
                 suite: .omissionSpacing,
-                named: name,
+                named: "omitted",
                 environment: environment,
                 testName: testName
             )

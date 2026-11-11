@@ -105,7 +105,8 @@ struct FlatMarkPolicyTransitionSnapshotTests {
                 }
             )
             if let readinessError { throw readinessError }
-            snapshot(image, "mount\(expected)", testName: #function)
+            // Each fresh mount must match the same reviewed appearance.
+            snapshot(image, "mount1", testName: #function)
             #expect(model.delivery.requests == expected)
         }
     }

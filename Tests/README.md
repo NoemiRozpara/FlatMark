@@ -74,6 +74,9 @@ Rules:
 
 - Record only an intended rendering change, review every changed image at readable scale, then run
   the normal scheme twice and confirm reference hashes are unchanged.
+- Byte-identical captures may share a golden, but each capture must check that golden independently.
+  Omission/control documents, fresh mounts, empty interactive/read-only tasks, and iOS image-phase
+  controls share references this way. macOS image-phase controls retain separate references.
 - Never record to make a failure pass. A missing reference fails verify mode, is never written, and its
   failure names the case, its environment, and the full path of the reference it expected.
 - Recording assertions are expected failures, not verification passes.

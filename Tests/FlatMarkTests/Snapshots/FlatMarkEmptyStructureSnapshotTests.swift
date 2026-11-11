@@ -25,7 +25,8 @@ struct FlatMarkEmptyStructureSnapshotTests {
     }
 
     @Test func emptyTaskReadOnly() async throws {
-        try await capture(Self.tasks, testName: #function)
+        // Read-only and interactive captures share pixels, not interaction semantics.
+        try await capture(Self.tasks, testName: "emptyTaskInteractive()")
     }
 
     @Test func authoredOrderedRows() async throws {

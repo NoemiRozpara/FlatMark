@@ -135,7 +135,13 @@ struct FlatMarkImagePhaseSnapshotTests {
                 of: (Text("") + Text(Image(systemName: symbol)) + Text(" \(label)"))
                     .textSelection(.enabled), environment: environment
             )
-            assertFlatMarkSnapshot(control, suite: .imagePhases, named: "control", environment: environment, testName: testName)
+            // iOS controls match renderer pixels; macOS controls have distinct native drawing.
+            #if os(iOS)
+            let referenceName = "image"
+            #else
+            let referenceName = "control"
+            #endif
+            assertFlatMarkSnapshot(control, suite: .imagePhases, named: referenceName, environment: environment, testName: testName)
         }
         do {
             let image = try await flatMarkSnapshotImage(
