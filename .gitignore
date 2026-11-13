@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 /.build
 /Packages
+# Library package: consumers resolve dependencies themselves. Benchmarks/Results/Package.resolved
+# stays tracked as a benchmark environment record.
+/Package.resolved
 xcuserdata/
 DerivedData/
 .swiftpm/configuration/registries.json
