@@ -1,0 +1,71 @@
+{
+  "revision": "d02a16ae81e45de63ca9baefebb7cd4e476dde32",
+  "hardware": "iPhone XR (iPhone11,8)",
+  "os": "iOS 18.7.12 (22H390)",
+  "host": "Apple M3 Pro; macOS 27.0.1 (26A434)",
+  "xcode": "Xcode 27.0\nBuild version 27A266a",
+  "swift": "swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)\nTarget: arm64-apple-macosx27.0.0",
+  "configuration": "Release",
+  "deployment_target": "iOS 17.0",
+  "swift_language_mode": "6.0",
+  "strict_concurrency": "complete",
+  "power": "Wired USB connection; charging state not collected.",
+  "conditions": "Benchmark app kept foregrounded. No overlapping benchmark runs. Power, thermals, and other activity are not controlled.",
+  "thermal_observations": "All three processes started nominal. Runs 1 and 2 ended nominal; run 3 ended fair.",
+  "source_record": "../snapshot.json",
+  "lockfile": "../Package.resolved",
+  "resolved_dependencies": {
+    "swift-cmark": {
+      "revision": "08ddb528923cc1a6527e02b7a1aee9e516ca749a",
+      "version": "0.9.0"
+    },
+    "swift-custom-dump": {
+      "revision": "4fb9e7cbb4b8f5a7354005db39447f570d6b3e19",
+      "version": "1.7.3"
+    },
+    "swift-issue-reporting": {
+      "revision": "b23bb4493c439d3e05152bc167014235ba3d47fc",
+      "version": "2.1.2"
+    },
+    "swift-markdown": {
+      "revision": "3c6f9523da3a1ec2fd829673e472d95b8097a3b8",
+      "version": "0.8.0"
+    },
+    "swift-snapshot-testing": {
+      "revision": "1488390b0735e726564b948bf08b384398bdab5c",
+      "version": "1.19.7"
+    },
+    "swift-syntax": {
+      "revision": "050f1a346fbbac0ca2cfb15a95274f7bd1cf0ccf",
+      "version": "604.0.0"
+    }
+  },
+  "host_sha256": {
+    "Host/Benchmark.swift": "9ee730e0aa886992917bd4168915f4c8d818de1814f8932c41525b5dc9fb26df",
+    "Host/ConstructionBenchmarkApp.swift": "17e8e590d305759ac04db149980dfd13c6081a614a7efa0b5ec62b67e64f66ea",
+    "Host/ContentView.swift": "a305a8e41e06044b2f0768c67e84369e14cac0d18cd2c6579649f91d37ace9c3"
+  },
+  "project_sha256": "4a99f02712c3b76c015208b72d520184970d191e3e4070353504ee7b49ea43ed",
+  "project_path_placeholders": "${REPOSITORY} is the checkout root; ${GENERATED_HOST} is the disposable generated helper directory.",
+  "build_command": [
+    "mobilebuildmcp",
+    "device",
+    "build-and-run",
+    "--project-path",
+    "<GENERATED_PROJECT>",
+    "--scheme",
+    "FlatMarkConstructionDevice",
+    "--device-id",
+    "<DEVICE_ID>",
+    "--configuration",
+    "Release",
+    "--derived-data-path",
+    "<DERIVED_DATA>",
+    "--extra-args",
+    "DEVELOPMENT_TEAM=<TEAM_ID>",
+    "-allowProvisioningUpdates",
+    "--launch-args",
+    "run1"
+  ],
+  "build_warning": "SwiftShims precompiled module file not found warning; build succeeded."
+}

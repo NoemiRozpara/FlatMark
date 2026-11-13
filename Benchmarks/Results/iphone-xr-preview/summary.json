@@ -1,0 +1,26 @@
+{
+  "revision": "d02a16ae81e45de63ca9baefebb7cd4e476dde32",
+  "fixtures": {
+    "ordinary": {
+      "complete": true,
+      "capture_driver_exit": 0
+    },
+    "large-100": {
+      "complete": true,
+      "capture_driver_exit": 0
+    },
+    "large-1000": {
+      "complete": true,
+      "capture_driver_exit": 0
+    },
+    "nested": {
+      "complete": false,
+      "capture_driver_exit": 1
+    },
+    "links-tables": {
+      "complete": true,
+      "capture_driver_exit": 0
+    }
+  },
+  "complete": false
+}

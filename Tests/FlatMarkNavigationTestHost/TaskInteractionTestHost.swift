@@ -1,0 +1,173 @@
+#if os(macOS)
+    import AppKit
+    import FlatMark
+    import SwiftUI
+
+    /// Mouse tracking must run in an application event loop, never in the test runner.
+    @MainActor
+    enum TaskInteractionTestHost {
+        static func run(mode: String, markdown: String) {
+            guard ["omit", "marker-interactive", "marker-readOnly"].contains(mode)
+            else { exit(2) }
+
+            let application = NSApplication.shared
+            application.setActivationPolicy(.prohibited)
+            let model = TaskInteractionModel(markdown: markdown, mode: mode)
+            let hosting = NSHostingView(rootView: TaskInteractionView(model: model))
+            hosting.frame = CGRect(x: 0, y: 0, width: 400, height: 1000)
+            let window = NSWindow(
+                contentRect: hosting.frame,
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            window.isReleasedWhenClosed = false
+            window.contentView = hosting
+
+            Task { @MainActor in
+                await settle(hosting)
+                if mode == "omit" {
+                    for _ in 0 ..< 100 where model.loadedURLs.isEmpty {
+                        try? await Task.sleep(for: .milliseconds(10))
+                    }
+                    for policy: FlatMarkUnsupportedContentPolicy in [.omit, .literal, .omit] {
+                        model.policy = policy
+                        await settle(hosting)
+                    }
+                }
+                if mode.hasPrefix("marker-") {
+                    guard let frame = model.markerFrames[false] else { exit(7) }
+                    let states = model.markerFrames.keys.map { String($0) }.sorted()
+                    // Use the measured drawing center without assuming a larger control frame.
+                    click(
+                        at: NSPoint(x: frame.midX, y: frame.midY), in: hosting, window: window,
+                        allowsMiss: mode == "marker-readOnly"
+                    )
+                    await settle(hosting)
+                    let report = ["states": states, "updates": model.updates, "completed": ["true"]]
+                    guard let data = try? JSONSerialization.data(withJSONObject: report) else { exit(5) }
+                    FileHandle.standardOutput.write(data)
+                    exit(0)
+                }
+                guard let frame = model.markerFrames[false] else { exit(7) }
+                let checkboxPoint = NSPoint(x: frame.midX, y: frame.midY)
+                var report = [
+                    "initialMarkdown": [model.markdown],
+                    "initialLoaded": model.loadedURLs,
+                    "initialTaskUpdates": [String(model.updates.count)],
+                ]
+                click(at: checkboxPoint, in: hosting, window: window)
+                await settle(hosting)
+                report["taskUpdates"] = [String(model.updates.count)]
+                report["markdown"] = [model.markdown]
+                report["updates"] = model.updates
+                report["loaded"] = model.loadedURLs
+                report["completed"] = ["true"]
+                guard let data = try? JSONSerialization.data(withJSONObject: report) else { exit(5) }
+
+                FileHandle.standardOutput.write(data)
+                exit(0)
+            }
+            application.run()
+            exit(6)
+        }
+
+        private static func settle(_ hosting: NSView) async {
+            try? await Task.sleep(for: .milliseconds(30))
+            hosting.layoutSubtreeIfNeeded()
+            hosting.displayIfNeeded()
+        }
+
+        private static func click(
+            at point: NSPoint, in hosting: NSView, window: NSWindow, allowsMiss: Bool = false
+        ) {
+            // NSView.hitTest expects coordinates in its superview, not its own bounds.
+            guard let target = hosting.hitTest(hosting.convert(point, to: hosting.superview)) else {
+                if allowsMiss { return }
+                exit(3)
+            }
+
+            let location = hosting.convert(point, to: nil)
+            let timestamp = ProcessInfo.processInfo.systemUptime
+            guard let down = NSEvent.mouseEvent(
+                with: .leftMouseDown, location: location, modifierFlags: [], timestamp: timestamp,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+            ), let up = NSEvent.mouseEvent(
+                with: .leftMouseUp, location: location, modifierFlags: [], timestamp: timestamp + 0.01,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 0
+            ) else { exit(4) }
+
+            NSApplication.shared.postEvent(up, atStart: true)
+            target.mouseDown(with: down)
+            target.mouseUp(with: up)
+            NSApplication.shared.discardEvents(matching: .leftMouseUp, before: nil)
+        }
+    }
+
+    @MainActor
+    @Observable
+    private final class TaskInteractionModel {
+        var markdown: String
+        var policy: FlatMarkUnsupportedContentPolicy = .literal
+        let mode: String
+        var updates: [String] = []
+        @ObservationIgnored var markerFrames: [Bool: CGRect] = [:]
+        @ObservationIgnored var loadedURLs: [String] = []
+        let loaderID = UUID()
+
+        init(markdown: String, mode: String) {
+            self.markdown = markdown
+            self.mode = mode
+        }
+    }
+
+    /// The stand-in a host loader returns; these checks read the request, never its pixels.
+    private let loadedFixtureImage = NativeImage(systemSymbolName: "photo.fill", accessibilityDescription: nil) ?? NativeImage()
+
+    private struct TaskInteractionView: View {
+        let model: TaskInteractionModel
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                if model.mode == "omit" {
+                    Toggle("Omit unsupported content", isOn: Binding(
+                        get: {
+                            if case .omit = model.policy {
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                        set: { model.policy = $0 ? .omit : .literal }
+                    ))
+                }
+                FlatMarkView(
+                    markdown: model.markdown,
+                    baseURL: URL(string: "https://example.com/"),
+                    imageLoader: FlatMarkImageLoader(configurationID: model.loaderID) { url in
+                        await MainActor.run { model.loadedURLs.append(url.absoluteString) }
+                        return loadedFixtureImage
+                    },
+                    unsupportedContentPolicy: model.policy,
+                    linkActivationAction: { _ in .handled },
+                    taskToggleAction: model.mode == "marker-readOnly" ? nil : {
+                        model.updates.append($0)
+                        model.markdown = $0
+                    },
+                    taskMarker: .custom { isChecked in
+                        Image(systemName: isChecked ? "checkmark.circle" : "circle")
+                            .frame(width: 12, height: 12)
+                            .onGeometryChange(for: CGRect.self) { proxy in
+                                proxy.frame(in: .named("host"))
+                            } action: { frame in
+                                model.markerFrames[isChecked] = frame
+                            }
+                    }
+                )
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .coordinateSpace(name: "host")
+        }
+    }
+#endif

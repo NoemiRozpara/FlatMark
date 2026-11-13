@@ -1,0 +1,61 @@
+# OS=Version 27.0.1 (Build 26A434); thermal=0
+# Release; viewport=390x844pt; 1 warmup, 3 samples; current lazy renderer
+# capture-checkpoint includes layout, display, 20ms run-loop yield and screencapture overhead; inspect PNGs before claiming visible content
+fixture,scenario,samples,median_ms,p95_ms,min_ms
+# ordinary iteration=0 thermal=0
+# sample ordinary 0: construction=0.985583 layout=30.431083 capture=150.413; png=Benchmarks/Results/macos-preview/captures/ordinary-0.png
+# ordinary iteration=1 thermal=0
+# sample ordinary 1: construction=0.604041 layout=9.206542 capture=116.13825; png=Benchmarks/Results/macos-preview/captures/ordinary-1.png
+# ordinary iteration=2 thermal=0
+# sample ordinary 2: construction=0.619834 layout=7.766083 capture=107.962416; png=Benchmarks/Results/macos-preview/captures/ordinary-2.png
+# ordinary iteration=3 thermal=0
+# sample ordinary 3: construction=0.619584 layout=7.9325 capture=108.413208; png=Benchmarks/Results/macos-preview/captures/ordinary-3.png
+ordinary,background-construction,3,0.619584,0.619834,0.604041
+ordinary,main-mount-layout,3,7.932500,9.206542,7.766083
+ordinary,visible-capture-upper-bound,3,108.413208,116.138250,107.962416
+# large-100 iteration=0 thermal=0
+# sample large-100 0: construction=41.042792 layout=29.325333 capture=135.757583; png=Benchmarks/Results/macos-preview/captures/large-100-0.png
+# large-100 iteration=1 thermal=0
+# sample large-100 1: construction=40.46725 layout=28.616708 capture=141.520125; png=Benchmarks/Results/macos-preview/captures/large-100-1.png
+# large-100 iteration=2 thermal=0
+# sample large-100 2: construction=39.524666 layout=28.0295 capture=134.931625; png=Benchmarks/Results/macos-preview/captures/large-100-2.png
+# large-100 iteration=3 thermal=0
+# sample large-100 3: construction=39.790291 layout=28.327334 capture=129.681167; png=Benchmarks/Results/macos-preview/captures/large-100-3.png
+large-100,background-construction,3,39.790291,40.467250,39.524666
+large-100,main-mount-layout,3,28.327334,28.616708,28.029500
+large-100,visible-capture-upper-bound,3,134.931625,141.520125,129.681167
+# large-1000 iteration=0 thermal=0
+# sample large-1000 0: construction=387.626167 layout=30.5795 capture=137.692042; png=Benchmarks/Results/macos-preview/captures/large-1000-0.png
+# large-1000 iteration=1 thermal=0
+# sample large-1000 1: construction=393.421917 layout=31.7735 capture=138.550708; png=Benchmarks/Results/macos-preview/captures/large-1000-1.png
+# large-1000 iteration=2 thermal=0
+# sample large-1000 2: construction=389.685625 layout=31.811333 capture=145.409791; png=Benchmarks/Results/macos-preview/captures/large-1000-2.png
+# large-1000 iteration=3 thermal=0
+# sample large-1000 3: construction=385.187875 layout=30.713125 capture=149.917542; png=Benchmarks/Results/macos-preview/captures/large-1000-3.png
+large-1000,background-construction,3,389.685625,393.421917,385.187875
+large-1000,main-mount-layout,3,31.773500,31.811333,30.713125
+large-1000,visible-capture-upper-bound,3,145.409791,149.917542,138.550708
+# nested iteration=0 thermal=0
+# sample nested 0: construction=2.068292 layout=53.963958 capture=161.7795; png=Benchmarks/Results/macos-preview/captures/nested-0.png
+# nested iteration=1 thermal=0
+# sample nested 1: construction=2.000709 layout=50.877042 capture=152.140833; png=Benchmarks/Results/macos-preview/captures/nested-1.png
+# nested iteration=2 thermal=0
+# sample nested 2: construction=1.964292 layout=53.502625 capture=156.792542; png=Benchmarks/Results/macos-preview/captures/nested-2.png
+# nested iteration=3 thermal=0
+# sample nested 3: construction=1.981 layout=53.511583 capture=160.717458; png=Benchmarks/Results/macos-preview/captures/nested-3.png
+nested,background-construction,3,1.981000,2.000709,1.964292
+nested,main-mount-layout,3,53.502625,53.511583,50.877042
+nested,visible-capture-upper-bound,3,156.792542,160.717458,152.140833
+# links-tables iteration=0 thermal=0
+# sample links-tables 0: construction=15.293625 layout=2074.719375 capture=2274.031042; png=Benchmarks/Results/macos-preview/captures/links-tables-0.png
+# links-tables iteration=1 thermal=0
+# sample links-tables 1: construction=15.085875 layout=3207.02575 capture=3915.160167; png=Benchmarks/Results/macos-preview/captures/links-tables-1.png
+# links-tables iteration=2 thermal=0
+# sample links-tables 2: construction=14.857084 layout=3283.903209 capture=3947.6362090000002; png=Benchmarks/Results/macos-preview/captures/links-tables-2.png
+# links-tables iteration=3 thermal=0
+# sample links-tables 3: construction=14.990625 layout=3491.878083 capture=4413.747792; png=Benchmarks/Results/macos-preview/captures/links-tables-3.png
+links-tables,background-construction,3,14.990625,15.085875,14.857084
+links-tables,main-mount-layout,3,3283.903209,3491.878083,3207.025750
+links-tables,visible-capture-upper-bound,3,3947.636209,4413.747792,3915.160167
+Consumed preview checksum: 13388676
+# end=2026-11-12 14:42:35 +0000; thermal=0

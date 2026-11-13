@@ -1,0 +1,241 @@
+import FlatMark
+import SwiftUI
+
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
+
+// MARK: - FlatMarkCustomFixture
+
+/// Shared backend-free recipe playground with exploration controls.
+/// Run the iOS/macOS host with `scripts/run-fixture-host.sh`.
+public struct FlatMarkCustomFixture: View {
+    @Bindable public var model: FlatMarkCustomFixtureModel
+    @State private var settingsExpanded = false
+    @State private var sourceExpanded = false
+    #if !os(macOS)
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    #endif
+
+    public init(model: FlatMarkCustomFixtureModel) {
+        self.model = model
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 28) {
+            Label("Recipe Lab", systemImage: "fork.knife")
+                .font(.largeTitle.bold())
+            GroupBox {
+                DisclosureGroup(isExpanded: $settingsExpanded) {
+                    FlatMarkRecipeSettings(model: model)
+                        .padding(.top, 12)
+                } label: {
+                    Label("Settings", systemImage: "slider.horizontal.3")
+                        .font(.headline)
+                }
+                .padding(8)
+            }
+            GroupBox {
+                DisclosureGroup(isExpanded: $sourceExpanded) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("View or edit the raw Markdown. Changes appear in the recipe preview below; ticking tasks also updates this source.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        TextEditor(text: $model.markdown)
+                            .font(.system(.body, design: .monospaced))
+                            .autocorrectionDisabled()
+                            .frame(minHeight: 280)
+                            .accessibilityLabel("Raw Markdown source")
+                    }
+                    .padding(.top, 12)
+                } label: {
+                    Label("Markdown source", systemImage: "doc.plaintext")
+                        .font(.headline)
+                }
+                .padding(8)
+            }
+            Label(model.lastActivity, systemImage: "bubble.left")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(.quaternary, in: .rect(cornerRadius: 12))
+            recipe
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .tint(.orange)
+        .preferredColorScheme(model.darkAppearance ? .dark : .light)
+    }
+
+    /// Reading settings apply only to the recipe, not the surrounding controls.
+    private var recipe: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("The recipe")
+                .font(.title2.bold())
+            Text("This recipe is an interactive rendering demo. Tick a baking step to update its checkbox and the Markdown source. Recipe links—including the photo—show a local note in the activity strip above instead of opening a browser. These actions only change this demo’s state; they don’t send data or navigate away.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: Self.columnWidth, alignment: .leading)
+            Group {
+                Divider()
+                FlatMarkCustomDocumentFixture(model: model)
+            }
+            #if !os(macOS)
+            // AppKit selects its own preferred fonts per role, so enlarged text is an iOS-only control.
+            .dynamicTypeSize(model.enlargedText ? .accessibility2 : dynamicTypeSize)
+            #endif
+            .environment(\.layoutDirection, model.rightToLeft ? .rightToLeft : .leftToRight)
+            .frame(maxWidth: Self.columnWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// iOS keeps the narrow reading column; a macOS window is resized instead.
+    private static var columnWidth: CGFloat? {
+        #if os(macOS)
+        nil
+        #else
+        240
+        #endif
+    }
+}
+
+// MARK: - FlatMarkCustomDocumentFixture
+
+/// Document-only path for mounted tests and the playground recipe; unrelated
+/// controls cannot make its content oracle pass.
+public struct FlatMarkCustomDocumentFixture: View {
+    public let model: FlatMarkCustomFixtureModel
+    private let usesRetainedDocument: Bool?
+
+    public init(model: FlatMarkCustomFixtureModel, usesRetainedDocument: Bool? = nil) {
+        self.model = model
+        self.usesRetainedDocument = usesRetainedDocument
+    }
+
+    public var body: some View {
+        let _ = model.refreshRequests
+        let policy = model.policyKind
+        let activateLink: (URL) -> FlatMarkLinkActivationResult = { url in
+            switch url.lastPathComponent {
+            case "herbs":
+                model.lastActivity = "The recipe: Rosemary note: strip the leaves from two sprigs; scatter them over the oiled dough."
+            case "folding":
+                model.lastActivity = "The recipe: Folding note: lift one edge, fold it into the middle, and repeat on all four sides."
+            case "tin":
+                model.lastActivity = "The recipe: Tin note: use a 23 × 33 cm tin and oil the base and corners generously."
+            default:
+                model.lastActivity = "The recipe: Example link handled locally. No browser was opened."
+            }
+            model.linkActivations += 1
+            return .handled
+        }
+        let toggleTask: ((String) -> Void)? = model.allowsTaskEditing ? { updatedMarkdown in
+            model.markdown = updatedMarkdown
+            model.taskUpdates += 1
+            model.lastActivity = "The recipe: Recipe updated. Nice prep work!"
+        } : nil
+        let marker: FlatMarkTaskMarker = model.usesHostTaskMarker ? .custom { isChecked in
+            FlatMarkFixtureTaskMark(isChecked: isChecked)
+        } : .default
+
+        if usesRetainedDocument ?? model.usesRetainedDocument {
+            FlatMarkView(
+                document: model.document,
+                imageLoader: model.loadsImages ? model.loader : nil,
+                unsupportedContentPolicy: policy,
+                linkActivationAction: activateLink,
+                taskToggleAction: toggleTask,
+                taskMarker: marker
+            )
+        } else {
+            FlatMarkView(
+                markdown: model.markdown,
+                baseURL: FlatMarkCustomFixtureModel.baseURL,
+                imageLoader: model.loadsImages ? model.loader : nil,
+                unsupportedContentPolicy: policy,
+                linkActivationAction: activateLink,
+                taskToggleAction: toggleTask,
+                taskMarker: marker
+            )
+        }
+    }
+}
+
+// MARK: - FlatMarkCustomFixtureModel
+
+@MainActor
+@Observable
+public final class FlatMarkCustomFixtureModel {
+    public static let markdown = FlatMarkRecipeSample.markdown
+
+    public static let baseURL = URL(string: "https://example.com/")
+    public var markdown: String {
+        didSet { document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL) }
+    }
+    public private(set) var document: FlatMarkDocument
+    public var usesRetainedDocument = false
+    public var loadsImages = true
+    public var refreshRequests = 0
+    public var policyKind: FlatMarkUnsupportedContentPolicy = .literal
+    public var allowsTaskEditing = true
+    public var usesHostTaskMarker = false
+    public var darkAppearance = false
+    #if !os(macOS)
+    /// Enlarges the recipe through the `accessibility2` Dynamic Type category. AppKit ignores
+    /// Dynamic Type, so macOS exposes no such control.
+    public var enlargedText = false
+    #endif
+    public var rightToLeft = false
+    public var lastActivity = "Your recipe notes and task confirmations appear here."
+    public var linkActivations = 0
+    public var taskUpdates = 0
+    public let imageCalls = FlatMarkRecordedImageLoads()
+    public let loader: FlatMarkImageLoader
+
+    public init(markdown: String = FlatMarkCustomFixtureModel.markdown) {
+        self.markdown = markdown
+        document = FlatMarkDocument(markdown: markdown, baseURL: Self.baseURL)
+        let imageCalls = imageCalls
+        var requests: [URL: URL] = [:]
+        if let baseURL = Self.baseURL {
+            if let file = FlatMarkFixtureResources.focacciaURL {
+                requests[baseURL.appending(path: "focaccia.jpeg")] = file
+            }
+            if let file = FlatMarkFixtureResources.leafURL {
+                requests[baseURL.appending(path: "leaf.png")] = file
+            }
+        }
+        let servedImages = requests
+        loader = FlatMarkImageLoader(configurationID: UUID()) { url in
+            await imageCalls.record(url)
+            guard let file = servedImages[url], let image = fixtureImage(at: file) else {
+                return missingImagePlaceholder
+            }
+            return image
+        }
+    }
+}
+
+// MARK: - Fixture loader images
+
+/// Reads the bundled photo as the native image a host loader returns.
+private func fixtureImage(at url: URL) -> NativeImage? {
+    #if os(macOS)
+        NSImage(contentsOf: url)
+    #else
+        UIImage(contentsOfFile: url.path)
+    #endif
+}
+
+/// Shown for a request the fixture does not serve, so a wrong URL still renders an image.
+private var missingImagePlaceholder: NativeImage {
+    #if os(macOS)
+        NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: nil) ?? NSImage()
+    #else
+        UIImage(systemName: "leaf.fill") ?? UIImage()
+    #endif
+}

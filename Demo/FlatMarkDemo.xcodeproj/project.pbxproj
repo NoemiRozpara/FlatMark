@@ -1,0 +1,704 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0726203EE432FBF84D62E6F4 /* FlatMark in Frameworks */ = {isa = PBXBuildFile; productRef = ADC63E9403AE1C2C3E1B38FD /* FlatMark */; };
+		5D92BF9B4BBE098EB26594E1 /* FlatMarkSelectedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E26EE88D9E9B180E664E55F /* FlatMarkSelectedText.swift */; };
+		744DCB1BED393B786BC575C3 /* FlatMark in Frameworks */ = {isa = PBXBuildFile; productRef = 5B8A100F6C612D1E36BE71F2 /* FlatMark */; };
+		9A7C879F731B20463369E43D /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = CE87C93E4D846F6BB7575855 /* SnapshotTesting */; };
+		C5380D673CABFA1E8BB36D17 /* FlatMark in Frameworks */ = {isa = PBXBuildFile; productRef = 6AD63549C72E92DD67ECAB63 /* FlatMark */; };
+		CCA9A36402EC07D670D07FBC /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 6C545A8FFE0E275918943698 /* SnapshotTesting */; };
+		E6DC9F35DBA75A68D29CE8CC /* FlatMark in Frameworks */ = {isa = PBXBuildFile; productRef = E9970D752CB4689D3687C688 /* FlatMark */; };
+		F3868D1201A0A19C415BA88D /* FlatMarkMountedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D1BB7CC84DDC6A1D5CD6B81 /* FlatMarkMountedView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4FCA5D13B89987D0F00C72B7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1FC2AE5E83C0BF78DA56E22F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 317A23513A1A3906D5A1CF0D;
+			remoteInfo = "FlatMarkDemo-macOS";
+		};
+		A558436686A965FAC1DF76CD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1FC2AE5E83C0BF78DA56E22F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CB6FA4AE9B758801FA718647;
+			remoteInfo = "FlatMarkDemo-iOS";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0D1BB7CC84DDC6A1D5CD6B81 /* FlatMarkMountedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkMountedView.swift; sourceTree = "<group>"; };
+		319812CD76FC3E5B7678A650 /* FlatMarkDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FlatMarkDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4141AEF103F788C406165986 /* FlatMarkDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlatMarkDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E26EE88D9E9B180E664E55F /* FlatMarkSelectedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatMarkSelectedText.swift; sourceTree = "<group>"; };
+		BC597B78B0F28813C1135F11 /* FlatMarkSnapshots-macOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FlatMarkSnapshots-macOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA9036C75A2FD57A349009D6 /* FlatMark */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FlatMark; path = ..; sourceTree = SOURCE_ROOT; };
+		F2046C61E42C23CB802ED343 /* FlatMarkSnapshots-iOS.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = "FlatMarkSnapshots-iOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		780AA97230A5CDDA008A72E7 /* FlatMarkDemo */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = FlatMarkDemo; sourceTree = "<group>"; };
+		780AA97F30A5CDDD008A72E7 /* FlatMarkFixtures */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = FlatMarkFixtures; path = ../Support/FlatMarkFixtures; sourceTree = "<group>"; };
+		780AA9B830A5CDEE008A72E7 /* Snapshots */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = Snapshots; path = ../Tests/FlatMarkTests/Snapshots; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2EA121FFBDFC6830CDBAD1CD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C5380D673CABFA1E8BB36D17 /* FlatMark in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		30C831D350A7CED92D8B1A61 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				744DCB1BED393B786BC575C3 /* FlatMark in Frameworks */,
+				CCA9A36402EC07D670D07FBC /* SnapshotTesting in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B92E3C14CDEF66195D2415A4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0726203EE432FBF84D62E6F4 /* FlatMark in Frameworks */,
+				9A7C879F731B20463369E43D /* SnapshotTesting in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F88BDAC015D9AA9DC352D8E0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E6DC9F35DBA75A68D29CE8CC /* FlatMark in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1D4221F6E1D7779BFDA94A77 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				CA9036C75A2FD57A349009D6 /* FlatMark */,
+			);
+			name = Packages;
+			sourceTree = SOURCE_ROOT;
+		};
+		447D00D3D51215544ABB68A6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				319812CD76FC3E5B7678A650 /* FlatMarkDemo.app */,
+				4141AEF103F788C406165986 /* FlatMarkDemo.app */,
+				F2046C61E42C23CB802ED343 /* FlatMarkSnapshots-iOS.xctest */,
+				BC597B78B0F28813C1135F11 /* FlatMarkSnapshots-macOS.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		63DD2047F159258B3057B062 /* Rendering */ = {
+			isa = PBXGroup;
+			children = (
+				0D1BB7CC84DDC6A1D5CD6B81 /* FlatMarkMountedView.swift */,
+				6E26EE88D9E9B180E664E55F /* FlatMarkSelectedText.swift */,
+			);
+			name = Rendering;
+			path = ../Tests/FlatMarkTests/Rendering;
+			sourceTree = "<group>";
+		};
+		89CB454298E034C0E19E72ED = {
+			isa = PBXGroup;
+			children = (
+				780AA97230A5CDDA008A72E7 /* FlatMarkDemo */,
+				780AA97F30A5CDDD008A72E7 /* FlatMarkFixtures */,
+				1D4221F6E1D7779BFDA94A77 /* Packages */,
+				63DD2047F159258B3057B062 /* Rendering */,
+				780AA9B830A5CDEE008A72E7 /* Snapshots */,
+				447D00D3D51215544ABB68A6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		317A23513A1A3906D5A1CF0D /* FlatMarkDemo-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 872246FBCD649B0925BA7D7B /* Build configuration list for PBXNativeTarget "FlatMarkDemo-macOS" */;
+			buildPhases = (
+				9023D02797A10B39FA30568A /* Sources */,
+				833FED21C121534FC65427A9 /* Resources */,
+				F88BDAC015D9AA9DC352D8E0 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				780AA97230A5CDDA008A72E7 /* FlatMarkDemo */,
+				780AA97F30A5CDDD008A72E7 /* FlatMarkFixtures */,
+			);
+			name = "FlatMarkDemo-macOS";
+			packageProductDependencies = (
+				E9970D752CB4689D3687C688 /* FlatMark */,
+			);
+			productName = "FlatMarkDemo-macOS";
+			productReference = 4141AEF103F788C406165986 /* FlatMarkDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4373BA3CAB50676819A070C7 /* FlatMarkSnapshots-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3519FD85937FABA74DD73DA0 /* Build configuration list for PBXNativeTarget "FlatMarkSnapshots-macOS" */;
+			buildPhases = (
+				016606BF34F1C4D8657B2022 /* Sources */,
+				13692BD6ECECC6B25223A371 /* Resources */,
+				B92E3C14CDEF66195D2415A4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E8C64FFEA5CD4489622E5F4A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				780AA97F30A5CDDD008A72E7 /* FlatMarkFixtures */,
+				780AA9B830A5CDEE008A72E7 /* Snapshots */,
+			);
+			name = "FlatMarkSnapshots-macOS";
+			packageProductDependencies = (
+				ADC63E9403AE1C2C3E1B38FD /* FlatMark */,
+				CE87C93E4D846F6BB7575855 /* SnapshotTesting */,
+			);
+			productName = "FlatMarkSnapshots-macOS";
+			productReference = BC597B78B0F28813C1135F11 /* FlatMarkSnapshots-macOS.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		6E1B288DEB8EEBD4856927B3 /* FlatMarkSnapshots-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 08043043C5D01BB74D5FA479 /* Build configuration list for PBXNativeTarget "FlatMarkSnapshots-iOS" */;
+			buildPhases = (
+				DE52AC0EB7411EABA89CC6D5 /* Sources */,
+				A4089B259D8AD031BEEFE612 /* Resources */,
+				30C831D350A7CED92D8B1A61 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8B274854CC9DA4FBC9C2C949 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				780AA97F30A5CDDD008A72E7 /* FlatMarkFixtures */,
+				780AA9B830A5CDEE008A72E7 /* Snapshots */,
+			);
+			name = "FlatMarkSnapshots-iOS";
+			packageProductDependencies = (
+				5B8A100F6C612D1E36BE71F2 /* FlatMark */,
+				6C545A8FFE0E275918943698 /* SnapshotTesting */,
+			);
+			productName = "FlatMarkSnapshots-iOS";
+			productReference = F2046C61E42C23CB802ED343 /* FlatMarkSnapshots-iOS.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CB6FA4AE9B758801FA718647 /* FlatMarkDemo-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0B281CBCF725BE80560B47 /* Build configuration list for PBXNativeTarget "FlatMarkDemo-iOS" */;
+			buildPhases = (
+				3436A0BFE9C0455F5B5C5104 /* Sources */,
+				B9EDE4B503444457632B2073 /* Resources */,
+				2EA121FFBDFC6830CDBAD1CD /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				780AA97230A5CDDA008A72E7 /* FlatMarkDemo */,
+				780AA97F30A5CDDD008A72E7 /* FlatMarkFixtures */,
+			);
+			name = "FlatMarkDemo-iOS";
+			packageProductDependencies = (
+				6AD63549C72E92DD67ECAB63 /* FlatMark */,
+			);
+			productName = "FlatMarkDemo-iOS";
+			productReference = 319812CD76FC3E5B7678A650 /* FlatMarkDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1FC2AE5E83C0BF78DA56E22F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1200;
+				TargetAttributes = {
+					317A23513A1A3906D5A1CF0D = {
+						ProvisioningStyle = Automatic;
+					};
+					CB6FA4AE9B758801FA718647 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = DAF942BF35EE3B04822206D7 /* Build configuration list for PBXProject "FlatMarkDemo" */;
+			compatibilityVersion = "Xcode 10.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 89CB454298E034C0E19E72ED;
+			packageReferences = (
+				131A55304638CE176106F55F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+			);
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CB6FA4AE9B758801FA718647 /* FlatMarkDemo-iOS */,
+				317A23513A1A3906D5A1CF0D /* FlatMarkDemo-macOS */,
+				6E1B288DEB8EEBD4856927B3 /* FlatMarkSnapshots-iOS */,
+				4373BA3CAB50676819A070C7 /* FlatMarkSnapshots-macOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		13692BD6ECECC6B25223A371 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		833FED21C121534FC65427A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A4089B259D8AD031BEEFE612 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B9EDE4B503444457632B2073 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		016606BF34F1C4D8657B2022 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F3868D1201A0A19C415BA88D /* FlatMarkMountedView.swift in Sources */,
+				5D92BF9B4BBE098EB26594E1 /* FlatMarkSelectedText.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3436A0BFE9C0455F5B5C5104 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9023D02797A10B39FA30568A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE52AC0EB7411EABA89CC6D5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8B274854CC9DA4FBC9C2C949 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CB6FA4AE9B758801FA718647 /* FlatMarkDemo-iOS */;
+			targetProxy = A558436686A965FAC1DF76CD /* PBXContainerItemProxy */;
+		};
+		E8C64FFEA5CD4489622E5F4A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 317A23513A1A3906D5A1CF0D /* FlatMarkDemo-macOS */;
+			targetProxy = 4FCA5D13B89987D0F00C72B7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		20FF19A5780E7232193BACD4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		2401C3E1276916DFF56B4E59 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.flatmark.snapshots.macos;
+				SDKROOT = macosx;
+				TEST_HOST = "";
+			};
+			name = Debug;
+		};
+		36525A9ABED17A00D32E9C46 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_KEY_CFBundleDisplayName = "FlatMark Demo";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.flatmark.FlatMarkFixtureHost;
+				PRODUCT_NAME = FlatMarkDemo;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		52F4D06A30857BD4DB0AE5FC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "FlatMark Demo";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.flatmark.FlatMarkFixtureHost.macos;
+				PRODUCT_NAME = FlatMarkDemo;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		5690820048BAC0E8B200E764 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_KEY_CFBundleDisplayName = "FlatMark Demo";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.flatmark.FlatMarkFixtureHost;
+				PRODUCT_NAME = FlatMarkDemo;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		6B0C5A871AB288AD772BE5DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "FlatMark Demo";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.flatmark.FlatMarkFixtureHost.macos;
+				PRODUCT_NAME = FlatMarkDemo;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		6CB44073FA43AFB9212EF040 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		C20E724E5C8E5A260002DA91 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.flatmark.snapshots.macos;
+				SDKROOT = macosx;
+				TEST_HOST = "";
+			};
+			name = Release;
+		};
+		E462EE84BC82CFBDE114338C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.flatmark.snapshots;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FlatMarkDemo.app/FlatMarkDemo";
+			};
+			name = Debug;
+		};
+		F6A82CB981D7762888D47E08 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.flatmark.snapshots;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FlatMarkDemo.app/FlatMarkDemo";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		08043043C5D01BB74D5FA479 /* Build configuration list for PBXNativeTarget "FlatMarkSnapshots-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E462EE84BC82CFBDE114338C /* Debug */,
+				F6A82CB981D7762888D47E08 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1A0B281CBCF725BE80560B47 /* Build configuration list for PBXNativeTarget "FlatMarkDemo-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				36525A9ABED17A00D32E9C46 /* Debug */,
+				5690820048BAC0E8B200E764 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		3519FD85937FABA74DD73DA0 /* Build configuration list for PBXNativeTarget "FlatMarkSnapshots-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2401C3E1276916DFF56B4E59 /* Debug */,
+				C20E724E5C8E5A260002DA91 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		872246FBCD649B0925BA7D7B /* Build configuration list for PBXNativeTarget "FlatMarkDemo-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6B0C5A871AB288AD772BE5DF /* Debug */,
+				52F4D06A30857BD4DB0AE5FC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DAF942BF35EE3B04822206D7 /* Build configuration list for PBXProject "FlatMarkDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				20FF19A5780E7232193BACD4 /* Debug */,
+				6CB44073FA43AFB9212EF040 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		131A55304638CE176106F55F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing.git";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 1.19.6;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5B8A100F6C612D1E36BE71F2 /* FlatMark */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FlatMark;
+		};
+		6AD63549C72E92DD67ECAB63 /* FlatMark */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FlatMark;
+		};
+		6C545A8FFE0E275918943698 /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 131A55304638CE176106F55F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+		ADC63E9403AE1C2C3E1B38FD /* FlatMark */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FlatMark;
+		};
+		CE87C93E4D846F6BB7575855 /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 131A55304638CE176106F55F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+		E9970D752CB4689D3687C688 /* FlatMark */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FlatMark;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 1FC2AE5E83C0BF78DA56E22F /* Project object */;
+}

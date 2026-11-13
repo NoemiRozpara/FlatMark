@@ -1,0 +1,72 @@
+{
+  "revision": "d02a16ae81e45de63ca9baefebb7cd4e476dde32",
+  "hardware": "iPhone XR (iPhone11,8)",
+  "os": "iOS 18.7.12 (22H390)",
+  "host": "Apple M3 Pro; macOS 27.0.1 (26A434)",
+  "xcode": "Xcode 27.0\nBuild version 27A266a",
+  "swift": "swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)\nTarget: arm64-apple-macosx27.0.0",
+  "configuration": "Release",
+  "deployment_target": "iOS 17.0",
+  "swift_language_mode": "6.0",
+  "strict_concurrency": "complete",
+  "power": "Wired USB connection; charging indicator visible in preview captures. No battery statistics collected.",
+  "conditions": "Benchmark app kept foregrounded. No overlapping benchmark runs. Power, thermals, and other activity are not controlled.",
+  "thermal_observations": "Ordinary, large-100, large-1000, and nested started fair. Links-tables started serious after the nested-fixture timeout. Not nominal-thermal performance.",
+  "screen_points": [414, 896],
+  "capture_scale": 2,
+  "appearance": "Dark",
+  "visual_inspection": "Sample 1 of all four completed fixtures inspected; document content visible, with horizontal table clipping. Samples 2 and 3 match sample 1 pixel-for-pixel below the top 100-pixel status region. No nested capture completed.",
+  "failure": "Nested warmup logged before_main_mount_layout, then produced no layout timing or capture marker within the driver's 180-second wait limit. Operator stopped the process. No retry or termination-cause diagnosis.",
+  "source_record": "../snapshot.json",
+  "lockfile": "../Package.resolved",
+  "resolved_dependencies": {
+    "swift-cmark": {
+      "revision": "08ddb528923cc1a6527e02b7a1aee9e516ca749a",
+      "version": "0.9.0"
+    },
+    "swift-custom-dump": {
+      "revision": "4fb9e7cbb4b8f5a7354005db39447f570d6b3e19",
+      "version": "1.7.3"
+    },
+    "swift-issue-reporting": {
+      "revision": "b23bb4493c439d3e05152bc167014235ba3d47fc",
+      "version": "2.1.2"
+    },
+    "swift-markdown": {
+      "revision": "3c6f9523da3a1ec2fd829673e472d95b8097a3b8",
+      "version": "0.8.0"
+    },
+    "swift-snapshot-testing": {
+      "revision": "1488390b0735e726564b948bf08b384398bdab5c",
+      "version": "1.19.7"
+    },
+    "swift-syntax": {
+      "revision": "050f1a346fbbac0ca2cfb15a95274f7bd1cf0ccf",
+      "version": "604.0.0"
+    }
+  },
+  "host_sha256": {
+    "Host/FixtureHelpers.swift": "17e66af78fabdbaab436617b9c2f20a7e282f99ebf50f3f6a80739354c0b6d6c",
+    "Host/PreviewBenchmarkApp.swift": "93d8ffd9ea6cc652315f07aebacc1aff05967a47426f8a78b6f61a894d084c83",
+    "Host/capture.sh": "4501fc8563ba668c19e70edc50b83193f22c9764e613d6cedf77bf0c9c5fc4f5"
+  },
+  "project_sha256": "47558c7a2bcdcd5eec8c0527a7a9dde7705382d8b9bd83a4d6ddaa63a146f6d0",
+  "project_path_placeholders": "${REPOSITORY} is the checkout root; ${GENERATED_HOST} is the disposable generated helper directory.",
+  "build_command": [
+    "mobilebuildmcp",
+    "device",
+    "build",
+    "--project-path",
+    "<GENERATED_PROJECT>",
+    "--scheme",
+    "FlatMarkRenderDevice",
+    "--configuration",
+    "Release",
+    "--derived-data-path",
+    "<DERIVED_DATA>",
+    "--extra-args",
+    "DEVELOPMENT_TEAM=<TEAM_ID>",
+    "-allowProvisioningUpdates"
+  ],
+  "build_warning": "SwiftShims precompiled module file not found warning; build succeeded."
+}

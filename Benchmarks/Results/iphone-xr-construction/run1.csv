@@ -1,0 +1,26 @@
+# device=iPhone11,8; OS=Version 18.7.12 (Build 22H390)
+# start=2026-11-12 14:43:16 +0000; thermal=0; lowPower=false
+FlatMark construction benchmark: Release required; 5 warmups; 30 samples; ms; no SwiftUI rendering
+fixture,scenario,samples,median_ms,p95_ms,min_ms
+# ordinary: 1 section; UTF8=172
+ordinary,initial,30,1.223125,1.472125,1.176541
+ordinary,source-change,30,1.311833,1.615167,1.293167
+ordinary,baseURL-change,30,1.223916,1.850583,1.214875
+# large-100: 100 sections; UTF8=17200
+large-100,initial,30,113.118083,116.450959,112.694250
+large-100,source-change,30,113.540500,114.131459,112.961500
+large-100,baseURL-change,30,113.317542,113.857375,112.974208
+# large-1000: 1000 sections; UTF8=172000
+large-1000,initial,30,1133.814834,1147.768708,1132.108000
+large-1000,source-change,30,1193.982042,1217.560541,1160.170666
+large-1000,baseURL-change,30,1223.524834,1253.099750,1202.536667
+# nested: 32 quote levels + 32 list levels; UTF8=1416
+nested,initial,30,5.640375,5.701250,5.069000
+nested,source-change,30,5.633667,5.846583,5.207500
+nested,baseURL-change,30,5.534208,5.701916,5.078541
+# links-tables: 500 rows, 3 columns, 1500 relative links; UTF8=37107
+links-tables,initial,30,40.565084,41.192334,39.455583
+links-tables,source-change,30,40.064375,41.284625,39.342208
+links-tables,baseURL-change,30,39.673791,40.864000,39.254333
+Consumed snapshot checksum: 351684165
+# end=2026-11-12 14:46:10 +0000; thermal=0

@@ -1,0 +1,18 @@
+{
+  "revision": "d02a16ae81e45de63ca9baefebb7cd4e476dde32",
+  "source_record": "../snapshot.json",
+  "environment_record": "../macos-construction/environment.json",
+  "power": "Battery power at start and end of macOS measurement set.",
+  "conditions": "No overlapping benchmark runs. Power, thermals, and background activity are not controlled.",
+  "command": "FLATMARK_CAPTURE_DIR=Benchmarks/Results/macos-preview/captures .build/release/FlatMarkConstructionBenchmark --preview",
+  "processes": 1,
+  "warmups_per_fixture": 1,
+  "samples_per_fixture": 3,
+  "viewport_points": [
+    390,
+    844
+  ],
+  "appearance": "Dark",
+  "capture_scale": 2,
+  "visual_inspection": "Sample 1 of all five fixtures inspected. Samples 1, 2, and 3 are byte-identical per fixture. Document content is visible; table content clips horizontally. Not a layout qualification."
+}

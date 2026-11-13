@@ -1,0 +1,60 @@
+{
+  "name": "FlatMarkRenderDevice",
+  "options": {
+    "deploymentTarget": {
+      "iOS": "17.0"
+    }
+  },
+  "packages": {
+    "FlatMark": {
+      "path": "${REPOSITORY}"
+    }
+  },
+  "settings": {
+    "base": {
+      "SWIFT_VERSION": "6.0",
+      "CODE_SIGN_STYLE": "Automatic",
+      "SWIFT_STRICT_CONCURRENCY": "complete"
+    }
+  },
+  "targets": {
+    "FlatMarkRenderDevice": {
+      "type": "application",
+      "platform": "iOS",
+      "sources": [
+        "${REPOSITORY}/Benchmarks/DeviceHost/PreviewBenchmarkApp.swift",
+        "${GENERATED_HOST}/FixtureHelpers.swift"
+      ],
+      "dependencies": [
+        {
+          "package": "FlatMark"
+        }
+      ],
+      "settings": {
+        "base": {
+          "PRODUCT_BUNDLE_IDENTIFIER": "dev.flatmark.RenderBenchmark",
+          "TARGETED_DEVICE_FAMILY": "1,2",
+          "GENERATE_INFOPLIST_FILE": "YES",
+          "INFOPLIST_KEY_UILaunchScreen_Generation": "YES",
+          "INFOPLIST_KEY_UIRequiresFullScreen": "YES",
+          "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES"
+        }
+      }
+    }
+  },
+  "schemes": {
+    "FlatMarkRenderDevice": {
+      "build": {
+        "targets": {
+          "FlatMarkRenderDevice": "all"
+        }
+      },
+      "run": {
+        "config": "Release"
+      },
+      "archive": {
+        "config": "Release"
+      }
+    }
+  }
+}

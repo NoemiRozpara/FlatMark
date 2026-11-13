@@ -1,0 +1,51 @@
+name: CI
+
+# Manual dispatch only; hosted verification and automatic-trigger activation remain pending.
+on:
+  workflow_dispatch:
+    inputs:
+      subset:
+        description: 'PR subset, weekly subset, or iOS 17.5 feasibility (no automatic runs yet)'
+        type: choice
+        default: pr
+        options:
+          - pr
+          - weekly
+          - ios17-feasibility
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    if: inputs.subset != 'ios17-feasibility'
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: ${{ fromJSON(inputs.subset == 'weekly' && '["macos-26-xcode26"]' || '["macos-minimum","macos-current"]') }}
+    uses: ./.github/workflows/unit-lane.yml
+    with:
+      lane: ${{ matrix.lane }}
+      platform: macos
+      runner: ${{ matrix.lane == 'macos-minimum' && 'macos-15' || matrix.lane == 'macos-current' && 'xcode-27' || 'macos-26' }}
+      xcode: ${{ matrix.lane == 'macos-minimum' && '/Applications/Xcode_26.0.1.app' || matrix.lane == 'macos-current' && '/Applications/Xcode_27.2.app' || '/Applications/Xcode_26.6.app' }}
+      host-major: ${{ matrix.lane == 'macos-minimum' && '15' || matrix.lane == 'macos-current' && '27' || '26' }}
+
+  ios:
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: ${{ fromJSON(inputs.subset == 'ios17-feasibility' && '["ios-17-feasibility"]' || inputs.subset == 'weekly' && '["ios-26","ios-27"]' || '["ios-unit"]') }}
+    uses: ./.github/workflows/unit-lane.yml
+    with:
+      lane: ${{ matrix.lane }}
+      platform: ios
+      runner: ${{ matrix.lane == 'ios-17-feasibility' && 'macos-15' || matrix.lane == 'ios-27' && 'xcode-27' || 'macos-26' }}
+      xcode: ${{ matrix.lane == 'ios-17-feasibility' && '/Applications/Xcode_26.0.1.app' || matrix.lane == 'ios-27' && '/Applications/Xcode_27.2.app' || '/Applications/Xcode_26.6.app' }}
+      host-major: ${{ matrix.lane == 'ios-17-feasibility' && '15' || matrix.lane == 'ios-27' && '27' || '26' }}
+      ios-version: ${{ matrix.lane == 'ios-17-feasibility' && '17.5' || matrix.lane == 'ios-27' && '27' || '26' }}
+      download-runtime: ${{ matrix.lane == 'ios-17-feasibility' }}

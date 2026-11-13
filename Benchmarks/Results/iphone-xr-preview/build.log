@@ -1,0 +1,19 @@
+
+🔨 Build
+
+   Scheme: FlatMarkRenderDevice
+   Project: /tmp/flatmark-render-device/FlatMarkRenderDevice.xcodeproj
+   Configuration: Release
+   Platform: iOS
+   Derived Data: /tmp/flatmark-render-device-current-build
+
+Warnings (1):
+
+  ⚠ /tmp/flatmark-render-device/-current-build/SDKExplicitPrecompiledModules/SwiftShims-1H6WB7Q9VGTGLASY3N4BGX3AM.pcm: No such file or directory
+
+✅ Build succeeded. (⏱️ 20.7s)
+  └ Files:
+     └ Build Logs: <LOCAL_BUILD_LOG>
+
+Next steps:
+1. Get built device app path: mobilebuildmcp device get-app-path --scheme FlatMarkRenderDevice --derived-data-path /tmp/flatmark-render-device-current-build

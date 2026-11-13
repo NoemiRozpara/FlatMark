@@ -1,0 +1,23 @@
+FlatMark construction benchmark: Release required; 5 warmups; 30 samples; ms; no SwiftUI rendering
+fixture,scenario,samples,median_ms,p95_ms,min_ms
+# ordinary: 1 section; UTF8=172
+ordinary,initial,30,0.413125,0.431625,0.406458
+ordinary,source-change,30,0.455375,0.463625,0.450750
+ordinary,baseURL-change,30,0.407292,0.412125,0.401750
+# large-100: 100 sections; UTF8=17200
+large-100,initial,30,39.030417,39.386084,38.896666
+large-100,source-change,30,39.716542,40.549667,38.603167
+large-100,baseURL-change,30,39.665041,40.499334,39.434167
+# large-1000: 1000 sections; UTF8=172000
+large-1000,initial,30,395.177000,398.527667,391.413541
+large-1000,source-change,30,391.832667,401.112917,385.995417
+large-1000,baseURL-change,30,388.200917,394.950583,384.546125
+# nested: 32 quote levels + 32 list levels; UTF8=1416
+nested,initial,30,1.691292,1.732542,1.676292
+nested,source-change,30,1.735209,1.757750,1.719083
+nested,baseURL-change,30,1.695542,1.708166,1.676708
+# links-tables: 500 rows, 3 columns, 1500 relative links; UTF8=37107
+links-tables,initial,30,13.689125,13.800792,13.531333
+links-tables,source-change,30,13.644292,13.734417,13.558291
+links-tables,baseURL-change,30,13.694708,14.079791,13.523750
+Consumed snapshot checksum: 351684165

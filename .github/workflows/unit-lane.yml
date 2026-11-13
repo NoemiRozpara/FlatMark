@@ -1,0 +1,222 @@
+name: Unit lane
+
+on:
+  workflow_call:
+    inputs:
+      lane:
+        required: true
+        type: string
+      platform:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      xcode:
+        required: true
+        type: string
+      host-major:
+        required: true
+        type: string
+      ios-version:
+        default: ''
+        type: string
+      download-runtime:
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: ${{ inputs.lane }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: ${{ inputs.platform == 'ios' && 45 || 30 }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      XCODE_PATH: ${{ inputs.xcode }}
+      FLATMARK_SNAPSHOT_RECORD: never
+      EXPECTED_HOST: ${{ inputs.host-major }}
+      IOS_VERSION: ${{ inputs.ios-version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select and log the execution environment
+        run: |
+          sw_vers
+          test "$(sw_vers -productVersion | cut -d. -f1)" = "$EXPECTED_HOST"
+          test -d "$XCODE_PATH/Contents/Developer"
+          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+          echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
+          echo "$XCODE_PATH/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin" >> "$GITHUB_PATH"
+          xcodebuild -version
+          swift --version
+          df -h /
+          {
+            sw_vers
+            echo "Xcode path: $XCODE_PATH"
+            xcodebuild -version
+            swift --version
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cache macOS SwiftPM build only
+        if: inputs.platform == 'macos'
+        uses: actions/cache@v6
+        with:
+          path: .build
+          key: ${{ runner.os }}-${{ inputs.runner }}-${{ env.XCODE_PATH }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: ${{ runner.os }}-${{ inputs.runner }}-${{ env.XCODE_PATH }}-spm-
+
+      - name: Run macOS unit tests (no snapshot suites)
+        if: inputs.platform == 'macos'
+        run: |
+          swift test --skip Snapshot 2>&1 | tee "$RUNNER_TEMP/unit-tests.log"
+
+      - name: Report and require executed macOS tests
+        if: always() && inputs.platform == 'macos'
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          log = pathlib.Path(os.environ['RUNNER_TEMP'], 'unit-tests.log').read_text()
+          counts = re.findall(r'Test run with (\d+) tests? .*(?:passed|failed)', log)
+          if not counts or int(counts[-1]) == 0:
+              raise SystemExit('Missing nonzero Swift Testing result count')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(f'\nExecuted {counts[-1]} macOS unit tests (snapshots excluded).\n')
+          PY
+
+      - name: Provision iOS 17.5 runtime if absent (bounded feasibility trial)
+        if: inputs.download-runtime
+        run: |
+          xcrun simctl list runtimes -j > "$RUNNER_TEMP/runtimes.json"
+          if ! jq -e --arg version "$IOS_VERSION" \
+            '.runtimes[] | select(.isAvailable and .version == $version) | select(.identifier | startswith("com.apple.CoreSimulator.SimRuntime.iOS-"))' \
+            "$RUNNER_TEMP/runtimes.json" > /dev/null; then
+            # Failure is a feasibility result, not permission to select a newer runtime.
+            xcodebuild -downloadPlatform iOS -buildVersion "$IOS_VERSION" \
+              2>&1 | tee "$RUNNER_TEMP/runtime-download.log"
+          fi
+
+      - name: Create and boot the intended iOS simulator
+        if: inputs.platform == 'ios'
+        id: sim
+        run: |
+          xcrun simctl list runtimes -j > "$RUNNER_TEMP/runtimes.json"
+          runtime=$(python3 - <<'PY'
+          import json, os, pathlib
+          requested = os.environ['IOS_VERSION']
+          runtimes = json.loads(pathlib.Path(os.environ['RUNNER_TEMP'], 'runtimes.json').read_text())['runtimes']
+          candidates = [r for r in runtimes if r.get('isAvailable')
+                        and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-')
+                        and (r['version'] == requested if '.' in requested
+                             else r['version'].split('.')[0] == requested)
+                        and not any(word in r['name'].lower() for word in ('beta', 'rc'))]
+          if not candidates:
+              raise SystemExit(f'No available GA iOS {requested} runtime; no substitution allowed')
+          selected = max(candidates, key=lambda r: tuple(map(int, r['version'].split('.'))))
+          print(selected['identifier'])
+          PY
+          )
+          # The SE works with iOS 17; newer runtimes use their matching iPhone generation.
+          case "$IOS_VERSION" in
+            17.5) device='com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation' ;;
+            26) device='com.apple.CoreSimulator.SimDeviceType.iPhone-17' ;;
+            27) device='com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro' ;;
+            *) echo 'Unapproved iOS runtime selection' >&2; exit 1 ;;
+          esac
+          udid=$(xcrun simctl create "FlatMark CI $GITHUB_RUN_ID" "$device" "$runtime")
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          echo "Simulator: $device / $runtime / $udid" | tee -a "$GITHUB_STEP_SUMMARY"
+          xcrun simctl list runtimes
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+
+      - name: Run iOS package unit tests (no snapshot suites)
+        if: inputs.platform == 'ios'
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
+        run: |
+          # Central exclusion list: update it whenever a new pixel snapshot suite is added.
+          suites=(
+            FlatMarkEmptyStructureSnapshotTests
+            FlatMarkImagePhaseSnapshotTests
+            FlatMarkInlineFlowSnapshotTests
+            FlatMarkOmissionSpacingSnapshotTests
+            FlatMarkPolicyTransitionSnapshotTests
+            FlatMarkRecipeIntegrationSnapshotTests
+            FlatMarkTableSnapshotTests
+            FlatMarkTaskMarkerSnapshotTests
+          )
+          exclusions=()
+          for suite in "${suites[@]}"; do
+            exclusions+=("-skip-testing:FlatMarkTests/$suite")
+          done
+          xcodebuild test -scheme FlatMark-Package \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData-iOS" \
+            -resultBundlePath "$RUNNER_TEMP/unit-tests.xcresult" \
+            "${exclusions[@]}" \
+            2>&1 | tee "$RUNNER_TEMP/unit-tests.log"
+
+      - name: Report and require executed iOS tests
+        if: always() && inputs.platform == 'ios' && steps.sim.outputs.udid != ''
+        run: |
+          xcrun xcresulttool get test-results summary \
+            --path "$RUNNER_TEMP/unit-tests.xcresult" > "$RUNNER_TEMP/test-summary.json"
+          python3 - <<'PY'
+          import json, os, pathlib
+          result = json.loads(pathlib.Path(os.environ['RUNNER_TEMP'], 'test-summary.json').read_text())
+          count = result['passedTests'] + result['failedTests']
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(f'\nExecuted {count} iOS unit tests: {result["passedTests"]} passed, '
+                            f'{result["failedTests"]} failed (snapshots excluded).\n')
+          if count <= 0:
+              raise SystemExit('No iOS tests executed')
+          PY
+
+      - name: Build matching demo (compile-only, no runtime coverage)
+        env:
+          PLATFORM: ${{ inputs.platform }}
+        run: |
+          if [ "$PLATFORM" = ios ]; then
+            scheme=FlatMarkDemo-iOS
+            destination='generic/platform=iOS Simulator'
+          else
+            scheme=FlatMarkDemo-macOS
+            destination='platform=macOS,arch=arm64'
+          fi
+          xcodebuild build -project Demo/FlatMarkDemo.xcodeproj \
+            -scheme "$scheme" -configuration Debug -destination "$destination" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData-demo" CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee "$RUNNER_TEMP/demo-build.log"
+          echo "$scheme: compile-only build passed; no demo runtime coverage." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up the simulator
+        if: always() && steps.sim.outputs.udid != ''
+        env:
+          SIMULATOR_ID: ${{ steps.sim.outputs.udid }}
+        run: |
+          xcrun simctl shutdown "$SIMULATOR_ID" || true
+          xcrun simctl delete "$SIMULATOR_ID"
+
+      - name: Keep small failure diagnostics
+        if: failure()
+        run: |
+          mkdir -p "$RUNNER_TEMP/failure-diagnostics"
+          for file in unit-tests.log demo-build.log runtime-download.log test-summary.json runtimes.json; do
+            if [ -f "$RUNNER_TEMP/$file" ]; then
+              tail -c 1000000 "$RUNNER_TEMP/$file" > "$RUNNER_TEMP/failure-diagnostics/$file"
+            fi
+          done
+
+      - name: Upload failure diagnostics only (no images or result bundles)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: diagnostics-${{ inputs.lane }}
+          path: ${{ runner.temp }}/failure-diagnostics
+          if-no-files-found: ignore
+          retention-days: 7

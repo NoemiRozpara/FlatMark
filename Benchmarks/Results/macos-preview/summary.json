@@ -1,0 +1,9 @@
+{
+  "complete": true,
+  "processes": 1,
+  "fixtures": 5,
+  "samples_per_scenario": 3,
+  "scenarios": 15,
+  "checksum": 13388676,
+  "captures": 20
+}

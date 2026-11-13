@@ -1,0 +1,56 @@
+{
+  "name": "FlatMarkConstructionDevice",
+  "options": {
+    "deploymentTarget": {
+      "iOS": "17.0"
+    }
+  },
+  "packages": {
+    "FlatMark": {
+      "path": "${REPOSITORY}"
+    }
+  },
+  "settings": {
+    "base": {
+      "SWIFT_VERSION": "6.0",
+      "CODE_SIGN_STYLE": "Automatic",
+      "SWIFT_STRICT_CONCURRENCY": "complete"
+    }
+  },
+  "targets": {
+    "FlatMarkConstructionDevice": {
+      "type": "application",
+      "platform": "iOS",
+      "sources": [
+        "${REPOSITORY}/Benchmarks/Results/iphone-xr-construction/Host"
+      ],
+      "dependencies": [
+        {
+          "package": "FlatMark"
+        }
+      ],
+      "settings": {
+        "base": {
+          "PRODUCT_BUNDLE_IDENTIFIER": "dev.flatmark.ConstructionBenchmark",
+          "TARGETED_DEVICE_FAMILY": "1,2",
+          "GENERATE_INFOPLIST_FILE": "YES",
+          "INFOPLIST_KEY_UILaunchScreen_Generation": "YES",
+          "INFOPLIST_KEY_UIRequiresFullScreen": "YES",
+          "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES"
+        }
+      }
+    }
+  },
+  "schemes": {
+    "FlatMarkConstructionDevice": {
+      "build": {
+        "targets": {
+          "FlatMarkConstructionDevice": "all"
+        }
+      },
+      "run": {
+        "config": "Release"
+      }
+    }
+  }
+}
