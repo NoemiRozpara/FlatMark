@@ -180,7 +180,7 @@ construction, not layout or rendering. See [document contracts](Documentation/Us
 
 - Xcode 26.0+ / Swift 6.2
 - iOS 17 / macOS 15
-- [swift-markdown](https://github.com/swiftlang/swift-markdown) 0.8.x
+- [swift-markdown](https://github.com/swiftlang/swift-markdown) 0.9.x
 
 See [contributor guidance](Documentation/Contributing/BuildAndTest.md#toolchain) for platform-floor rationale and
 verification boundaries.
