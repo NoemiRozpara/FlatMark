@@ -1,9 +1,9 @@
 # Current benchmark results
 
-Recorded on **2026-11-12** from FlatMark commit
-`d02a16ae81e45de63ca9baefebb7cd4e476dde32`, in Release, with unchanged library and construction-harness
-inputs throughout measurement. Documentation edits were uncommitted. The device construction adapter
-is preserved under [Host](iphone-xr-construction/Host); no timed construction work was changed.
+Recorded on **2026-11-13** from FlatMark commit
+`2775a791f073d4c272bce5833eef10abdc4a8f12` (0.1.0), in Release, with unchanged library,
+construction harness, device hosts, fixtures, manifest, and lockfile throughout measurement.
+Sanitizer and guide edits made during recording were uncommitted; no measured input changed.
 
 These results describe this source and these environments, not all supported devices or OS versions.
 See the [benchmark guide](../README.md) for fixtures, interval definitions, and regression policy.
@@ -15,16 +15,17 @@ See the [benchmark guide](../README.md) for fixtures, interval definitions, and 
 | Hardware | Apple M3 Pro, 12 CPU cores, 36 GiB memory | iPhone XR (`iPhone11,8`) |
 | OS | macOS 27.0.1 (26A434) | iOS 18.7.12 (22H390) |
 | Build toolchain | Xcode 27.0 (27A266a), Swift 6.4 | Same host and toolchain |
-| Power | Battery power | Wired USB; charging indicator visible in preview captures |
-| Construction thermal observations | Not sampled by the construction-only harness | Nominal at each process start; first two ended nominal, third ended fair |
-| Preview thermal observations | Nominal throughout | Fair at the start of ordinary, large, and nested fixtures; serious at the start of links/tables |
+| Power | Battery power; no charger connected | Wired USB for the whole set; battery level and charging state not collected |
+| Construction thermal observations | Not sampled by the construction-only harness | Runs started fair, serious, fair; all three ended serious |
+| Preview thermal observations | Nominal at process start and end | ordinary serious; large-100, large-1000, and nested nominal; links/tables fair |
 | Preview host | 390 × 844-point content window, 2x capture | Actual 414 × 896-point screen, safe areas, padded content, 2x capture |
 | Appearance | Dark | Dark |
 
 Power, thermals, and background activity were not controlled. Runs were sequential, without a debugger.
-The XR preview set was not thermally matched to its construction set or the Mac. Its table timing was
-recorded after the nested-fixture timeout, with serious thermal state. Do not treat it as nominal-thermal
-performance or compare device speed ratios from these runs.
+The XR preview set was not thermally matched to its construction set or to the Mac. The device stayed
+above nominal through the construction set even after a 15-minute idle period, and the warmest processes
+were also the slowest. Its table timing was recorded after the nested-fixture timeout, at a fair start.
+Do not treat these as nominal-thermal device performance or compare device speed ratios from these runs.
 
 - [Source hashes and toolchain](snapshot.json), including harness, fixtures, manifest, and lockfile hashes.
 - [Dependency lockfile](Package.resolved). Both device builds' resolved dependency revisions matched it.
@@ -34,7 +35,10 @@ performance or compare device speed ratios from these runs.
   [preview](iphone-xr-preview). Project placeholders avoid recording checkout paths and signing identities.
 
 Both device builds succeeded with a missing SwiftShims precompiled-module-file warning. Their apps
-installed and launched. Sanitized build summaries are retained alongside the results.
+installed and launched. Sanitized build summaries are retained alongside the results. Automatic signing
+matched an existing wildcard iOS App Development profile for the recorded team, so no provisioning update
+was requested; one attempt with `-allowProvisioningUpdates` failed before measurement because the host's
+stored Apple-account session was rejected.
 
 ## Construction
 
@@ -48,11 +52,11 @@ reflection-based result consumption, or snapshot destruction.
 
 | Fixture | Mac initial | Mac source change | Mac base URL change | XR initial | XR source change | XR base URL change |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Ordinary, 172 B | 0.406 | 0.452 | 0.403 | 1.221 | 1.312 | 1.170 |
-| Large, 17.2 KB | 39.003 | 38.242 | 39.009 | 113.197 | 116.003 | 124.966 |
-| Large, 172 KB | 388.317 | 385.261 | 388.201 | 1252.230 | 1266.840 | 1277.457 |
-| Nested, 1,416 B | 1.691 | 1.735 | 1.687 | 5.640 | 5.804 | 5.632 |
-| Links/tables, 37,107 B | 13.689 | 13.644 | 13.646 | 42.526 | 41.825 | 41.477 |
+| Ordinary, 172 B | 0.381 | 0.425 | 0.396 | 1.207 | 1.309 | 1.172 |
+| Large, 17.2 KB | 37.314 | 36.903 | 36.662 | 113.417 | 113.223 | 113.279 |
+| Large, 172 KB | 374.534 | 376.776 | 375.971 | 1201.313 | 1402.965 | 1391.104 |
+| Nested, 1,416 B | 1.665 | 1.712 | 1.659 | 6.073 | 5.898 | 6.097 |
+| Links/tables, 37,107 B | 13.483 | 13.429 | 13.410 | 46.054 | 46.055 | 46.342 |
 
 Raw medians, p95s, and minima:
 
@@ -67,18 +71,19 @@ a universal source-size limit, UI stall duration, or typing latency.
 
 ## Initial preview mounting
 
-One process covered all Mac fixtures. On the XR, each fixture used a separate process. Each completed
-fixture had one warmup and three measured samples. The table reports **three-sample medians**, in
-milliseconds; p95 in the raw output is the maximum of three samples, not a reliable tail estimate.
-Do not substitute this mode's construction column for the 30-sample construction baseline.
+One process covered all Mac fixtures. On the XR, each fixture used a separate process, launched with a
+short idle gap between fixtures. Each completed fixture had one warmup and three measured samples. The
+table reports **three-sample medians**, in milliseconds; p95 in the raw output is the maximum of three
+samples, not a reliable tail estimate. Do not substitute this mode's construction column for the 30-sample
+construction baseline.
 
 | Fixture | Mac background construction | Mac mount/layout | Mac capture checkpoint | XR background construction | XR mount/layout | XR capture checkpoint |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Ordinary | 0.620 | 7.933 | 108.413 | 8.933 | 49.509 | 1138.088 |
-| Large, 100 sections | 39.790 | 28.327 | 134.932 | 159.896 | 82.535 | 3624.830 |
-| Large, 1,000 sections | 389.686 | 31.773 | 145.410 | 1214.606 | 84.006 | 2366.746 |
-| Nested | 1.981 | 53.503 | 156.793 | Incomplete | Incomplete | Incomplete |
-| Links/tables | 14.991 | 3283.903 | 3947.636 | 79.262 | 11481.043 | 16715.003 |
+| Ordinary | 0.626 | 9.158 | 113.790 | 8.579 | 48.364 | 1141.386 |
+| Large, 100 sections | 38.585 | 27.520 | 133.153 | 155.958 | 82.561 | 3645.642 |
+| Large, 1,000 sections | 367.528 | 30.095 | 142.429 | 1221.057 | 83.952 | 2370.622 |
+| Nested | 1.977 | 50.736 | 152.077 | Incomplete | Incomplete | Incomplete |
+| Links/tables | 14.673 | 3226.617 | 3895.077 | 80.603 | 10532.403 | 16574.110 |
 
 The intervals start separately: background construction is excluded from mount/layout and capture.
 The capture checkpoint starts at mounting, not after layout. Mac capture includes a 20 ms suspension,
@@ -100,7 +105,9 @@ Raw results and status:
 The 32-level quote/list fixture completed background construction for its warmup, then logged
 `before_main_mount_layout`. It produced no layout result, capture-ready marker, screenshot, checksum,
 or completion row. The capture driver timed out waiting for `nested-0` after its 180-second wait limit.
-The process was then stopped. No measured sample completed, and no retry was made.
+The process was then stopped. No measured sample completed, and no retry was made. The cause and
+eventual completion time remain unknown; it remains tracked in
+[#78](https://github.com/NoemiRozpara/FlatMark/issues/78).
 
 The partial CSV and [capture-driver log](iphone-xr-preview/capture-nested.log) preserve the failure.
 This run does not establish whether layout would eventually complete or identify a watchdog or
@@ -109,12 +116,18 @@ memory-termination cause. The XR preview set is explicitly incomplete; its summa
 
 ### Capture inspection and limits
 
-The first measured screenshot of every completed fixture was visually inspected. Document content is
-visible in all nine inspected screenshots. Mac measured captures 1–3 are byte-identical per fixture.
-On the XR, their pixels match below the top 100-pixel status-bar region, which was excluded from the
-comparison. All original captures are retained: [Mac](macos-preview/captures), [XR](iphone-xr-preview/captures).
+The first measured screenshot of every completed fixture was inspected with Apple Vision text
+recognition over the PNG, and the recognized strings were checked against the fixture source. Document
+content is present in all nine inspected screenshots: heading, prose, mention, task list, and quote text
+for ordinary and both large fixtures, quote and list levels for nested, and the table header plus
+first-column cells for links/tables. Per fixture, captures 0-3 are byte-identical on the Mac, and their
+pixels match below the top 100-pixel status-bar region on the XR, which was excluded from that comparison.
+The two large fixtures share one capture hash on both platforms, because only the top of the document is
+in view. All original captures are retained: [Mac](macos-preview/captures),
+[XR](iphone-xr-preview/captures).
 
-Both table captures show horizontal clipping. These observations establish visible content at the
-capture checkpoint, not correct whole-document geometry. No scrolling, selection, link activation,
-VoiceOver, or later-frame performance was measured. Synthetic stress fixtures do not represent a
-user-document distribution, and these runs do not qualify minimum-platform behavior.
+Both table captures recognize only the first column: the second and third columns are absent, which shows
+horizontal clipping. These observations establish visible content at the capture checkpoint, not correct
+whole-document geometry, and text recognition is not a pixel-level rendering assertion. No scrolling,
+selection, link activation, VoiceOver, or later-frame performance was measured. Synthetic stress fixtures
+do not represent a user-document distribution, and these runs do not qualify minimum-platform behavior.

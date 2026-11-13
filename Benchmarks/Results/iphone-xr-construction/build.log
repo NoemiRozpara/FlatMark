@@ -18,13 +18,13 @@ Warnings (1):
 
   ⚠ /tmp/flatmark-construction-device/-build/SDKExplicitPrecompiledModules/SwiftShims-B8LQ4SX255GQHMG7O432YUX6P.pcm: No such file or directory
 
-✅ Build succeeded. (⏱️ 32.5s)
+✅ Build succeeded. (⏱️ 21.5s)
 ✅ Build & Run complete
   ├ Bundle ID: dev.flatmark.ConstructionBenchmark
-  ├ Process ID: 3831
+  ├ Process ID: 6839
   └ Files:
      ├ App Path: /tmp/flatmark-construction-device-build/Build/Products/Release-iphoneos/FlatMarkConstructionDevice.app
      └ Build Logs: <LOCAL_BUILD_LOG>
 
 Next steps:
-1. Stop app on device: mobilebuildmcp device stop --device-id <DEVICE_ID> --process-id 3831
+1. Stop app on device: mobilebuildmcp device stop --device-id <DEVICE_ID> --process-id 6839

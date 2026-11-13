@@ -1,12 +1,14 @@
-Screenshot saved to: Benchmarks/Results/iphone-xr-preview/captures/links-tables-0.png
+Screenshot saved to: /tmp/fm-2775a79-xr-preview/captures/links-tables-0.png
 Dimensions: 828x1792 pixels
+ERROR: Failed to retrieve the file node for Documents/capture-ack.txt (com.apple.dt.CoreDeviceError error 7000 (0x1B58))
+Acknowledgement copy reported an error; checking host progression
 Captured and acknowledged links-tables-0
-Screenshot saved to: Benchmarks/Results/iphone-xr-preview/captures/links-tables-1.png
+Screenshot saved to: /tmp/fm-2775a79-xr-preview/captures/links-tables-1.png
 Dimensions: 828x1792 pixels
 Captured and acknowledged links-tables-1
-Screenshot saved to: Benchmarks/Results/iphone-xr-preview/captures/links-tables-2.png
+Screenshot saved to: /tmp/fm-2775a79-xr-preview/captures/links-tables-2.png
 Dimensions: 828x1792 pixels
 Captured and acknowledged links-tables-2
-Screenshot saved to: Benchmarks/Results/iphone-xr-preview/captures/links-tables-3.png
+Screenshot saved to: /tmp/fm-2775a79-xr-preview/captures/links-tables-3.png
 Dimensions: 828x1792 pixels
 Captured and acknowledged links-tables-3

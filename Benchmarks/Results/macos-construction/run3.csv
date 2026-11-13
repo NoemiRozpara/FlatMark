@@ -1,23 +1,23 @@
 FlatMark construction benchmark: Release required; 5 warmups; 30 samples; ms; no SwiftUI rendering
 fixture,scenario,samples,median_ms,p95_ms,min_ms
 # ordinary: 1 section; UTF8=172
-ordinary,initial,30,0.406417,0.415792,0.386125
-ordinary,source-change,30,0.452083,0.455875,0.449666
-ordinary,baseURL-change,30,0.402500,0.419375,0.401375
+ordinary,initial,30,0.384125,0.418916,0.377333
+ordinary,source-change,30,0.441959,0.464666,0.417750
+ordinary,baseURL-change,30,0.400625,0.407083,0.373916
 # large-100: 100 sections; UTF8=17200
-large-100,initial,30,39.003000,39.509417,38.667292
-large-100,source-change,30,38.241666,38.868125,37.973875
-large-100,baseURL-change,30,38.011583,38.485750,37.724959
+large-100,initial,30,37.358208,40.364833,37.045666
+large-100,source-change,30,37.344625,39.449625,37.018083
+large-100,baseURL-change,30,37.175125,38.511875,36.914459
 # large-1000: 1000 sections; UTF8=172000
-large-1000,initial,30,378.158625,389.759708,376.566084
-large-1000,source-change,30,385.260792,388.171583,378.423292
-large-1000,baseURL-change,30,387.487417,391.557833,378.866791
+large-1000,initial,30,374.533750,386.029875,370.629625
+large-1000,source-change,30,377.788209,396.648584,367.279166
+large-1000,baseURL-change,30,375.970958,386.515083,366.925750
 # nested: 32 quote levels + 32 list levels; UTF8=1416
-nested,initial,30,1.669958,1.715833,1.662500
-nested,source-change,30,1.713709,1.760625,1.708084
-nested,baseURL-change,30,1.667167,1.706542,1.661333
+nested,initial,30,1.673334,1.698042,1.609333
+nested,source-change,30,1.718708,1.762667,1.654500
+nested,baseURL-change,30,1.671542,1.698458,1.623583
 # links-tables: 500 rows, 3 columns, 1500 relative links; UTF8=37107
-links-tables,initial,30,13.700375,13.854250,13.548916
-links-tables,source-change,30,13.677916,13.774833,13.552666
-links-tables,baseURL-change,30,13.646167,13.780084,13.531042
+links-tables,initial,30,13.572042,13.746917,13.475125
+links-tables,source-change,30,13.558042,13.752125,13.459667
+links-tables,baseURL-change,30,13.484750,13.623833,13.394292
 Consumed snapshot checksum: 351684165

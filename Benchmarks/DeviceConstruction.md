@@ -71,4 +71,6 @@ Repeat for `run3`, retrieving each output separately. Checksums must agree acros
 of the same build. Do not overlap measurements.
 
 Record hardware model, OS, toolchain, Release configuration, revision, power source, thermal
-observations, and uncontrolled conditions. Preserve incomplete runs as failures, not timing results.
+observations, and uncontrolled conditions. Pipe captured tool output through
+[scripts/log_sanitizer.py](../scripts/log_sanitizer.py) before archiving it, as the
+[benchmark guide](README.md) requires. Preserve incomplete runs as failures, not timing results.

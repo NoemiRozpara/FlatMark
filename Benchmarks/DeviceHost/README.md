@@ -31,6 +31,8 @@ Stop the reported process with `mobilebuildmcp device stop`, then use `mobilebui
 with the same device and bundle and a final launch argument of `large-100`, `large-1000`, `nested`, or
 `links-tables`. Start `capture.sh` immediately for that fixture. Run sequentially, without a debugger.
 Rebuild after changing the renderer; relaunching an installed binary alone does not pick up changes.
+Archive captured tool output only after filtering it through
+[scripts/log_sanitizer.py](../../scripts/log_sanitizer.py).
 
 ## Intervals and capture protocol
 

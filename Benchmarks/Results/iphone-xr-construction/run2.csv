@@ -1,26 +1,26 @@
 # device=iPhone11,8; OS=Version 18.7.12 (Build 22H390)
-# start=2026-11-12 14:46:18 +0000; thermal=0; lowPower=false
+# start=2026-11-13 10:36:45 +0000; thermal=2; lowPower=false
 FlatMark construction benchmark: Release required; 5 warmups; 30 samples; ms; no SwiftUI rendering
 fixture,scenario,samples,median_ms,p95_ms,min_ms
 # ordinary: 1 section; UTF8=172
-ordinary,initial,30,1.183375,1.317083,1.152625
-ordinary,source-change,30,1.313167,1.454208,1.287458
-ordinary,baseURL-change,30,1.160542,1.266333,1.149292
+ordinary,initial,30,1.216584,1.393084,1.153708
+ordinary,source-change,30,1.308958,1.390334,1.287500
+ordinary,baseURL-change,30,1.168750,1.241625,1.150416
 # large-100: 100 sections; UTF8=17200
-large-100,initial,30,113.196667,113.699208,113.047042
-large-100,source-change,30,116.002750,132.406750,113.191084
-large-100,baseURL-change,30,124.966166,128.079541,123.555084
+large-100,initial,30,116.174625,116.347041,113.554583
+large-100,source-change,30,116.208500,117.393708,114.026584
+large-100,baseURL-change,30,114.557542,115.194166,113.800375
 # large-1000: 1000 sections; UTF8=172000
-large-1000,initial,30,1252.230041,1263.284000,1223.724375
-large-1000,source-change,30,1266.839583,1288.721458,1248.421958
-large-1000,baseURL-change,30,1277.456500,1287.984334,1274.331458
+large-1000,initial,30,1281.742500,1405.593250,1154.378125
+large-1000,source-change,30,1402.964500,1512.815292,1390.149083
+large-1000,baseURL-change,30,1391.144833,1407.443750,1386.668083
 # nested: 32 quote levels + 32 list levels; UTF8=1416
-nested,initial,30,5.639042,5.705667,5.059625
-nested,source-change,30,5.807542,5.857291,5.194542
-nested,baseURL-change,30,5.632042,5.696000,5.060291
+nested,initial,30,6.761917,7.157500,5.647208
+nested,source-change,30,6.627167,7.329875,5.796416
+nested,baseURL-change,30,6.325125,7.119125,5.636708
 # links-tables: 500 rows, 3 columns, 1500 relative links; UTF8=37107
-links-tables,initial,30,42.526333,43.023458,41.017666
-links-tables,source-change,30,41.824666,42.933583,40.851583
-links-tables,baseURL-change,30,41.477209,43.005500,40.823666
+links-tables,initial,30,46.054000,48.100083,44.913416
+links-tables,source-change,30,46.054875,48.510792,44.763500
+links-tables,baseURL-change,30,46.342208,47.644791,43.607250
 Consumed snapshot checksum: 351684165
-# end=2026-11-12 14:49:26 +0000; thermal=0
+# end=2026-11-13 10:40:07 +0000; thermal=2

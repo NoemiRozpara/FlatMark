@@ -3,7 +3,8 @@
 
 Scripts that record logs or environment details pipe through this module, so a
 record keeps its failure messages, counts and timings without carrying a developer's
-home directory, a machine-local Xcode path, or bytes that only render in a terminal.
+home directory, a machine-local Xcode path, a physical device identifier, a signing
+team or account, or bytes that only render in a terminal.
 
 Manual capture uses the same filter:
 
@@ -27,6 +28,19 @@ _HOME_CHECKOUT_PREFIX = re.compile(
     r"/(?:Users|home)/[^/\s]+/\S*?(?=(?:Sources|Tests|Benchmarks|Demo|scripts|AI-docs)/)")
 # Xcode installs are machine-local; the SDK path after the developer directory is the evidence.
 _XCODE_DEVELOPER_DIR = re.compile(r"/Applications/Xcode[^/\s]*/Contents/Developer/")
+# MobileBuildMCP keeps per-run logs under a machine-local workspace directory named after the
+# checkout and a session hash. The tool's messages are the record; where they were stored is not.
+# Match before the home-path rules, which would otherwise leave the session hash and file name.
+_MOBILEBUILDMCP_LOG = re.compile(
+    r"(?:~|/(?:Users|home)/[^/\s]+)/Library/Developer/MobileBuildMCP/\S*")
+# A device identifier names one user's hardware. devicectl and MobileBuildMCP echo the value
+# passed to --device, and MobileBuildMCP also prints it as "Device: <UDID>".
+_DEVICE_UDID = re.compile(r"\b[0-9A-Fa-f]{8}-[0-9A-Fa-f]{12,16}\b")
+# A signing team and the Apple account behind it identify the maintainer, not the build. Match
+# the account only where a signing message names it, so unrelated addresses in tool output stay.
+_TEAM_ID = re.compile(r"(?i)(DEVELOPMENT_TEAM=)[A-Z0-9]{10}\b")
+_SIGNING_ACCOUNT = re.compile(
+    r"(?i)\b(account|apple id)\b[\s:=]*['\"]?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})['\"]?")
 # Swift Testing emits SF Symbols private-use glyphs on macOS. Event.Symbol.swift pairs each
 # with a plain Unicode fallback for terminals without that font; use those so logs stay readable.
 _SWIFT_TESTING_GLYPHS = {
@@ -47,6 +61,10 @@ def sanitize_log_text(text, root=None):
     """
     text = text.replace("\r\n", "\n").replace("\r", "")
     text = _ANSI_ESCAPE.sub("", text)
+    text = _MOBILEBUILDMCP_LOG.sub("<LOCAL_BUILD_LOG>", text)
+    text = _DEVICE_UDID.sub("<DEVICE_ID>", text)
+    text = _TEAM_ID.sub(r"\1<TEAM_ID>", text)
+    text = _SIGNING_ACCOUNT.sub(lambda match: f"{match.group(1)} <ACCOUNT>", text)
     if root is not None:
         prefix = str(pathlib.Path(root).resolve()).rstrip("/") + "/"
         text = text.replace(prefix, "")

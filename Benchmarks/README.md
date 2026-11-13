@@ -21,15 +21,15 @@ separate 32-level list. The cause and eventual completion time remain unknown. T
 this recorded timeout as a known 0.1.0 limitation; [#78](https://github.com/NoemiRozpara/FlatMark/issues/78)
 tracks the investigation.
 
-Large tables also mount eagerly; the recorded 500-row table took about 3.28 seconds on the Mac and
-11.48 seconds on the XR, with the environment qualifications in the results. These observations do
+Large tables also mount eagerly; the recorded 500-row table took about 3.23 seconds on the Mac and
+10.53 seconds on the XR, with the environment qualifications in the results. These observations do
 not establish safe source-size or nesting limits. Hosts must choose their own content/resource
 budgets; FlatMark does not truncate content or impose a depth cap.
 
 The XR timeout acceptance does not waive other failures or qualify any other release candidate. Record its
 scope and rationale in the external release record required by the
 [release checklist](../Documentation/Releasing.md). [#82](https://github.com/NoemiRozpara/FlatMark/issues/82) tracks
-post-squash measurements; keep the existing failures visible until new evidence supersedes them.
+this measurement run; keep the recorded failures visible until new evidence supersedes them.
 
 ## Run
 
@@ -46,7 +46,9 @@ hashes, revision, and environment metadata. Only `summary.json` with `complete: 
 Failed runs remain for inspection; the script never overwrites an existing destination.
 
 Records leave the script sanitized: `build.log`, per-run stderr logs, and `environment.json` lose
-terminal escape codes, developer-home paths, and machine-local Xcode paths. CSVs stay verbatim.
+terminal escape codes, developer-home paths, and machine-local Xcode paths. Device records pipe
+captured tool output through the same filter, which also replaces device identifiers, signing team
+and account values, and local build-log paths. CSVs stay verbatim.
 [scripts/log_sanitizer.py](../scripts/log_sanitizer.py) owns these rules. Do not collect machine
 identifiers, battery details, or unrelated runtime inventory.
 

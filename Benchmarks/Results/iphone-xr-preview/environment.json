@@ -1,5 +1,5 @@
 {
-  "revision": "d02a16ae81e45de63ca9baefebb7cd4e476dde32",
+  "revision": "2775a791f073d4c272bce5833eef10abdc4a8f12",
   "hardware": "iPhone XR (iPhone11,8)",
   "os": "iOS 18.7.12 (22H390)",
   "host": "Apple M3 Pro; macOS 27.0.1 (26A434)",
@@ -9,13 +9,16 @@
   "deployment_target": "iOS 17.0",
   "swift_language_mode": "6.0",
   "strict_concurrency": "complete",
-  "power": "Wired USB connection; charging indicator visible in preview captures. No battery statistics collected.",
+  "power": "Wired USB connection for the whole set; screenshots and files were transferred over USB. The harness collected no device battery level or charging state.",
   "conditions": "Benchmark app kept foregrounded. No overlapping benchmark runs. Power, thermals, and other activity are not controlled.",
-  "thermal_observations": "Ordinary, large-100, large-1000, and nested started fair. Links-tables started serious after the nested-fixture timeout. Not nominal-thermal performance.",
-  "screen_points": [414, 896],
+  "thermal_observations": "Measured from the host environment row at process start. large-100, large-1000, and nested started nominal; links-tables started fair; ordinary started serious, immediately after the construction set. Thermal pressure was not controlled.",
+  "screen_points": [
+    414,
+    896
+  ],
   "capture_scale": 2,
   "appearance": "Dark",
-  "visual_inspection": "Sample 1 of all four completed fixtures inspected; document content visible, with horizontal table clipping. Samples 2 and 3 match sample 1 pixel-for-pixel below the top 100-pixel status region. No nested capture completed.",
+  "visual_inspection": "Sample 1 of all four completed fixtures inspected with Apple Vision text recognition over the PNG: heading, prose, mention, task list, and quote text are present for ordinary and the large fixtures; the table header and first-column cells are present for links/tables, with the second and third columns absent from the capture, which shows horizontal clipping. Captures 0-3 match pixel-for-pixel below the top 100-pixel status-bar region, which was excluded from that comparison. No nested capture completed.",
   "failure": "Nested warmup logged before_main_mount_layout, then produced no layout timing or capture marker within the driver's 180-second wait limit. Operator stopped the process. No retry or termination-cause diagnosis.",
   "source_record": "../snapshot.json",
   "lockfile": "../Package.resolved",
@@ -65,8 +68,9 @@
     "--derived-data-path",
     "<DERIVED_DATA>",
     "--extra-args",
-    "DEVELOPMENT_TEAM=<TEAM_ID>",
-    "-allowProvisioningUpdates"
+    "DEVELOPMENT_TEAM=<TEAM_ID>"
   ],
-  "build_warning": "SwiftShims precompiled module file not found warning; build succeeded."
+  "build_warning": "SwiftShims precompiled module file not found warning; build succeeded.",
+  "install_and_launch": "The built bundle was installed once with `mobilebuildmcp device install`. Each fixture then used `mobilebuildmcp device launch` with the fixture name as the final launch argument, followed immediately by Host/capture.sh.",
+  "signing": "Automatic signing matched an existing wildcard iOS App Development profile for the recorded team, so no provisioning update was requested."
 }

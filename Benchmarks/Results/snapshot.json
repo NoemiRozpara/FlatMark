@@ -1,5 +1,5 @@
 {
-  "revision": "d02a16ae81e45de63ca9baefebb7cd4e476dde32",
+  "revision": "2775a791f073d4c272bce5833eef10abdc4a8f12",
   "swift": "swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)\nTarget: arm64-apple-macosx27.0.0",
   "xcode": "Xcode 27.0\nBuild version 27A266a",
   "input_sha256": {
@@ -10,7 +10,7 @@
     "Sources/FlatMark/API/FlatMarkTaskMarker.swift": "9cd76669e5a3937f54d3d81cded7b2dadd79247eff23a4a2d4878e25826dc72e",
     "Sources/FlatMark/API/FlatMarkUnsupportedContentPolicy.swift": "bb7f4da84a29737416ea67bb276a186f0eade4b548151e5e54f1a9be05728530",
     "Sources/FlatMark/API/FlatMarkView.swift": "75db68220401b2f9f49dd2d2905e8a5459043ebbf543bc88f95483f6235532d1",
-    "Sources/FlatMark/FlatMark.docc/FlatMark.md": "a8a55fb2aaacc76dbcb20756cdd13e23b5a796e53e427c5377cac5ce0f818298",
+    "Sources/FlatMark/FlatMark.docc/FlatMark.md": "62dd4132be7b56cdb0f794d88cfb8a6c1f45efcda31af6b79ac82ff2d9b15494",
     "Sources/FlatMark/Projection/FlatMarkInlineAttributedStringProjector.swift": "372bab91171891fe0579b4c1060df6c135fe282e2ab9a65bf50e5160c10c41ae",
     "Sources/FlatMark/Projection/FlatMarkRenderDocument.swift": "c7eb06b7b5de6ddf9bb65ccd8448d09bbc0c3e0b3bd495b4bde6152b799da7f5",
     "Sources/FlatMark/Projection/FlatMarkRenderNodeID.swift": "33d075e1d1edbeb1a61470d550d6a06d2a51430580092b536b6881f44c0c927c",

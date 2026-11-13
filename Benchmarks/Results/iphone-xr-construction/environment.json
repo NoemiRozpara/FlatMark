@@ -1,5 +1,5 @@
 {
-  "revision": "d02a16ae81e45de63ca9baefebb7cd4e476dde32",
+  "revision": "2775a791f073d4c272bce5833eef10abdc4a8f12",
   "hardware": "iPhone XR (iPhone11,8)",
   "os": "iOS 18.7.12 (22H390)",
   "host": "Apple M3 Pro; macOS 27.0.1 (26A434)",
@@ -9,9 +9,9 @@
   "deployment_target": "iOS 17.0",
   "swift_language_mode": "6.0",
   "strict_concurrency": "complete",
-  "power": "Wired USB connection; charging state not collected.",
+  "power": "Wired USB connection for the whole set; the harness collected no device battery level or charging state.",
   "conditions": "Benchmark app kept foregrounded. No overlapping benchmark runs. Power, thermals, and other activity are not controlled.",
-  "thermal_observations": "All three processes started nominal. Runs 1 and 2 ended nominal; run 3 ended fair.",
+  "thermal_observations": "Measured from the host process header and trailer. Run 1 and run 3 started fair and run 2 started serious; all three ended serious. A 15-minute idle period before the set did not return the device to nominal. Thermal pressure was not controlled, and the warmest processes were also the slowest.",
   "source_record": "../snapshot.json",
   "lockfile": "../Package.resolved",
   "resolved_dependencies": {
@@ -63,9 +63,10 @@
     "<DERIVED_DATA>",
     "--extra-args",
     "DEVELOPMENT_TEAM=<TEAM_ID>",
-    "-allowProvisioningUpdates",
     "--launch-args",
     "run1"
   ],
-  "build_warning": "SwiftShims precompiled module file not found warning; build succeeded."
+  "build_warning": "SwiftShims precompiled module file not found warning; build succeeded.",
+  "subsequent_runs": "Runs 2 and 3 reused the installed binary through `mobilebuildmcp device launch --launch-args run2|run3`.",
+  "signing": "Automatic signing matched an existing wildcard iOS App Development profile for the recorded team, so no provisioning update was requested. -allowProvisioningUpdates was omitted: the host's stored Apple-account session was rejected when Xcode tried to refresh profiles."
 }
