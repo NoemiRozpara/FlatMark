@@ -5,6 +5,21 @@ Versions follow the [versioning policy](Documentation/Versioning.md). Publicatio
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
+Benchmark and tooling update. No public API and no documented behavior changed.
+
+### Changed
+
+- Re-recorded construction and preview benchmark results at the `0.1.0` sources on macOS 27.0.1
+  (Apple M3 Pro, Xcode 27.0 / Swift 6.4) and on a physical iPhone XR running iOS 18.7.12. The iPhone
+  XR record repeats the accepted nesting limit: the nested fixture did not finish mounting within the
+  capture driver's 180-second wait, and the links/tables capture shows the second and third columns
+  clipped. See [known performance limits](Benchmarks/README.md#known-performance-limits).
+- Capture and environment records (`scripts/log_sanitizer.py`) also redact physical device
+  identifiers, machine-local MobileBuildMCP log paths, signing team IDs, and signing account
+  addresses.
+
 ## [0.1.0] - 2026-11-13
 
 Initial public surface.
@@ -25,4 +40,6 @@ Initial public surface.
   accessibility qualification; see [verification status](Tests/README.md#verification-status).
 - MIT license for source and docs, with separate [fixture-image attribution](Support/FlatMarkFixtures/ASSETS.md).
 
+[Unreleased]: https://github.com/NoemiRozpara/FlatMark/compare/0.1.1...HEAD
+[0.1.1]: https://github.com/NoemiRozpara/FlatMark/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/NoemiRozpara/FlatMark/tree/0.1.0

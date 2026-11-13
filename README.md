@@ -75,14 +75,14 @@ Open [Demo/FlatMarkDemo.xcodeproj](Demo/FlatMarkDemo.xcodeproj), select **FlatMa
 ## Installation
 
 In Xcode, choose **File → Add Package Dependencies**, enter
-`https://github.com/NoemiRozpara/FlatMark.git`, select **Up to Next Minor Version** from **0.1.0**,
+`https://github.com/NoemiRozpara/FlatMark.git`, select **Up to Next Minor Version** from **0.1.1**,
 and add the **FlatMark** library product to your app target.
 
 For a Swift package, add the dependency and product:
 
 ```swift
 // Package dependencies:
-.package(url: "https://github.com/NoemiRozpara/FlatMark.git", .upToNextMinor(from: "0.1.0"))
+.package(url: "https://github.com/NoemiRozpara/FlatMark.git", .upToNextMinor(from: "0.1.1"))
 
 // Your target's dependencies:
 .product(name: "FlatMark", package: "FlatMark")
