@@ -108,17 +108,57 @@ look actionable before activation. Navigation permission is independent of image
 
 ## Images
 
-By default, images are network-free alt-text placeholders (`Image` when alt text is empty). Provide an
-async loader that returns a native image — `UIImage` on iOS, `NSImage` on macOS (`NativeImage`):
+Without a loader, all images are network-free alt-text placeholders (`Image` when alt text is empty),
+including HTTP(S) URLs and local files. Provide an async loader that returns a native image —
+`UIImage` on iOS, `NSImage` on macOS (`NativeImage`).
+
+This minimal HTTP(S) loader downloads and decodes an image on iOS and macOS:
 
 ```swift
-let loaderID = UUID() // Retain this ID while the loader configuration is unchanged.
-let loader = FlatMarkImageLoader(configurationID: loaderID) { url in
-    try await imageService.image(for: url)
-}
+import FlatMark
+import Foundation
+import SwiftUI
 
-FlatMarkView(markdown: markdown, imageLoader: loader)
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
+
+struct MarkdownExample: View {
+    // Keep the loader configuration ID stable across view updates.
+    private static let imageLoader = FlatMarkImageLoader(
+        configurationID: UUID()
+    ) { url in
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        guard let response = response as? HTTPURLResponse,
+              (200..<300).contains(response.statusCode)
+        else {
+            throw URLError(.badServerResponse)
+        }
+
+        guard let image = NativeImage(data: data) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+
+        return image
+    }
+
+    var body: some View {
+        FlatMarkView(
+            markdown: "![A sample photo](https://picsum.photos/600/300)",
+            imageLoader: Self.imageLoader
+        )
+    }
+}
 ```
+
+The default image URL policy already allows HTTP(S). Prefer HTTPS: App Transport Security can block
+plain HTTP. For a sandboxed macOS app, enable **App Sandbox → Outgoing Connections (Client)** in the
+app target's Signing & Capabilities settings.
+
+This example adds no explicit caching, image downsampling, or download-size limits.
 
 The host owns fetching, decoding, authentication, and caching. FlatMark draws the returned image at
 its intrinsic size, scales larger images down to the paragraph's proposed width, and manages loading,
