@@ -8,7 +8,7 @@ A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS
 interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftlang/swift-markdown).
 
 [Documentation](Documentation/README.md) · [Usage guide](Documentation/Usage.md) · [Markdown support](Documentation/MarkdownSupport.md) · [Demo](Demo/README.md) · [Testing](Tests/README.md) · [Benchmarks](Benchmarks/README.md) ·
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## What & Why _Flat_ Mark
 
