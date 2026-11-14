@@ -2,6 +2,8 @@
 
 ![FlatMark: Markdown previews for SwiftUI with interactive task lists, shown with a recipe and checklist.](Documentation/Images/flatmark-social.jpeg)
 
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FNoemiRozpara%2FFlatMark%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/NoemiRozpara/FlatMark)
+ 
 A native SwiftUI GitHub Flavored Markdown preview renderer for iOS 17+ and macOS 15+, with optional
 interactive task lists. Parsing uses [swift-markdown](https://github.com/swiftlang/swift-markdown).
 
