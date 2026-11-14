@@ -57,7 +57,8 @@ Do not assume session defaults, CI or formatter hooks, or coverage configuration
 
 ## CI
 
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) offers three manual dispatch subsets.
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the `pr` subset on pull requests
+and the `weekly` subset each Monday at 06:00 UTC. It also offers three manual dispatch subsets.
 [The shared unit lane](../../.github/workflows/unit-lane.yml) owns test commands, simulator lifecycle,
 and the single iOS snapshot exclusion list.
 
@@ -75,9 +76,8 @@ The separate macOS 15 hosted lane targets the minimum macOS version.
 | `weekly` | `ios-27` | `xcode-27` / macOS 27 | GA 27.2 | Newest installed GA iOS 27.x simulator |
 | `ios17-feasibility` | `ios-17-feasibility` | `macos-15` / macOS 15 | 26.0.1 | Exactly iOS 17.5; manual feasibility trial, then pre-release if qualified |
 
-The subset names describe intended cadence, not active triggers. There are no PR, push, or scheduled
-triggers. Hosted execution and activation remain pending; [#73](https://github.com/NoemiRozpara/FlatMark/issues/73)
-tracks automatic triggers. The `ios17-feasibility` subset and `ios-17-feasibility` lane name identify the iOS 17.5 feasibility
+Scheduled runs use the default branch. There is no push trigger.
+The `ios17-feasibility` subset and `ios-17-feasibility` lane name identify the iOS 17.5 feasibility
 check. It stays manual-only:
 `gh workflow run ci.yml -f subset=ios17-feasibility` requests it.
 

@@ -1,11 +1,13 @@
 name: CI
 
-# Manual dispatch only; hosted verification and automatic-trigger activation remain pending.
 on:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays at 06:00 UTC.
   workflow_dispatch:
     inputs:
       subset:
-        description: 'PR subset, weekly subset, or iOS 17.5 feasibility (no automatic runs yet)'
+        description: 'PR subset, weekly subset, or iOS 17.5 feasibility'
         type: choice
         default: pr
         options:
@@ -26,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: ${{ fromJSON(inputs.subset == 'weekly' && '["macos-26-xcode26"]' || '["macos-minimum","macos-current"]') }}
+        lane: ${{ fromJSON((github.event_name == 'schedule' || inputs.subset == 'weekly') && '["macos-26-xcode26"]' || '["macos-minimum","macos-current"]') }}
     uses: ./.github/workflows/unit-lane.yml
     with:
       lane: ${{ matrix.lane }}
@@ -39,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: ${{ fromJSON(inputs.subset == 'ios17-feasibility' && '["ios-17-feasibility"]' || inputs.subset == 'weekly' && '["ios-26","ios-27"]' || '["ios-unit"]') }}
+        lane: ${{ fromJSON(inputs.subset == 'ios17-feasibility' && '["ios-17-feasibility"]' || (github.event_name == 'schedule' || inputs.subset == 'weekly') && '["ios-26","ios-27"]' || '["ios-unit"]') }}
     uses: ./.github/workflows/unit-lane.yml
     with:
       lane: ${{ matrix.lane }}
